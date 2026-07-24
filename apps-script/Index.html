@@ -8,195 +8,207 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <style>
-    .fade-in { animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-    .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
-    .dark .skeleton { background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
-    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-    .toast-enter { animation: slideIn 0.3s ease-out; }
-    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .fade-in{animation:fadeIn .3s ease-in}@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+    .skeleton{background:linear-gradient(90deg,#374151 25%,#4b5563 50%,#374151 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    .toast-enter{animation:slideIn .3s ease-out}@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
   </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+<body class="bg-gray-900 min-h-screen text-white">
   <!-- HEADER -->
-  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
+  <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center">
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         </div>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Gestao de Cancelamentos</h1>
+        <h1 class="text-xl font-bold">Gestao de Cancelamentos</h1>
       </div>
-      <div class="flex items-center gap-3">
-        <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Modo escuro">
-          <svg id="icon-sun" class="w-5 h-5 text-yellow-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-          <svg id="icon-moon" class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-        </button>
-        <span class="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">Google Sheets</span>
-      </div>
+      <span class="text-xs text-gray-500 hidden sm:block">Google Sheets</span>
     </div>
   </header>
   <!-- MAIN -->
   <main class="max-w-7xl mx-auto px-4 py-6">
     <!-- STATS -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Total</p><p class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-total">-</p></div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Ativos</p><p class="text-2xl font-bold text-green-600" id="stat-ativos">-</p></div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Em Negociacao</p><p class="text-2xl font-bold text-blue-600" id="stat-negociacao">-</p></div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Cancelados</p><p class="text-2xl font-bold text-gray-600 dark:text-gray-300" id="stat-cancelados">-</p></div>
+      <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Total</p><p class="text-2xl font-bold text-white" id="stat-total">-</p></div>
+      <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Ativos</p><p class="text-2xl font-bold text-green-500" id="stat-ativos">-</p></div>
+      <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Em Negociacao</p><p class="text-2xl font-bold text-blue-500" id="stat-negociacao">-</p></div>
+      <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Cancelados</p><p class="text-2xl font-bold text-gray-300" id="stat-cancelados">-</p></div>
     </div>
-    <!-- TABS -->
-    <div class="mb-4"><div id="tabs-container" class="flex gap-2 overflow-x-auto pb-2"><div class="skeleton h-9 w-24 rounded-lg"></div><div class="skeleton h-9 w-24 rounded-lg"></div><div class="skeleton h-9 w-24 rounded-lg"></div></div></div>
-    <!-- FILTERS: DATA + STATUS -->
-    <div class="flex flex-col sm:flex-row gap-3 mb-3 items-start sm:items-center">
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Data:</label>
-        <input id="filter-date" type="date" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-green-500 outline-none" />
-      </div>
-      <div class="flex items-center gap-2">
-        <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</label>
-        <select id="filter-status" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-green-500 outline-none">
-          <option value="">Todos</option>
-          <option value="Ativo">Ativo</option>
-          <option value="Inadimplente">Inadimplente</option>
-          <option value="Cancelado">Cancelado</option>
-          <option value="Pendente">Pendente</option>
-          <option value="Em negociacao">Em negociacao</option>
-        </select>
-      </div>
-      <button onclick="applyFilters()" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">Filtrar</button>
-      <button onclick="clearFilters()" class="px-3 py-2 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-700 dark:hover:text-gray-200 transition">Limpar</button>
+    <!-- MONTH FILTER BUTTONS -->
+    <div class="mb-4 flex gap-2 overflow-x-auto pb-2" id="month-buttons">
+      <button onclick="setMonth('')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="">TODOS</button>
+      <button onclick="setMonth('JANEIRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="JANEIRO">JANEIRO</button>
+      <button onclick="setMonth('FEVEREIRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="FEVEREIRO">FEVEREIRO</button>
+      <button onclick="setMonth('MARÇO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="MARÇO">MARÇO</button>
+      <button onclick="setMonth('ABRIL')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="ABRIL">ABRIL</button>
+      <button onclick="setMonth('MAIO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="MAIO">MAIO</button>
+      <button onclick="setMonth('JUNHO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="JUNHO">JUNHO</button>
+      <button onclick="setMonth('JULHO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="JULHO">JULHO</button>
+      <button onclick="setMonth('AGOSTO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="AGOSTO">AGOSTO</button>
+      <button onclick="setMonth('SETEMBRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="SETEMBRO">SETEMBRO</button>
+      <button onclick="setMonth('OUTUBRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="OUTUBRO">OUTUBRO</button>
+      <button onclick="setMonth('NOVEMBRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="NOVEMBRO">NOVEMBRO</button>
+      <button onclick="setMonth('DEZEMBRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="DEZEMBRO">DEZEMBRO</button>
+    </div>
+    <!-- FILTERS ROW -->
+    <div class="flex flex-wrap gap-3 mb-4 items-end">
+      <div><label class="block text-xs text-gray-400 mb-1">Ano</label><select id="filter-ano" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
+      <div><label class="block text-xs text-gray-400 mb-1">Status</label><select id="filter-status" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociacao">Em negociacao</option></select></div>
+      <div><label class="block text-xs text-gray-400 mb-1">Data Inicio</label><input id="filter-data-inicio" type="date" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
+      <div><label class="block text-xs text-gray-400 mb-1">Data Fim</label><input id="filter-data-fim" type="date" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
+      <button onclick="clearAllFilters()" class="px-3 py-2 text-sm text-gray-400 hover:text-white transition">Limpar filtros</button>
     </div>
     <!-- TOOLBAR -->
     <div class="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center">
       <div class="relative flex-1 w-full sm:max-w-md">
         <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <input id="search-input" type="text" placeholder="Buscar por nome, placa, consultor..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition" />
+        <input id="search-input" type="text" placeholder="Buscar por nome, placa, consultor..." class="w-full pl-10 pr-4 py-2.5 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition" />
       </div>
       <button onclick="showForm()" class="inline-flex items-center px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition shadow-sm">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Nova Solicitacao
       </button>
     </div>
     <!-- TABLE -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-sm">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead><tr class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Nome</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Placa</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Parcela</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Pago</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Consultor</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Status</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Atendente</th>
-            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Data</th>
-            <th class="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200">Acoes</th>
+          <thead><tr class="bg-gray-700 border-b border-gray-600">
+            <th class="px-4 py-3 text-left font-semibold text-gray-200">Nome</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-200">Placa</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-200">Parcela</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-200">Pago</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-200">Consultor</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-200">Status</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-200">Atendente</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-200">Data</th>
+            <th class="px-4 py-3 text-center font-semibold text-gray-200">Acoes</th>
           </tr></thead>
-          <tbody id="table-body"><tr><td colspan="9" class="px-4 py-12 text-center text-gray-400 dark:text-gray-500">Carregando...</td></tr></tbody>
+          <tbody id="table-body"><tr><td colspan="9" class="px-4 py-12 text-center text-gray-500">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
-    <div class="mt-3 text-sm text-gray-500 dark:text-gray-400" id="record-count"></div>
+    <div class="mt-3 text-sm text-gray-400" id="record-count"></div>
   </main>
   <!-- FORM MODAL -->
   <div id="form-modal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideForm()"></div>
-    <div class="relative max-w-2xl mx-auto mt-10 bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 m-4 max-h-[85vh] overflow-y-auto fade-in">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="hideForm()"></div>
+    <div class="relative max-w-2xl mx-auto mt-10 bg-gray-800 rounded-xl shadow-2xl p-6 m-4 max-h-[85vh] overflow-y-auto fade-in border border-gray-700">
       <div class="flex items-center justify-between mb-6">
-        <h2 id="form-title" class="text-lg font-bold text-gray-900 dark:text-white">Nova Solicitacao</h2>
-        <button onclick="hideForm()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <h2 id="form-title" class="text-lg font-bold text-white">Nova Solicitacao</h2>
+        <button onclick="hideForm()" class="p-2 hover:bg-gray-700 rounded-lg"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
       <form id="record-form" onsubmit="handleSubmit(event)">
         <input type="hidden" id="form-row-id" value="" />
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Associado <span class="text-red-500">*</span></label><input id="f-nome" type="text" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome completo" /></div>
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Placa <span class="text-red-500">*</span></label><input id="f-placa" type="text" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ex: ABC-1234" /></div>
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor da Parcela</label><input id="f-parcela" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor Pago</label><input id="f-pago" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Consultor</label><input id="f-consultor" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome do consultor" /></div>
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Atendente</label><select id="f-atendente" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Selecione...</option><option value="JOYCE">JOYCE</option><option value="ISABELA">ISABELA</option><option value="LETICIA">LETICIA</option><option value="MARIA">MARIA</option><option value="ISIS">ISIS</option></select></div>
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Atual</label><select id="f-status" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociacao">Em negociacao</option></select></div>
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo do Cancelamento</label><select id="f-motivo" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="VENDA">VENDA</option><option value="TROCA DE VEICULO">TROCA DE VEICULO</option><option value="MOTIVO PESSOAL">MOTIVO PESSOAL</option><option value="DIFICULDADE FINANCEIRA">DIFICULDADE FINANCEIRA</option><option value="ERRO DE LANCAMENTO">ERRO DE LANCAMENTO</option><option value="RESSARCIMENTO">RESSARCIMENTO</option><option value="INSATISFACAO">INSATISFACAO</option><option value="SOLICITACAO DA DIRETORIA">SOLICITACAO DA DIRETORIA</option></select></div>
-          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observacao</label><textarea id="f-obs" rows="2" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Observacoes..."></textarea></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Nome do Associado <span class="text-red-500">*</span></label><input id="f-nome" type="text" required class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome completo" /></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Placa <span class="text-red-500">*</span></label><input id="f-placa" type="text" required class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ex: ABC-1234" /></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Valor da Parcela</label><input id="f-parcela" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Valor Pago</label><input id="f-pago" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Consultor</label><input id="f-consultor" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome do consultor" /></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Atendente</label><select id="f-atendente" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Selecione...</option><option value="JOYCE">JOYCE</option><option value="ISABELA">ISABELA</option><option value="LETICIA">LETICIA</option><option value="MARIA">MARIA</option><option value="ISIS">ISIS</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Status Atual</label><select id="f-status" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociacao">Em negociacao</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Motivo do Cancelamento</label><select id="f-motivo" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="VENDA">VENDA</option><option value="TROCA DE VEICULO">TROCA DE VEICULO</option><option value="MOTIVO PESSOAL">MOTIVO PESSOAL</option><option value="DIFICULDADE FINANCEIRA">DIFICULDADE FINANCEIRA</option><option value="ERRO DE LANCAMENTO">ERRO DE LANCAMENTO</option><option value="RESSARCIMENTO">RESSARCIMENTO</option><option value="INSATISFACAO">INSATISFACAO</option><option value="SOLICITACAO DA DIRETORIA">SOLICITACAO DA DIRETORIA</option></select></div>
+          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-300 mb-1">Observacao</label><textarea id="f-obs" rows="2" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Observacoes..."></textarea></div>
         </div>
-        <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex gap-3 mt-6 pt-4 border-t border-gray-700">
           <button type="submit" id="btn-submit" class="px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">Cadastrar</button>
-          <button type="button" onclick="hideForm()" class="px-5 py-2.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancelar</button>
+          <button type="button" onclick="hideForm()" class="px-5 py-2.5 bg-gray-700 text-gray-200 font-medium rounded-lg border border-gray-600 hover:bg-gray-600 transition">Cancelar</button>
         </div>
       </form>
     </div>
   </div>
   <!-- DELETE MODAL -->
   <div id="delete-modal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideDeleteModal()"></div>
-    <div class="relative max-w-md mx-auto mt-32 bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 m-4 fade-in">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="hideDeleteModal()"></div>
+    <div class="relative max-w-md mx-auto mt-32 bg-gray-800 rounded-xl shadow-2xl p-6 m-4 fade-in border border-gray-700">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg></div>
-        <div><h3 class="text-lg font-semibold text-gray-900 dark:text-white">Confirmar Exclusao</h3><p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Deseja excluir <span id="delete-name" class="font-medium text-gray-700 dark:text-gray-200"></span>?</p></div>
+        <div class="w-12 h-12 bg-red-900/30 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg></div>
+        <div><h3 class="text-lg font-semibold text-white">Confirmar Exclusao</h3><p class="text-sm text-gray-400 mt-1">Deseja excluir <span id="delete-name" class="font-medium text-gray-200"></span>?</p></div>
       </div>
       <div class="flex justify-end gap-3 mt-6">
-        <button onclick="hideDeleteModal()" class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancelar</button>
+        <button onclick="hideDeleteModal()" class="px-4 py-2 bg-gray-700 text-gray-200 rounded-lg border border-gray-600 hover:bg-gray-600 transition">Cancelar</button>
         <button onclick="confirmDelete()" id="btn-delete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Sim, excluir</button>
       </div>
     </div>
   </div>
   <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2"></div>
   <script>
-    var currentTab='',allTabs=[],allRecords=[],filteredRecords=[],deleteRowId=null,searchTimeout=null;
-    function toggleDarkMode(){var h=document.documentElement,d=h.classList.toggle('dark');localStorage.setItem('darkMode',d?'true':'false');updIcons(d);}
-    function updIcons(d){document.getElementById('icon-sun').classList.toggle('hidden',!d);document.getElementById('icon-moon').classList.toggle('hidden',d);}
-    function initDark(){var d=localStorage.getItem('darkMode')==='true';if(d)document.documentElement.classList.add('dark');updIcons(d);}
-    window.onload=function(){initDark();loadTabs();document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){loadRecords(e.target.value);},400);});};
-    function loadTabs(){google.script.run.withSuccessHandler(function(r){if(r.success){allTabs=r.data;renderTabs();if(allTabs.length>0)selectTab(allTabs[0].name);}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getSheetTabs();}
-    function loadRecords(q){if(!currentTab)return;showLoading();google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;filteredRecords=r.data;applyFilters();document.getElementById('record-count').textContent=r.data.length+' registro(s)';}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords(currentTab,q||'');}
-    function loadStats(){google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-total').textContent=r.data.total;document.getElementById('stat-ativos').textContent=r.data.ativos;document.getElementById('stat-negociacao').textContent=r.data.emNegociacao;document.getElementById('stat-cancelados').textContent=r.data.cancelados;}}).getStats(currentTab);}
-    function renderTabs(){var c=document.getElementById('tabs-container');c.innerHTML=allTabs.map(function(t){var a=t.name===currentTab;return '<button onclick="selectTab(\''+t.name+'\')" class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all '+(a?'bg-green-600 text-white shadow-md':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700')+'">'+t.name+'</button>';}).join('');}
-    function selectTab(n){currentTab=n;renderTabs();document.getElementById('search-input').value='';clearFilters();loadRecords('');loadStats();}
-    function esc(t){if(!t)return '';var d=document.createElement('div');d.textContent=t.toString();return d.innerHTML;}
-    function stClass(s){s=(s||'').toLowerCase();if(s==='ativo')return 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300';if(s==='inadimplente')return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';if(s==='cancelado')return 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200';if(s==='pendente')return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300';if(s==='em negociacao')return 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';}
-    function showLoading(){var t=document.getElementById('table-body'),r='';for(var i=0;i<5;i++){r+='<tr class="border-b border-gray-100 dark:border-gray-700">';for(var j=0;j<9;j++)r+='<td class="px-4 py-3"><div class="skeleton h-4 rounded" style="width:'+(Math.random()*40+50)+'%"></div></td>';r+='</tr>';}t.innerHTML=r;}
-    // FILTERS
-    function applyFilters(){
-      var statusFilter=document.getElementById('filter-status').value;
-      var dateFilter=document.getElementById('filter-date').value;
-      var result=allRecords.filter(function(r){
-        if(statusFilter && r.statusAtual.toLowerCase()!==statusFilter.toLowerCase()) return false;
-        if(dateFilter && r.dataCriacao){
-          var parts=r.dataCriacao.split(' ')[0].split('/');
-          if(parts.length===3){var recDate=parts[2]+'-'+parts[1]+'-'+parts[0];if(recDate!==dateFilter) return false;}
-        } else if(dateFilter && !r.dataCriacao) return false;
-        return true;
-      });
-      filteredRecords=result;
-      renderTable(result);
-      document.getElementById('record-count').textContent=result.length+' registro(s)';
+    var allRecords=[],deleteRowId=null,searchTimeout=null,currentMonth='';
+    var currentFilters={mes:'',ano:'',dataInicio:'',dataFim:'',status:''};
+
+    window.onload=function(){loadData();document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){loadData();},400);});};
+
+    function getFilters(){
+      return {
+        mes:currentMonth,
+        ano:document.getElementById('filter-ano').value,
+        dataInicio:document.getElementById('filter-data-inicio').value,
+        dataFim:document.getElementById('filter-data-fim').value,
+        status:document.getElementById('filter-status').value
+      };
     }
-    function clearFilters(){document.getElementById('filter-status').value='';document.getElementById('filter-date').value='';filteredRecords=allRecords;renderTable(allRecords);}
+    function setMonth(m){currentMonth=m;highlightMonth();applyFilters();}
+    function highlightMonth(){
+      var btns=document.querySelectorAll('#month-buttons button');
+      btns.forEach(function(b){
+        var bm=b.getAttribute('data-month');
+        if(bm===currentMonth){b.className='px-3 py-1.5 rounded-lg text-sm font-medium bg-green-600 text-white shadow-md transition';}
+        else{b.className='px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition';}
+      });
+    }
+    function applyFilters(){loadData();}
+    function clearAllFilters(){currentMonth='';document.getElementById('filter-ano').value='';document.getElementById('filter-status').value='';document.getElementById('filter-data-inicio').value='';document.getElementById('filter-data-fim').value='';highlightMonth();loadData();}
+
+    function loadData(){
+      var q=document.getElementById('search-input').value||'';
+      var filters=getFilters();
+      showLoading();
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){allRecords=r.data;renderTable(r.data);document.getElementById('record-count').textContent=r.data.length+' registro(s)';}
+        else toast('error',r.error);
+      }).withFailureHandler(function(e){toast('error',e.message);}).getRecords(q,filters);
+      // Stats
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){document.getElementById('stat-total').textContent=r.data.total;document.getElementById('stat-ativos').textContent=r.data.ativos;document.getElementById('stat-negociacao').textContent=r.data.emNegociacao;document.getElementById('stat-cancelados').textContent=r.data.cancelados;}
+      }).getStats(filters);
+    }
+
+    function esc(t){if(!t)return '';var d=document.createElement('div');d.textContent=t.toString();return d.innerHTML;}
+    function stClass(s){s=(s||'').toLowerCase();if(s==='ativo')return 'bg-green-900/40 text-green-300';if(s==='inadimplente')return 'bg-red-900/40 text-red-300';if(s==='cancelado')return 'bg-gray-600 text-gray-200';if(s==='pendente')return 'bg-yellow-900/40 text-yellow-300';if(s==='em negociacao')return 'bg-blue-900/40 text-blue-300';return 'bg-gray-700 text-gray-400';}
+    function showLoading(){var t=document.getElementById('table-body'),r='';for(var i=0;i<5;i++){r+='<tr class="border-b border-gray-700">';for(var j=0;j<9;j++)r+='<td class="px-4 py-3"><div class="skeleton h-4 rounded" style="width:'+(Math.random()*40+50)+'%"></div></td>';r+='</tr>';}t.innerHTML=r;}
+
     function renderTable(recs){
       var tb=document.getElementById('table-body');
-      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="9" class="px-4 py-12 text-center"><svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p class="text-gray-500 dark:text-gray-400 font-medium">Nenhum registro encontrado</p></td></tr>';return;}
-      tb.innerHTML=recs.map(function(r){var sc=stClass(r.statusAtual);var dc=r.dataCriacao?r.dataCriacao.split(' ')[0]:'';return '<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"><td class="px-4 py-3 font-medium text-gray-900 dark:text-white max-w-[180px] truncate">'+esc(r.nomeDoAssociado)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.valorDaParcela)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.valorPago)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.consultor)+'</td><td class="px-4 py-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium '+sc+'">'+esc(r.statusAtual)+'</span></td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.atendente)+'</td><td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">'+esc(dc)+'</td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1"><button onclick="editRecord('+r.id+')" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg" title="Editar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button onclick="showDeleteModal('+r.id+',\''+esc(r.nomeDoAssociado).replace(/\x27/g,"")+'\')" class="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg" title="Excluir"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>';}).join('');
+      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="9" class="px-4 py-12 text-center text-gray-500"><p class="font-medium">Nenhum registro encontrado</p></td></tr>';return;}
+      tb.innerHTML=recs.map(function(r){var sc=stClass(r.statusAtual);var dc=r.dataCriacao?r.dataCriacao.split(' ')[0]:'';
+        return '<tr class="border-b border-gray-700 hover:bg-gray-700/50 transition"><td class="px-4 py-3 font-medium text-white max-w-[180px] truncate">'+esc(r.nomeDoAssociado)+'</td><td class="px-4 py-3 text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.valorDaParcela)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.valorPago)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.consultor)+'</td><td class="px-4 py-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium '+sc+'">'+esc(r.statusAtual)+'</span></td><td class="px-4 py-3 text-gray-300">'+esc(r.atendente)+'</td><td class="px-4 py-3 text-gray-400 text-xs">'+esc(dc)+'</td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1"><button onclick="editRecord('+r.id+')" class="p-1.5 text-blue-400 hover:bg-blue-900/30 rounded-lg" title="Editar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button onclick="showDeleteModal('+r.id+',\''+esc(r.nomeDoAssociado).replace(/\x27/g,"")+'\')" class="p-1.5 text-red-400 hover:bg-red-900/30 rounded-lg" title="Excluir"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>';
+      }).join('');
     }
-    // FORM
-    function showForm(rec){document.getElementById('form-modal').classList.remove('hidden');document.getElementById('form-title').textContent=rec?'Editar Solicitacao':'Nova Solicitacao';document.getElementById('btn-submit').textContent=rec?'Atualizar':'Cadastrar';if(rec){document.getElementById('form-row-id').value=rec.id;document.getElementById('f-nome').value=rec.nomeDoAssociado||'';document.getElementById('f-placa').value=rec.placa||'';document.getElementById('f-parcela').value=rec.valorDaParcela||'';document.getElementById('f-pago').value=rec.valorPago||'';document.getElementById('f-consultor').value=rec.consultor||'';document.getElementById('f-atendente').value=rec.atendente||'';document.getElementById('f-status').value=rec.statusAtual||'-';document.getElementById('f-motivo').value=(rec.motivoDoCancelamento==='-'?'-':rec.motivoDoCancelamento)||'-';document.getElementById('f-obs').value=(rec.observacao==='-'?'':rec.observacao)||'';}else{document.getElementById('record-form').reset();document.getElementById('form-row-id').value='';}}
+
+    function showForm(rec){document.getElementById('form-modal').classList.remove('hidden');document.getElementById('form-title').textContent=rec?'Editar Solicitacao':'Nova Solicitacao';document.getElementById('btn-submit').textContent=rec?'Atualizar':'Cadastrar';if(rec){document.getElementById('form-row-id').value=rec.id;document.getElementById('f-nome').value=rec.nomeDoAssociado||'';document.getElementById('f-placa').value=rec.placa||'';document.getElementById('f-parcela').value=rec.valorDaParcela||'';document.getElementById('f-pago').value=rec.valorPago||'';document.getElementById('f-consultor').value=rec.consultor||'';document.getElementById('f-atendente').value=rec.atendente||'';document.getElementById('f-status').value=rec.statusAtual||'-';document.getElementById('f-motivo').value=rec.motivoDoCancelamento||'-';document.getElementById('f-obs').value=(rec.observacao==='-'?'':rec.observacao)||'';}else{document.getElementById('record-form').reset();document.getElementById('form-row-id').value='';}}
     function hideForm(){document.getElementById('form-modal').classList.add('hidden');}
     function editRecord(id){var rec=allRecords.find(function(r){return r.id===id;});if(rec)showForm(rec);}
+
     function handleSubmit(e){
       e.preventDefault();var btn=document.getElementById('btn-submit');btn.disabled=true;btn.textContent='Salvando...';
       var data={nomeDoAssociado:document.getElementById('f-nome').value,placa:document.getElementById('f-placa').value,valorDaParcela:document.getElementById('f-parcela').value,valorPago:document.getElementById('f-pago').value,consultor:document.getElementById('f-consultor').value,atendente:document.getElementById('f-atendente').value,statusAtual:document.getElementById('f-status').value,motivoDoCancelamento:document.getElementById('f-motivo').value||'-',observacao:document.getElementById('f-obs').value||'-'};
       var rowId=document.getElementById('form-row-id').value;
       if(rowId){
-        google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecord(currentTab,parseInt(rowId),data);
+        google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecord(parseInt(rowId),data);
       }else{
-        google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitacao criada!');hideForm();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecord(currentTab,data);
+        google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitacao criada!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecord(data);
       }
     }
-    // DELETE
+
     function showDeleteModal(id,name){deleteRowId=id;document.getElementById('delete-name').textContent=name;document.getElementById('delete-modal').classList.remove('hidden');}
     function hideDeleteModal(){document.getElementById('delete-modal').classList.add('hidden');deleteRowId=null;}
-    function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecord(currentTab,deleteRowId);}
-    // TOAST
-    function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-50 dark:bg-green-900/50 border-green-200 dark:border-green-700 text-green-800 dark:text-green-200',error:'bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-700 text-red-800 dark:text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
+    function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecord(deleteRowId);}
+
+    function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-900/80 border-green-700 text-green-200',error:'bg-red-900/80 border-red-700 text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
+
+    highlightMonth();
   </script>
 </body>
 </html>
