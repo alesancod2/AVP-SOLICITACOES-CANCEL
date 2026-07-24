@@ -73,14 +73,14 @@ function getRecords(sheetName, searchQuery) {
     }
     
     var lastRow = sheet.getLastRow();
-    if (lastRow <= 1) {
+    if (lastRow <= 2) {
       return { success: true, data: [], meta: { total: 0 } };
     }
     
-    // Ler ate coluna J (10 colunas) para incluir DATA DE CRIACAO
+    // Dados comecam na linha 3 (linha 1 = titulo, linha 2 = headers)
     var lastCol = sheet.getLastColumn();
     var colCount = Math.max(lastCol, 10);
-    var data = sheet.getRange(2, 1, lastRow - 1, colCount).getValues();
+    var data = sheet.getRange(3, 1, lastRow - 2, colCount).getValues();
     var records = [];
     
     // Lista de headers conhecidos para filtrar
@@ -114,7 +114,7 @@ function getRecords(sheetName, searchQuery) {
       if (headerMatchCount >= 3) continue;
       
       var record = {
-        id: i + 2,
+        id: i + 3,
         nomeDoAssociado: row[0] ? row[0].toString() : '',
         placa: row[1] ? row[1].toString() : '',
         valorDaParcela: row[2] ? row[2].toString() : '',
@@ -230,7 +230,7 @@ function updateRecord(sheetName, rowId, data) {
     }
     
     var row = parseInt(rowId);
-    if (row < 2 || row > sheet.getLastRow()) {
+    if (row < 3 || row > sheet.getLastRow()) {
       return { success: false, error: 'Linha invalida: ' + rowId };
     }
     
@@ -289,7 +289,7 @@ function deleteRecord(sheetName, rowId) {
     }
     
     var row = parseInt(rowId);
-    if (row < 2 || row > sheet.getLastRow()) {
+    if (row < 3 || row > sheet.getLastRow()) {
       return { success: false, error: 'Linha invalida: ' + rowId };
     }
     
@@ -311,7 +311,7 @@ function deleteRecord(sheetName, rowId) {
 function criarAbasMensais() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var meses = [
-    'JANEIRO', 'FEVEREIRO', 'MARCO', 'ABRIL', 'MAIO', 'JUNHO',
+    'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
     'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
   ];
   
@@ -327,10 +327,11 @@ function criarAbasMensais() {
       sheet = ss.insertSheet(meses[i]);
     }
     
-    var firstCell = sheet.getRange(1, 1).getValue();
-    if (!firstCell || firstCell.toString().trim() === '') {
-      sheet.getRange(1, 1, 1, 10).setValues([headers]);
-      var headerRange = sheet.getRange(1, 1, 1, 10);
+    // Headers devem ficar na LINHA 2 (linha 1 fica reservada para titulo/merge)
+    var row2Cell = sheet.getRange(2, 1).getValue();
+    if (!row2Cell || row2Cell.toString().trim() === '') {
+      sheet.getRange(2, 1, 1, 10).setValues([headers]);
+      var headerRange = sheet.getRange(2, 1, 1, 10);
       headerRange.setFontWeight('bold');
       headerRange.setBackground('#166534');
       headerRange.setFontColor('#ffffff');
@@ -350,7 +351,7 @@ function criarAbasMensais() {
   
   for (var j = 0; j < meses.length; j++) {
     var s = ss.getSheetByName(meses[j]);
-    if (s) s.setFrozenRows(1);
+    if (s) s.setFrozenRows(2);
   }
   
   return { success: true, message: 'Abas de Janeiro a Dezembro criadas com sucesso!' };
