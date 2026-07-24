@@ -36,24 +36,9 @@
       <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Em Negociacao</p><p class="text-2xl font-bold text-blue-500" id="stat-negociacao">-</p></div>
       <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Cancelados</p><p class="text-2xl font-bold text-gray-300" id="stat-cancelados">-</p></div>
     </div>
-    <!-- MONTH FILTER BUTTONS -->
-    <div class="mb-4 flex gap-2 overflow-x-auto pb-2" id="month-buttons">
-      <button onclick="setMonth('')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="">TODOS</button>
-      <button onclick="setMonth('JANEIRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="JANEIRO">JANEIRO</button>
-      <button onclick="setMonth('FEVEREIRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="FEVEREIRO">FEVEREIRO</button>
-      <button onclick="setMonth('MARÇO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="MARÇO">MARÇO</button>
-      <button onclick="setMonth('ABRIL')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="ABRIL">ABRIL</button>
-      <button onclick="setMonth('MAIO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="MAIO">MAIO</button>
-      <button onclick="setMonth('JUNHO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="JUNHO">JUNHO</button>
-      <button onclick="setMonth('JULHO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="JULHO">JULHO</button>
-      <button onclick="setMonth('AGOSTO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="AGOSTO">AGOSTO</button>
-      <button onclick="setMonth('SETEMBRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="SETEMBRO">SETEMBRO</button>
-      <button onclick="setMonth('OUTUBRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="OUTUBRO">OUTUBRO</button>
-      <button onclick="setMonth('NOVEMBRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="NOVEMBRO">NOVEMBRO</button>
-      <button onclick="setMonth('DEZEMBRO')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition" data-month="DEZEMBRO">DEZEMBRO</button>
-    </div>
     <!-- FILTERS ROW -->
     <div class="flex flex-wrap gap-3 mb-4 items-end">
+      <div><label class="block text-xs text-gray-400 mb-1">Mes</label><select id="filter-mes" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="JANEIRO">JANEIRO</option><option value="FEVEREIRO">FEVEREIRO</option><option value="MARÇO">MARÇO</option><option value="ABRIL">ABRIL</option><option value="MAIO">MAIO</option><option value="JUNHO">JUNHO</option><option value="JULHO">JULHO</option><option value="AGOSTO">AGOSTO</option><option value="SETEMBRO">SETEMBRO</option><option value="OUTUBRO">OUTUBRO</option><option value="NOVEMBRO">NOVEMBRO</option><option value="DEZEMBRO">DEZEMBRO</option></select></div>
       <div><label class="block text-xs text-gray-400 mb-1">Ano</label><select id="filter-ano" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
       <div><label class="block text-xs text-gray-400 mb-1">Status</label><select id="filter-status" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociacao">Em negociacao</option></select></div>
       <div><label class="block text-xs text-gray-400 mb-1">Data Inicio</label><input id="filter-data-inicio" type="date" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
@@ -135,31 +120,22 @@
   </div>
   <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2"></div>
   <script>
-    var allRecords=[],deleteRowId=null,searchTimeout=null,currentMonth='';
+    var allRecords=[],deleteRowId=null,searchTimeout=null;
     var currentFilters={mes:'',ano:'',dataInicio:'',dataFim:'',status:''};
 
     window.onload=function(){loadData();document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){loadData();},400);});};
 
     function getFilters(){
       return {
-        mes:currentMonth,
+        mes:document.getElementById('filter-mes').value,
         ano:document.getElementById('filter-ano').value,
         dataInicio:document.getElementById('filter-data-inicio').value,
         dataFim:document.getElementById('filter-data-fim').value,
         status:document.getElementById('filter-status').value
       };
     }
-    function setMonth(m){currentMonth=m;highlightMonth();applyFilters();}
-    function highlightMonth(){
-      var btns=document.querySelectorAll('#month-buttons button');
-      btns.forEach(function(b){
-        var bm=b.getAttribute('data-month');
-        if(bm===currentMonth){b.className='px-3 py-1.5 rounded-lg text-sm font-medium bg-green-600 text-white shadow-md transition';}
-        else{b.className='px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition';}
-      });
-    }
     function applyFilters(){loadData();}
-    function clearAllFilters(){currentMonth='';document.getElementById('filter-ano').value='';document.getElementById('filter-status').value='';document.getElementById('filter-data-inicio').value='';document.getElementById('filter-data-fim').value='';highlightMonth();loadData();}
+    function clearAllFilters(){document.getElementById('filter-mes').value='';document.getElementById('filter-ano').value='';document.getElementById('filter-status').value='';document.getElementById('filter-data-inicio').value='';document.getElementById('filter-data-fim').value='';loadData();}
 
     function loadData(){
       var q=document.getElementById('search-input').value||'';
@@ -207,8 +183,6 @@
     function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecord(deleteRowId);}
 
     function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-900/80 border-green-700 text-green-200',error:'bg-red-900/80 border-red-700 text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
-
-    highlightMonth();
   </script>
 </body>
 </html>
