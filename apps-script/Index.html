@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestao de Associados</title>
+  <title>Gestao de Cancelamentos</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
   <style>
@@ -24,7 +25,7 @@
         <div class="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center">
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         </div>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Gestao de Associados</h1>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Gestao de Cancelamentos</h1>
       </div>
       <div class="flex items-center gap-3">
         <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Modo escuro">
@@ -41,11 +42,31 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Total</p><p class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-total">-</p></div>
       <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Ativos</p><p class="text-2xl font-bold text-green-600" id="stat-ativos">-</p></div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Inadimplentes</p><p class="text-2xl font-bold text-red-600" id="stat-inadimplentes">-</p></div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Em Negociacao</p><p class="text-2xl font-bold text-blue-600" id="stat-negociacao">-</p></div>
       <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Cancelados</p><p class="text-2xl font-bold text-gray-600 dark:text-gray-300" id="stat-cancelados">-</p></div>
     </div>
     <!-- TABS -->
     <div class="mb-4"><div id="tabs-container" class="flex gap-2 overflow-x-auto pb-2"><div class="skeleton h-9 w-24 rounded-lg"></div><div class="skeleton h-9 w-24 rounded-lg"></div><div class="skeleton h-9 w-24 rounded-lg"></div></div></div>
+    <!-- FILTERS: DATA + STATUS -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-3 items-start sm:items-center">
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Data:</label>
+        <input id="filter-date" type="date" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</label>
+        <select id="filter-status" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-green-500 outline-none">
+          <option value="">Todos</option>
+          <option value="Ativo">Ativo</option>
+          <option value="Inadimplente">Inadimplente</option>
+          <option value="Cancelado">Cancelado</option>
+          <option value="Pendente">Pendente</option>
+          <option value="Em negociacao">Em negociacao</option>
+        </select>
+      </div>
+      <button onclick="applyFilters()" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">Filtrar</button>
+      <button onclick="clearFilters()" class="px-3 py-2 text-gray-500 dark:text-gray-400 text-sm hover:text-gray-700 dark:hover:text-gray-200 transition">Limpar</button>
+    </div>
     <!-- TOOLBAR -->
     <div class="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center">
       <div class="relative flex-1 w-full sm:max-w-md">
@@ -53,7 +74,7 @@
         <input id="search-input" type="text" placeholder="Buscar por nome, placa, consultor..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition" />
       </div>
       <button onclick="showForm()" class="inline-flex items-center px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition shadow-sm">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Novo Associado
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Nova Solicitacao
       </button>
     </div>
     <!-- TABLE -->
@@ -68,9 +89,10 @@
             <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Consultor</th>
             <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Status</th>
             <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Atendente</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Data</th>
             <th class="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200">Acoes</th>
           </tr></thead>
-          <tbody id="table-body"><tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 dark:text-gray-500">Carregando...</td></tr></tbody>
+          <tbody id="table-body"><tr><td colspan="9" class="px-4 py-12 text-center text-gray-400 dark:text-gray-500">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -81,7 +103,7 @@
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideForm()"></div>
     <div class="relative max-w-2xl mx-auto mt-10 bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 m-4 max-h-[85vh] overflow-y-auto fade-in">
       <div class="flex items-center justify-between mb-6">
-        <h2 id="form-title" class="text-lg font-bold text-gray-900 dark:text-white">Novo Associado</h2>
+        <h2 id="form-title" class="text-lg font-bold text-gray-900 dark:text-white">Nova Solicitacao</h2>
         <button onclick="hideForm()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
       <form id="record-form" onsubmit="handleSubmit(event)">
@@ -92,9 +114,9 @@
           <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor da Parcela</label><input id="f-parcela" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
           <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor Pago</label><input id="f-pago" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
           <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Consultor</label><input id="f-consultor" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome do consultor" /></div>
-          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Atendente</label><input id="f-atendente" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome do atendente" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Atendente</label><select id="f-atendente" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Selecione...</option><option value="JOYCE">JOYCE</option><option value="ISABELA">ISABELA</option><option value="LETICIA">LETICIA</option><option value="MARIA">MARIA</option><option value="ISIS">ISIS</option></select></div>
           <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Atual</label><select id="f-status" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociacao">Em negociacao</option></select></div>
-          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo do Cancelamento</label><textarea id="f-motivo" rows="2" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Se aplicavel..."></textarea></div>
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo do Cancelamento</label><select id="f-motivo" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="VENDA">VENDA</option><option value="TROCA DE VEICULO">TROCA DE VEICULO</option><option value="MOTIVO PESSOAL">MOTIVO PESSOAL</option><option value="DIFICULDADE FINANCEIRA">DIFICULDADE FINANCEIRA</option><option value="ERRO DE LANCAMENTO">ERRO DE LANCAMENTO</option><option value="RESSARCIMENTO">RESSARCIMENTO</option><option value="INSATISFACAO">INSATISFACAO</option><option value="SOLICITACAO DA DIRETORIA">SOLICITACAO DA DIRETORIA</option></select></div>
           <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observacao</label><textarea id="f-obs" rows="2" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Observacoes..."></textarea></div>
         </div>
         <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -120,26 +142,43 @@
   </div>
   <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2"></div>
   <script>
-    var currentTab='',allTabs=[],allRecords=[],deleteRowId=null,searchTimeout=null;
+    var currentTab='',allTabs=[],allRecords=[],filteredRecords=[],deleteRowId=null,searchTimeout=null;
     function toggleDarkMode(){var h=document.documentElement,d=h.classList.toggle('dark');localStorage.setItem('darkMode',d?'true':'false');updIcons(d);}
     function updIcons(d){document.getElementById('icon-sun').classList.toggle('hidden',!d);document.getElementById('icon-moon').classList.toggle('hidden',d);}
     function initDark(){var d=localStorage.getItem('darkMode')==='true';if(d)document.documentElement.classList.add('dark');updIcons(d);}
     window.onload=function(){initDark();loadTabs();document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){loadRecords(e.target.value);},400);});};
     function loadTabs(){google.script.run.withSuccessHandler(function(r){if(r.success){allTabs=r.data;renderTabs();if(allTabs.length>0)selectTab(allTabs[0].name);}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getSheetTabs();}
-    function loadRecords(q){if(!currentTab)return;showLoading();google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;renderTable(r.data);document.getElementById('record-count').textContent=r.data.length+' registro(s)';}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords(currentTab,q||'');}
-    function loadStats(){google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-total').textContent=r.data.total;document.getElementById('stat-ativos').textContent=r.data.ativos;document.getElementById('stat-inadimplentes').textContent=r.data.inadimplentes;document.getElementById('stat-cancelados').textContent=r.data.cancelados;}}).getStats(currentTab);}
+    function loadRecords(q){if(!currentTab)return;showLoading();google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;filteredRecords=r.data;applyFilters();document.getElementById('record-count').textContent=r.data.length+' registro(s)';}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords(currentTab,q||'');}
+    function loadStats(){google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-total').textContent=r.data.total;document.getElementById('stat-ativos').textContent=r.data.ativos;document.getElementById('stat-negociacao').textContent=r.data.emNegociacao;document.getElementById('stat-cancelados').textContent=r.data.cancelados;}}).getStats(currentTab);}
     function renderTabs(){var c=document.getElementById('tabs-container');c.innerHTML=allTabs.map(function(t){var a=t.name===currentTab;return '<button onclick="selectTab(\''+t.name+'\')" class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all '+(a?'bg-green-600 text-white shadow-md':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700')+'">'+t.name+'</button>';}).join('');}
-    function selectTab(n){currentTab=n;renderTabs();document.getElementById('search-input').value='';loadRecords('');loadStats();}
+    function selectTab(n){currentTab=n;renderTabs();document.getElementById('search-input').value='';clearFilters();loadRecords('');loadStats();}
     function esc(t){if(!t)return '';var d=document.createElement('div');d.textContent=t.toString();return d.innerHTML;}
     function stClass(s){s=(s||'').toLowerCase();if(s==='ativo')return 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300';if(s==='inadimplente')return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';if(s==='cancelado')return 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200';if(s==='pendente')return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300';if(s==='em negociacao')return 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';}
-    function showLoading(){var t=document.getElementById('table-body'),r='';for(var i=0;i<5;i++){r+='<tr class="border-b border-gray-100 dark:border-gray-700">';for(var j=0;j<8;j++)r+='<td class="px-4 py-3"><div class="skeleton h-4 rounded" style="width:'+(Math.random()*40+50)+'%"></div></td>';r+='</tr>';}t.innerHTML=r;}
+    function showLoading(){var t=document.getElementById('table-body'),r='';for(var i=0;i<5;i++){r+='<tr class="border-b border-gray-100 dark:border-gray-700">';for(var j=0;j<9;j++)r+='<td class="px-4 py-3"><div class="skeleton h-4 rounded" style="width:'+(Math.random()*40+50)+'%"></div></td>';r+='</tr>';}t.innerHTML=r;}
+    // FILTERS
+    function applyFilters(){
+      var statusFilter=document.getElementById('filter-status').value;
+      var dateFilter=document.getElementById('filter-date').value;
+      var result=allRecords.filter(function(r){
+        if(statusFilter && r.statusAtual.toLowerCase()!==statusFilter.toLowerCase()) return false;
+        if(dateFilter && r.dataCriacao){
+          var parts=r.dataCriacao.split(' ')[0].split('/');
+          if(parts.length===3){var recDate=parts[2]+'-'+parts[1]+'-'+parts[0];if(recDate!==dateFilter) return false;}
+        } else if(dateFilter && !r.dataCriacao) return false;
+        return true;
+      });
+      filteredRecords=result;
+      renderTable(result);
+      document.getElementById('record-count').textContent=result.length+' registro(s)';
+    }
+    function clearFilters(){document.getElementById('filter-status').value='';document.getElementById('filter-date').value='';filteredRecords=allRecords;renderTable(allRecords);}
     function renderTable(recs){
       var tb=document.getElementById('table-body');
-      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="8" class="px-4 py-12 text-center"><svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p class="text-gray-500 dark:text-gray-400 font-medium">Nenhum registro encontrado</p></td></tr>';return;}
-      tb.innerHTML=recs.map(function(r){var sc=stClass(r.statusAtual);return '<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"><td class="px-4 py-3 font-medium text-gray-900 dark:text-white max-w-[180px] truncate">'+esc(r.nomeDoAssociado)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.valorDaParcela)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.valorPago)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.consultor)+'</td><td class="px-4 py-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium '+sc+'">'+esc(r.statusAtual)+'</span></td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.atendente)+'</td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1"><button onclick="editRecord('+r.id+')" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg" title="Editar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button onclick="showDeleteModal('+r.id+',\''+esc(r.nomeDoAssociado).replace(/\x27/g,"")+'\')" class="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg" title="Excluir"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>';}).join('');
+      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="9" class="px-4 py-12 text-center"><svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p class="text-gray-500 dark:text-gray-400 font-medium">Nenhum registro encontrado</p></td></tr>';return;}
+      tb.innerHTML=recs.map(function(r){var sc=stClass(r.statusAtual);var dc=r.dataCriacao?r.dataCriacao.split(' ')[0]:'';return '<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"><td class="px-4 py-3 font-medium text-gray-900 dark:text-white max-w-[180px] truncate">'+esc(r.nomeDoAssociado)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.valorDaParcela)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.valorPago)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.consultor)+'</td><td class="px-4 py-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium '+sc+'">'+esc(r.statusAtual)+'</span></td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.atendente)+'</td><td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">'+esc(dc)+'</td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1"><button onclick="editRecord('+r.id+')" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg" title="Editar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button onclick="showDeleteModal('+r.id+',\''+esc(r.nomeDoAssociado).replace(/\x27/g,"")+'\')" class="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg" title="Excluir"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>';}).join('');
     }
     // FORM
-    function showForm(rec){document.getElementById('form-modal').classList.remove('hidden');document.getElementById('form-title').textContent=rec?'Editar Associado':'Novo Associado';document.getElementById('btn-submit').textContent=rec?'Atualizar':'Cadastrar';if(rec){document.getElementById('form-row-id').value=rec.id;document.getElementById('f-nome').value=rec.nomeDoAssociado||'';document.getElementById('f-placa').value=rec.placa||'';document.getElementById('f-parcela').value=rec.valorDaParcela||'';document.getElementById('f-pago').value=rec.valorPago||'';document.getElementById('f-consultor').value=rec.consultor||'';document.getElementById('f-atendente').value=rec.atendente||'';document.getElementById('f-status').value=rec.statusAtual||'-';document.getElementById('f-motivo').value=(rec.motivoDoCancelamento==='-'?'':rec.motivoDoCancelamento)||'';document.getElementById('f-obs').value=(rec.observacao==='-'?'':rec.observacao)||'';}else{document.getElementById('record-form').reset();document.getElementById('form-row-id').value='';}}
+    function showForm(rec){document.getElementById('form-modal').classList.remove('hidden');document.getElementById('form-title').textContent=rec?'Editar Solicitacao':'Nova Solicitacao';document.getElementById('btn-submit').textContent=rec?'Atualizar':'Cadastrar';if(rec){document.getElementById('form-row-id').value=rec.id;document.getElementById('f-nome').value=rec.nomeDoAssociado||'';document.getElementById('f-placa').value=rec.placa||'';document.getElementById('f-parcela').value=rec.valorDaParcela||'';document.getElementById('f-pago').value=rec.valorPago||'';document.getElementById('f-consultor').value=rec.consultor||'';document.getElementById('f-atendente').value=rec.atendente||'';document.getElementById('f-status').value=rec.statusAtual||'-';document.getElementById('f-motivo').value=(rec.motivoDoCancelamento==='-'?'-':rec.motivoDoCancelamento)||'-';document.getElementById('f-obs').value=(rec.observacao==='-'?'':rec.observacao)||'';}else{document.getElementById('record-form').reset();document.getElementById('form-row-id').value='';}}
     function hideForm(){document.getElementById('form-modal').classList.add('hidden');}
     function editRecord(id){var rec=allRecords.find(function(r){return r.id===id;});if(rec)showForm(rec);}
     function handleSubmit(e){
@@ -149,7 +188,7 @@
       if(rowId){
         google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecord(currentTab,parseInt(rowId),data);
       }else{
-        google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Cadastrado!');hideForm();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecord(currentTab,data);
+        google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitacao criada!');hideForm();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecord(currentTab,data);
       }
     }
     // DELETE

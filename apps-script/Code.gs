@@ -1,5 +1,5 @@
 // =============================================
-// GOOGLE APPS SCRIPT - SISTEMA DE GESTAO DE ASSOCIADOS
+// GOOGLE APPS SCRIPT - SISTEMA DE GESTAO DE CANCELAMENTOS
 // =============================================
 // Este script transforma sua planilha em uma Web App completa
 // com CRUD (Create, Read, Update, Delete)
@@ -8,7 +8,7 @@
 // CONFIGURACAO: ID da planilha (pegue na URL da sua planilha)
 const SPREADSHEET_ID = '16DjjPOMnWu-9P88fKkLCxSGFHOSFtv8N7_kt1yWkiOE';
 
-// Colunas da planilha (ordem A-I)
+// Colunas da planilha (ordem A-J) - coluna J = DATA DE CRIACAO
 const COLUMNS = [
   'NOME DO ASSOCIADO',
   'PLACA',
@@ -18,7 +18,8 @@ const COLUMNS = [
   'MOTIVO DO CANCELAMENTO',
   'STATUS ATUAL',
   'OBSERVACAO',
-  'ATENDENTE'
+  'ATENDENTE',
+  'DATA DE CRIACAO'
 ];
 
 // =============================================
@@ -26,7 +27,7 @@ const COLUMNS = [
 // =============================================
 function doGet(e) {
   return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('Sistema de Gestao de Associados')
+    .setTitle('Gestao de Cancelamentos')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
@@ -76,14 +77,17 @@ function getRecords(sheetName, searchQuery) {
       return { success: true, data: [], meta: { total: 0 } };
     }
     
-    var data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    // Ler ate coluna J (10 colunas) para incluir DATA DE CRIACAO
+    var lastCol = sheet.getLastColumn();
+    var colCount = Math.max(lastCol, 10);
+    var data = sheet.getRange(2, 1, lastRow - 1, colCount).getValues();
     var records = [];
     
-    // Lista de headers conhecidos para filtrar (caso cabecalho apareca nos dados)
+    // Lista de headers conhecidos para filtrar
     var headerValues = [
       'nome do associado', 'placa', 'valor da parcela', 'valor pago',
       'consultor', 'motivo do cancelamento', 'status atual', 'observacao',
-      'observação', 'atendente'
+      'observação', 'atendente', 'data de criacao', 'data de criação'
     ];
     
     for (var i = 0; i < data.length; i++) {
@@ -96,24 +100,21 @@ function getRecords(sheetName, searchQuery) {
       
       if (!hasData) continue;
       
-      // CORRECAO: Pular linha se for cabecalho (verificar primeira celula)
+      // Pular linha se for cabecalho
       var firstCell = row[0] ? row[0].toString().trim().toLowerCase() : '';
       if (headerValues.indexOf(firstCell) >= 0) continue;
       
-      // Verificar se a linha inteira parece ser um cabecalho
-      var isHeader = false;
       var headerMatchCount = 0;
-      for (var h = 0; h < row.length; h++) {
+      for (var h = 0; h < Math.min(row.length, 10); h++) {
         var cellValue = row[h] ? row[h].toString().trim().toLowerCase() : '';
         if (headerValues.indexOf(cellValue) >= 0) {
           headerMatchCount++;
         }
       }
-      // Se 3+ celulas batem com nomes de cabecalho, pular a linha
       if (headerMatchCount >= 3) continue;
       
       var record = {
-        id: i + 2, // Numero da linha na planilha
+        id: i + 2,
         nomeDoAssociado: row[0] ? row[0].toString() : '',
         placa: row[1] ? row[1].toString() : '',
         valorDaParcela: row[2] ? row[2].toString() : '',
@@ -122,7 +123,8 @@ function getRecords(sheetName, searchQuery) {
         motivoDoCancelamento: row[5] ? row[5].toString() : '-',
         statusAtual: row[6] ? row[6].toString() : '-',
         observacao: row[7] ? row[7].toString() : '-',
-        atendente: row[8] ? row[8].toString() : ''
+        atendente: row[8] ? row[8].toString() : '',
+        dataCriacao: row[9] ? row[9].toString() : ''
       };
       
       // Filtro de busca
@@ -156,9 +158,7 @@ function getRecords(sheetName, searchQuery) {
 // =============================================
 
 /**
- * Cria um novo registro na planilha
- * @param {string} sheetName - Nome da aba
- * @param {Object} data - Dados do registro
+ * Cria um novo registro na planilha (com data de criacao automatica)
  */
 function createRecord(sheetName, data) {
   try {
@@ -169,10 +169,13 @@ function createRecord(sheetName, data) {
       return { success: false, error: 'Aba "' + sheetName + '" nao encontrada' };
     }
     
-    // Validacao basica
     if (!data.nomeDoAssociado || !data.placa) {
       return { success: false, error: 'Nome do Associado e Placa sao obrigatorios' };
     }
+    
+    // Capturar data/hora atual automaticamente
+    var agora = new Date();
+    var dataCriacao = Utilities.formatDate(agora, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
     
     var newRow = [
       data.nomeDoAssociado || '',
@@ -183,7 +186,8 @@ function createRecord(sheetName, data) {
       data.motivoDoCancelamento || '-',
       data.statusAtual || '-',
       data.observacao || '-',
-      data.atendente || ''
+      data.atendente || '',
+      dataCriacao
     ];
     
     sheet.appendRow(newRow);
@@ -202,9 +206,10 @@ function createRecord(sheetName, data) {
         motivoDoCancelamento: newRow[5],
         statusAtual: newRow[6],
         observacao: newRow[7],
-        atendente: newRow[8]
+        atendente: newRow[8],
+        dataCriacao: newRow[9]
       },
-      message: 'Registro criado com sucesso!'
+      message: 'Solicitacao criada com sucesso!'
     };
     
   } catch (error) {
@@ -213,10 +218,7 @@ function createRecord(sheetName, data) {
 }
 
 /**
- * Atualiza um registro existente
- * @param {string} sheetName - Nome da aba
- * @param {number} rowId - Numero da linha
- * @param {Object} data - Dados atualizados
+ * Atualiza um registro existente (preserva data de criacao)
  */
 function updateRecord(sheetName, rowId, data) {
   try {
@@ -232,6 +234,10 @@ function updateRecord(sheetName, rowId, data) {
       return { success: false, error: 'Linha invalida: ' + rowId };
     }
     
+    // Preservar data de criacao original
+    var existingData = sheet.getRange(row, 10).getValue();
+    var dataCriacao = existingData ? existingData.toString() : '';
+    
     var updatedRow = [
       data.nomeDoAssociado || '',
       data.placa || '',
@@ -241,10 +247,11 @@ function updateRecord(sheetName, rowId, data) {
       data.motivoDoCancelamento || '-',
       data.statusAtual || '-',
       data.observacao || '-',
-      data.atendente || ''
+      data.atendente || '',
+      dataCriacao
     ];
     
-    sheet.getRange(row, 1, 1, 9).setValues([updatedRow]);
+    sheet.getRange(row, 1, 1, 10).setValues([updatedRow]);
     
     return {
       success: true,
@@ -258,7 +265,8 @@ function updateRecord(sheetName, rowId, data) {
         motivoDoCancelamento: updatedRow[5],
         statusAtual: updatedRow[6],
         observacao: updatedRow[7],
-        atendente: updatedRow[8]
+        atendente: updatedRow[8],
+        dataCriacao: updatedRow[9]
       },
       message: 'Registro atualizado com sucesso!'
     };
@@ -269,9 +277,7 @@ function updateRecord(sheetName, rowId, data) {
 }
 
 /**
- * Exclui (limpa) um registro
- * @param {string} sheetName - Nome da aba
- * @param {number} rowId - Numero da linha
+ * Exclui um registro
  */
 function deleteRecord(sheetName, rowId) {
   try {
@@ -287,14 +293,9 @@ function deleteRecord(sheetName, rowId) {
       return { success: false, error: 'Linha invalida: ' + rowId };
     }
     
-    // Deleta a linha inteira (move as de baixo pra cima)
     sheet.deleteRow(row);
     
-    return {
-      success: true,
-      message: 'Registro excluido com sucesso!'
-    };
-    
+    return { success: true, message: 'Registro excluido com sucesso!' };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -305,8 +306,7 @@ function deleteRecord(sheetName, rowId) {
 // =============================================
 
 /**
- * Cria as abas de Janeiro a Dezembro com headers
- * Execute esta funcao UMA VEZ para configurar a planilha
+ * Cria as abas de Janeiro a Dezembro com headers (incluindo DATA DE CRIACAO)
  */
 function criarAbasMensais() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -317,44 +317,37 @@ function criarAbasMensais() {
   
   var headers = [
     'NOME DO ASSOCIADO', 'PLACA', 'VALOR DA PARCELA', 'VALOR PAGO',
-    'CONSULTOR', 'MOTIVO DO CANCELAMENTO', 'STATUS ATUAL', 'OBSERVACAO', 'ATENDENTE'
+    'CONSULTOR', 'MOTIVO DO CANCELAMENTO', 'STATUS ATUAL', 'OBSERVACAO',
+    'ATENDENTE', 'DATA DE CRIACAO'
   ];
   
   for (var i = 0; i < meses.length; i++) {
     var sheet = ss.getSheetByName(meses[i]);
-    
-    // Se a aba nao existe, criar
     if (!sheet) {
       sheet = ss.insertSheet(meses[i]);
     }
     
-    // Verificar se ja tem header na linha 1
     var firstCell = sheet.getRange(1, 1).getValue();
     if (!firstCell || firstCell.toString().trim() === '') {
-      // Adicionar headers
-      sheet.getRange(1, 1, 1, 9).setValues([headers]);
-      
-      // Formatar header (negrito, fundo verde, texto branco)
-      var headerRange = sheet.getRange(1, 1, 1, 9);
+      sheet.getRange(1, 1, 1, 10).setValues([headers]);
+      var headerRange = sheet.getRange(1, 1, 1, 10);
       headerRange.setFontWeight('bold');
       headerRange.setBackground('#166534');
       headerRange.setFontColor('#ffffff');
       headerRange.setHorizontalAlignment('center');
-      
-      // Ajustar largura das colunas
-      sheet.setColumnWidth(1, 200); // Nome
-      sheet.setColumnWidth(2, 100); // Placa
-      sheet.setColumnWidth(3, 130); // Valor Parcela
-      sheet.setColumnWidth(4, 130); // Valor Pago
-      sheet.setColumnWidth(5, 130); // Consultor
-      sheet.setColumnWidth(6, 200); // Motivo Cancel.
-      sheet.setColumnWidth(7, 120); // Status
-      sheet.setColumnWidth(8, 200); // Observacao
-      sheet.setColumnWidth(9, 130); // Atendente
+      sheet.setColumnWidth(1, 200);
+      sheet.setColumnWidth(2, 100);
+      sheet.setColumnWidth(3, 130);
+      sheet.setColumnWidth(4, 130);
+      sheet.setColumnWidth(5, 130);
+      sheet.setColumnWidth(6, 200);
+      sheet.setColumnWidth(7, 120);
+      sheet.setColumnWidth(8, 200);
+      sheet.setColumnWidth(9, 130);
+      sheet.setColumnWidth(10, 160);
     }
   }
   
-  // Congelar primeira linha em todas as abas
   for (var j = 0; j < meses.length; j++) {
     var s = ss.getSheetByName(meses[j]);
     if (s) s.setFrozenRows(1);
@@ -368,7 +361,7 @@ function criarAbasMensais() {
 // =============================================
 
 /**
- * Retorna estatisticas da aba
+ * Retorna estatisticas da aba (com "em negociacao" no lugar de "inadimplentes")
  */
 function getStats(sheetName) {
   try {
@@ -379,7 +372,7 @@ function getStats(sheetName) {
     var stats = {
       total: records.length,
       ativos: 0,
-      inadimplentes: 0,
+      emNegociacao: 0,
       cancelados: 0,
       pendentes: 0
     };
@@ -387,7 +380,7 @@ function getStats(sheetName) {
     for (var i = 0; i < records.length; i++) {
       var status = records[i].statusAtual.toLowerCase();
       if (status === 'ativo') stats.ativos++;
-      else if (status === 'inadimplente') stats.inadimplentes++;
+      else if (status === 'em negociacao' || status === 'em negociação') stats.emNegociacao++;
       else if (status === 'cancelado') stats.cancelados++;
       else if (status === 'pendente') stats.pendentes++;
     }
