@@ -5,542 +5,159 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestao de Associados</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
   <style>
     .fade-in { animation: fadeIn 0.3s ease-in; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    .dark .skeleton { background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
     @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
     .toast-enter { animation: slideIn 0.3s ease-out; }
     @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-
-
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
   <!-- HEADER -->
-  <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         </div>
-        <h1 class="text-xl font-bold text-gray-900">Gestao de Associados</h1>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Gestao de Associados</h1>
       </div>
-      <span class="text-xs text-gray-400 hidden sm:block">Powered by Google Sheets</span>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition" title="Modo escuro">
+          <svg id="icon-sun" class="w-5 h-5 text-yellow-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="icon-moon" class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+        <span class="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">Google Sheets</span>
+      </div>
     </div>
   </header>
-
-  <!-- MAIN CONTENT -->
-  <main class="max-w-7xl mx-auto px-4 py-6" id="app">
-
-    <!-- STATS CARDS -->
-    <div id="stats-section" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <p class="text-sm text-gray-500">Total</p>
-        <p class="text-2xl font-bold text-gray-900" id="stat-total">-</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <p class="text-sm text-gray-500">Ativos</p>
-        <p class="text-2xl font-bold text-green-600" id="stat-ativos">-</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <p class="text-sm text-gray-500">Inadimplentes</p>
-        <p class="text-2xl font-bold text-red-600" id="stat-inadimplentes">-</p>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <p class="text-sm text-gray-500">Cancelados</p>
-        <p class="text-2xl font-bold text-gray-600" id="stat-cancelados">-</p>
-      </div>
+  <!-- MAIN -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <!-- STATS -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Total</p><p class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-total">-</p></div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Ativos</p><p class="text-2xl font-bold text-green-600" id="stat-ativos">-</p></div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Inadimplentes</p><p class="text-2xl font-bold text-red-600" id="stat-inadimplentes">-</p></div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"><p class="text-sm text-gray-500 dark:text-gray-400">Cancelados</p><p class="text-2xl font-bold text-gray-600 dark:text-gray-300" id="stat-cancelados">-</p></div>
     </div>
-
-
-    <!-- TABS (MESES) -->
-    <div class="mb-4">
-      <div id="tabs-container" class="flex gap-2 overflow-x-auto pb-2">
-        <div class="skeleton h-9 w-24 rounded-lg"></div>
-        <div class="skeleton h-9 w-24 rounded-lg"></div>
-        <div class="skeleton h-9 w-24 rounded-lg"></div>
-      </div>
-    </div>
-
-    <!-- TOOLBAR: BUSCA + BOTAO NOVO -->
+    <!-- TABS -->
+    <div class="mb-4"><div id="tabs-container" class="flex gap-2 overflow-x-auto pb-2"><div class="skeleton h-9 w-24 rounded-lg"></div><div class="skeleton h-9 w-24 rounded-lg"></div><div class="skeleton h-9 w-24 rounded-lg"></div></div></div>
+    <!-- TOOLBAR -->
     <div class="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center">
       <div class="relative flex-1 w-full sm:max-w-md">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-        </svg>
-        <input id="search-input" type="text" placeholder="Buscar por nome, placa, consultor..."
-          class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="search-input" type="text" placeholder="Buscar por nome, placa, consultor..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition" />
       </div>
       <button onclick="showForm()" class="inline-flex items-center px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition shadow-sm">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-        </svg>
-        Novo Associado
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Novo Associado
       </button>
     </div>
-
-    <!-- DATA TABLE -->
-    <div id="table-container" class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+    <!-- TABLE -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
       <div class="overflow-x-auto">
-        <table class="w-full text-sm" id="data-table">
-          <thead>
-            <tr class="bg-gray-50 border-b border-gray-200">
-              <th class="px-4 py-3 text-left font-semibold text-gray-700">Nome</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-700">Placa</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-700">Parcela</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-700">Pago</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-700">Consultor</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-700">Atendente</th>
-              <th class="px-4 py-3 text-center font-semibold text-gray-700">Acoes</th>
-            </tr>
-          </thead>
-          <tbody id="table-body">
-            <tr><td colspan="8" class="px-4 py-12 text-center text-gray-400">Carregando...</td></tr>
-          </tbody>
+        <table class="w-full text-sm">
+          <thead><tr class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Nome</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Placa</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Parcela</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Pago</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Consultor</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Status</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Atendente</th>
+            <th class="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-200">Acoes</th>
+          </tr></thead>
+          <tbody id="table-body"><tr><td colspan="8" class="px-4 py-12 text-center text-gray-400 dark:text-gray-500">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
-
-
-    <!-- FORMULARIO (MODAL) -->
-    <div id="form-modal" class="fixed inset-0 z-50 hidden">
-      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideForm()"></div>
-      <div class="relative max-w-2xl mx-auto mt-10 bg-white rounded-xl shadow-2xl p-6 m-4 max-h-[85vh] overflow-y-auto fade-in">
-        <div class="flex items-center justify-between mb-6">
-          <h2 id="form-title" class="text-lg font-bold text-gray-900">Novo Associado</h2>
-          <button onclick="hideForm()" class="p-2 hover:bg-gray-100 rounded-lg">
-            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-        <form id="record-form" onsubmit="handleSubmit(event)">
-          <input type="hidden" id="form-row-id" value="" />
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Associado <span class="text-red-500">*</span></label>
-              <input id="f-nome" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="Nome completo" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Placa <span class="text-red-500">*</span></label>
-              <input id="f-placa" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="Ex: ABC-1234" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Valor da Parcela</label>
-              <input id="f-parcela" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="R$ 0,00" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Valor Pago</label>
-              <input id="f-pago" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="R$ 0,00" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Consultor</label>
-              <input id="f-consultor" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="Nome do consultor" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Atendente</label>
-              <input id="f-atendente" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none" placeholder="Nome do atendente" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Status Atual</label>
-              <select id="f-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none">
-                <option value="-">Selecione...</option>
-                <option value="Ativo">Ativo</option>
-                <option value="Inadimplente">Inadimplente</option>
-                <option value="Cancelado">Cancelado</option>
-                <option value="Pendente">Pendente</option>
-                <option value="Em negociacao">Em negociacao</option>
-              </select>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Motivo do Cancelamento</label>
-              <textarea id="f-motivo" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-none" placeholder="Se aplicavel..."></textarea>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Observacao</label>
-              <textarea id="f-obs" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-none" placeholder="Observacoes adicionais..."></textarea>
-            </div>
-          </div>
-          <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200">
-            <button type="submit" id="btn-submit" class="px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">
-              Salvar
-            </button>
-            <button type="button" onclick="hideForm()" class="px-5 py-2.5 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition">
-              Cancelar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-
-    <!-- DELETE CONFIRM MODAL -->
-    <div id="delete-modal" class="fixed inset-0 z-50 hidden">
-      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideDeleteModal()"></div>
-      <div class="relative max-w-md mx-auto mt-32 bg-white rounded-xl shadow-2xl p-6 m-4 fade-in">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-            </svg>
-          </div>
-          <div>
-            <h3 class="text-lg font-semibold text-gray-900">Confirmar Exclusao</h3>
-            <p class="text-sm text-gray-500 mt-1">Deseja excluir <span id="delete-name" class="font-medium text-gray-700"></span>? Esta acao nao pode ser desfeita.</p>
-          </div>
-        </div>
-        <div class="flex justify-end gap-3 mt-6">
-          <button onclick="hideDeleteModal()" class="px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition">Cancelar</button>
-          <button onclick="confirmDelete()" id="btn-delete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Sim, excluir</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TOAST CONTAINER -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2"></div>
-
+    <div class="mt-3 text-sm text-gray-500 dark:text-gray-400" id="record-count"></div>
   </main>
-
-
+  <!-- FORM MODAL -->
+  <div id="form-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideForm()"></div>
+    <div class="relative max-w-2xl mx-auto mt-10 bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 m-4 max-h-[85vh] overflow-y-auto fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <h2 id="form-title" class="text-lg font-bold text-gray-900 dark:text-white">Novo Associado</h2>
+        <button onclick="hideForm()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <form id="record-form" onsubmit="handleSubmit(event)">
+        <input type="hidden" id="form-row-id" value="" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Associado <span class="text-red-500">*</span></label><input id="f-nome" type="text" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome completo" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Placa <span class="text-red-500">*</span></label><input id="f-placa" type="text" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ex: ABC-1234" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor da Parcela</label><input id="f-parcela" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor Pago</label><input id="f-pago" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Consultor</label><input id="f-consultor" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome do consultor" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Atendente</label><input id="f-atendente" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome do atendente" /></div>
+          <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Atual</label><select id="f-status" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociacao">Em negociacao</option></select></div>
+          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo do Cancelamento</label><textarea id="f-motivo" rows="2" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Se aplicavel..."></textarea></div>
+          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observacao</label><textarea id="f-obs" rows="2" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Observacoes..."></textarea></div>
+        </div>
+        <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button type="submit" id="btn-submit" class="px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">Cadastrar</button>
+          <button type="button" onclick="hideForm()" class="px-5 py-2.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- DELETE MODAL -->
+  <div id="delete-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="hideDeleteModal()"></div>
+    <div class="relative max-w-md mx-auto mt-32 bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 m-4 fade-in">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg></div>
+        <div><h3 class="text-lg font-semibold text-gray-900 dark:text-white">Confirmar Exclusao</h3><p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Deseja excluir <span id="delete-name" class="font-medium text-gray-700 dark:text-gray-200"></span>?</p></div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="hideDeleteModal()" class="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancelar</button>
+        <button onclick="confirmDelete()" id="btn-delete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Sim, excluir</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2"></div>
   <script>
-    // =============================================
-    // ESTADO DA APLICACAO
-    // =============================================
-    let currentTab = '';
-    let allTabs = [];
-    let deleteRowId = null;
-    let searchTimeout = null;
-
-    // =============================================
-    // INICIALIZACAO
-    // =============================================
-    window.onload = function() {
-      loadTabs();
-      setupSearch();
-    };
-
-    function setupSearch() {
-      document.getElementById('search-input').addEventListener('input', function(e) {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function() {
-          loadRecords(e.target.value);
-        }, 400);
-      });
+    var currentTab='',allTabs=[],allRecords=[],deleteRowId=null,searchTimeout=null;
+    function toggleDarkMode(){var h=document.documentElement,d=h.classList.toggle('dark');localStorage.setItem('darkMode',d?'true':'false');updIcons(d);}
+    function updIcons(d){document.getElementById('icon-sun').classList.toggle('hidden',!d);document.getElementById('icon-moon').classList.toggle('hidden',d);}
+    function initDark(){var d=localStorage.getItem('darkMode')==='true';if(d)document.documentElement.classList.add('dark');updIcons(d);}
+    window.onload=function(){initDark();loadTabs();document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){loadRecords(e.target.value);},400);});};
+    function loadTabs(){google.script.run.withSuccessHandler(function(r){if(r.success){allTabs=r.data;renderTabs();if(allTabs.length>0)selectTab(allTabs[0].name);}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getSheetTabs();}
+    function loadRecords(q){if(!currentTab)return;showLoading();google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;renderTable(r.data);document.getElementById('record-count').textContent=r.data.length+' registro(s)';}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords(currentTab,q||'');}
+    function loadStats(){google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-total').textContent=r.data.total;document.getElementById('stat-ativos').textContent=r.data.ativos;document.getElementById('stat-inadimplentes').textContent=r.data.inadimplentes;document.getElementById('stat-cancelados').textContent=r.data.cancelados;}}).getStats(currentTab);}
+    function renderTabs(){var c=document.getElementById('tabs-container');c.innerHTML=allTabs.map(function(t){var a=t.name===currentTab;return '<button onclick="selectTab(\''+t.name+'\')" class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all '+(a?'bg-green-600 text-white shadow-md':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700')+'">'+t.name+'</button>';}).join('');}
+    function selectTab(n){currentTab=n;renderTabs();document.getElementById('search-input').value='';loadRecords('');loadStats();}
+    function esc(t){if(!t)return '';var d=document.createElement('div');d.textContent=t.toString();return d.innerHTML;}
+    function stClass(s){s=(s||'').toLowerCase();if(s==='ativo')return 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300';if(s==='inadimplente')return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';if(s==='cancelado')return 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200';if(s==='pendente')return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300';if(s==='em negociacao')return 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';}
+    function showLoading(){var t=document.getElementById('table-body'),r='';for(var i=0;i<5;i++){r+='<tr class="border-b border-gray-100 dark:border-gray-700">';for(var j=0;j<8;j++)r+='<td class="px-4 py-3"><div class="skeleton h-4 rounded" style="width:'+(Math.random()*40+50)+'%"></div></td>';r+='</tr>';}t.innerHTML=r;}
+    function renderTable(recs){
+      var tb=document.getElementById('table-body');
+      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="8" class="px-4 py-12 text-center"><svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><p class="text-gray-500 dark:text-gray-400 font-medium">Nenhum registro encontrado</p></td></tr>';return;}
+      tb.innerHTML=recs.map(function(r){var sc=stClass(r.statusAtual);return '<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"><td class="px-4 py-3 font-medium text-gray-900 dark:text-white max-w-[180px] truncate">'+esc(r.nomeDoAssociado)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.valorDaParcela)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.valorPago)+'</td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.consultor)+'</td><td class="px-4 py-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium '+sc+'">'+esc(r.statusAtual)+'</span></td><td class="px-4 py-3 text-gray-600 dark:text-gray-300">'+esc(r.atendente)+'</td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1"><button onclick="editRecord('+r.id+')" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg" title="Editar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button onclick="showDeleteModal('+r.id+',\''+esc(r.nomeDoAssociado).replace(/\x27/g,"")+'\')" class="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg" title="Excluir"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></td></tr>';}).join('');
     }
-
-    // =============================================
-    // FUNCOES DE CARREGAMENTO
-    // =============================================
-    function loadTabs() {
-      google.script.run
-        .withSuccessHandler(function(result) {
-          if (result.success) {
-            allTabs = result.data;
-            renderTabs();
-            if (allTabs.length > 0) {
-              selectTab(allTabs[0].name);
-            }
-          } else {
-            showToast('error', result.error || 'Erro ao carregar abas');
-          }
-        })
-        .withFailureHandler(function(error) {
-          showToast('error', 'Erro de conexao: ' + error.message);
-        })
-        .getSheetTabs();
-    }
-
-    function loadRecords(searchQuery) {
-      if (!currentTab) return;
-      showTableLoading();
-      
-      google.script.run
-        .withSuccessHandler(function(result) {
-          if (result.success) {
-            renderTable(result.data);
-          } else {
-            showToast('error', result.error || 'Erro ao carregar dados');
-          }
-        })
-        .withFailureHandler(function(error) {
-          showToast('error', 'Erro: ' + error.message);
-        })
-        .getRecords(currentTab, searchQuery || '');
-    }
-
-    function loadStats() {
-      google.script.run
-        .withSuccessHandler(function(result) {
-          if (result.success) {
-            document.getElementById('stat-total').textContent = result.data.total;
-            document.getElementById('stat-ativos').textContent = result.data.ativos;
-            document.getElementById('stat-inadimplentes').textContent = result.data.inadimplentes;
-            document.getElementById('stat-cancelados').textContent = result.data.cancelados;
-          }
-        })
-        .getStats(currentTab);
-    }
-
-
-    // =============================================
-    // RENDERIZACAO
-    // =============================================
-    function renderTabs() {
-      var container = document.getElementById('tabs-container');
-      container.innerHTML = allTabs.map(function(tab) {
-        return '<button onclick="selectTab(\'' + tab.name + '\')" id="tab-' + tab.name + '" class="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ' +
-          (tab.name === currentTab ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50') +
-          '">' + tab.name + '</button>';
-      }).join('');
-    }
-
-    function selectTab(tabName) {
-      currentTab = tabName;
-      renderTabs();
-      document.getElementById('search-input').value = '';
-      loadRecords('');
-      loadStats();
-    }
-
-    function renderTable(records) {
-      var tbody = document.getElementById('table-body');
-      
-      if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center"><div class="text-gray-300"><svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><p class="text-gray-500 font-medium">Nenhum registro encontrado</p><p class="text-gray-400 text-sm mt-1">Adicione um novo associado ou altere a busca.</p></td></tr>';
-        return;
-      }
-      
-      tbody.innerHTML = records.map(function(r) {
-        var statusClass = getStatusClass(r.statusAtual);
-        return '<tr class="border-b border-gray-100 hover:bg-gray-50 transition">' +
-          '<td class="px-4 py-3 font-medium text-gray-900 max-w-[180px] truncate">' + escapeHtml(r.nomeDoAssociado) + '</td>' +
-          '<td class="px-4 py-3 text-gray-600 font-mono text-xs">' + escapeHtml(r.placa) + '</td>' +
-          '<td class="px-4 py-3 text-gray-600">' + escapeHtml(r.valorDaParcela) + '</td>' +
-          '<td class="px-4 py-3 text-gray-600">' + escapeHtml(r.valorPago) + '</td>' +
-          '<td class="px-4 py-3 text-gray-600">' + escapeHtml(r.consultor) + '</td>' +
-          '<td class="px-4 py-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium ' + statusClass + '">' + escapeHtml(r.statusAtual) + '</span></td>' +
-          '<td class="px-4 py-3 text-gray-600">' + escapeHtml(r.atendente) + '</td>' +
-          '<td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1">' +
-          '<button onclick="editRecord(' + r.id + ')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>' +
-          '<button onclick="showDeleteModal(' + r.id + ', \'' + escapeHtml(r.nomeDoAssociado).replace(/'/g, "\\'") + '\')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" title="Excluir"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>' +
-          '</div></td></tr>';
-      }).join('');
-    }
-
-    function showTableLoading() {
-      var tbody = document.getElementById('table-body');
-      var rows = '';
-      for (var i = 0; i < 6; i++) {
-        rows += '<tr class="border-b border-gray-100">';
-        for (var j = 0; j < 8; j++) {
-          rows += '<td class="px-4 py-3"><div class="skeleton h-4 rounded" style="width:' + (Math.random()*40+50) + '%"></div></td>';
-        }
-        rows += '</tr>';
-      }
-      tbody.innerHTML = rows;
-    }
-
-    function getStatusClass(status) {
-      var s = (status || '').toLowerCase();
-      if (s === 'ativo') return 'bg-green-100 text-green-800';
-      if (s === 'inadimplente') return 'bg-red-100 text-red-800';
-      if (s === 'cancelado') return 'bg-gray-200 text-gray-700';
-      if (s === 'pendente') return 'bg-yellow-100 text-yellow-800';
-      if (s === 'em negociacao') return 'bg-blue-100 text-blue-800';
-      return 'bg-gray-100 text-gray-600';
-    }
-
-
-    // =============================================
-    // FORMULARIO - CRIAR / EDITAR
-    // =============================================
-    function showForm(record) {
-      document.getElementById('form-modal').classList.remove('hidden');
-      document.getElementById('form-title').textContent = record ? 'Editar Associado' : 'Novo Associado';
-      document.getElementById('btn-submit').textContent = record ? 'Atualizar' : 'Cadastrar';
-      
-      if (record) {
-        document.getElementById('form-row-id').value = record.id;
-        document.getElementById('f-nome').value = record.nomeDoAssociado || '';
-        document.getElementById('f-placa').value = record.placa || '';
-        document.getElementById('f-parcela').value = record.valorDaParcela || '';
-        document.getElementById('f-pago').value = record.valorPago || '';
-        document.getElementById('f-consultor').value = record.consultor || '';
-        document.getElementById('f-atendente').value = record.atendente || '';
-        document.getElementById('f-status').value = record.statusAtual || '-';
-        document.getElementById('f-motivo').value = record.motivoDoCancelamento || '';
-        document.getElementById('f-obs').value = record.observacao || '';
-      } else {
-        document.getElementById('record-form').reset();
-        document.getElementById('form-row-id').value = '';
+    // FORM
+    function showForm(rec){document.getElementById('form-modal').classList.remove('hidden');document.getElementById('form-title').textContent=rec?'Editar Associado':'Novo Associado';document.getElementById('btn-submit').textContent=rec?'Atualizar':'Cadastrar';if(rec){document.getElementById('form-row-id').value=rec.id;document.getElementById('f-nome').value=rec.nomeDoAssociado||'';document.getElementById('f-placa').value=rec.placa||'';document.getElementById('f-parcela').value=rec.valorDaParcela||'';document.getElementById('f-pago').value=rec.valorPago||'';document.getElementById('f-consultor').value=rec.consultor||'';document.getElementById('f-atendente').value=rec.atendente||'';document.getElementById('f-status').value=rec.statusAtual||'-';document.getElementById('f-motivo').value=(rec.motivoDoCancelamento==='-'?'':rec.motivoDoCancelamento)||'';document.getElementById('f-obs').value=(rec.observacao==='-'?'':rec.observacao)||'';}else{document.getElementById('record-form').reset();document.getElementById('form-row-id').value='';}}
+    function hideForm(){document.getElementById('form-modal').classList.add('hidden');}
+    function editRecord(id){var rec=allRecords.find(function(r){return r.id===id;});if(rec)showForm(rec);}
+    function handleSubmit(e){
+      e.preventDefault();var btn=document.getElementById('btn-submit');btn.disabled=true;btn.textContent='Salvando...';
+      var data={nomeDoAssociado:document.getElementById('f-nome').value,placa:document.getElementById('f-placa').value,valorDaParcela:document.getElementById('f-parcela').value,valorPago:document.getElementById('f-pago').value,consultor:document.getElementById('f-consultor').value,atendente:document.getElementById('f-atendente').value,statusAtual:document.getElementById('f-status').value,motivoDoCancelamento:document.getElementById('f-motivo').value||'-',observacao:document.getElementById('f-obs').value||'-'};
+      var rowId=document.getElementById('form-row-id').value;
+      if(rowId){
+        google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecord(currentTab,parseInt(rowId),data);
+      }else{
+        google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Cadastrado!');hideForm();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecord(currentTab,data);
       }
     }
-
-    function hideForm() {
-      document.getElementById('form-modal').classList.add('hidden');
-    }
-
-    function editRecord(rowId) {
-      // Buscar dados atuais da tabela renderizada
-      google.script.run
-        .withSuccessHandler(function(result) {
-          if (result.success && result.data.length > 0) {
-            var record = result.data.find(function(r) { return r.id === rowId; });
-            if (record) showForm(record);
-          }
-        })
-        .getRecords(currentTab, '');
-    }
-
-    function handleSubmit(e) {
-      e.preventDefault();
-      var btn = document.getElementById('btn-submit');
-      btn.disabled = true;
-      btn.textContent = 'Salvando...';
-
-      var data = {
-        nomeDoAssociado: document.getElementById('f-nome').value,
-        placa: document.getElementById('f-placa').value,
-        valorDaParcela: document.getElementById('f-parcela').value,
-        valorPago: document.getElementById('f-pago').value,
-        consultor: document.getElementById('f-consultor').value,
-        atendente: document.getElementById('f-atendente').value,
-        statusAtual: document.getElementById('f-status').value,
-        motivoDoCancelamento: document.getElementById('f-motivo').value || '-',
-        observacao: document.getElementById('f-obs').value || '-'
-      };
-
-      var rowId = document.getElementById('form-row-id').value;
-
-      if (rowId) {
-        // UPDATE
-        google.script.run
-          .withSuccessHandler(function(result) {
-            btn.disabled = false;
-            btn.textContent = 'Atualizar';
-            if (result.success) {
-              showToast('success', 'Registro atualizado com sucesso!');
-              hideForm();
-              loadRecords('');
-              loadStats();
-            } else {
-              showToast('error', result.error || 'Erro ao atualizar');
-            }
-          })
-          .withFailureHandler(function(error) {
-            btn.disabled = false;
-            btn.textContent = 'Atualizar';
-            showToast('error', 'Erro: ' + error.message);
-          })
-          .updateRecord(currentTab, parseInt(rowId), data);
-      } else {
-        // CREATE
-        google.script.run
-          .withSuccessHandler(function(result) {
-            btn.disabled = false;
-            btn.textContent = 'Cadastrar';
-            if (result.success) {
-              showToast('success', 'Associado cadastrado com sucesso!');
-              hideForm();
-              loadRecords('');
-              loadStats();
-            } else {
-              showToast('error', result.error || 'Erro ao cadastrar');
-            }
-          })
-          .withFailureHandler(function(error) {
-            btn.disabled = false;
-            btn.textContent = 'Cadastrar';
-            showToast('error', 'Erro: ' + error.message);
-          })
-          .createRecord(currentTab, data);
-      }
-    }
-
-
-    // =============================================
-    // EXCLUIR REGISTRO
-    // =============================================
-    function showDeleteModal(rowId, name) {
-      deleteRowId = rowId;
-      document.getElementById('delete-name').textContent = name;
-      document.getElementById('delete-modal').classList.remove('hidden');
-    }
-
-    function hideDeleteModal() {
-      document.getElementById('delete-modal').classList.add('hidden');
-      deleteRowId = null;
-    }
-
-    function confirmDelete() {
-      if (!deleteRowId) return;
-      var btn = document.getElementById('btn-delete');
-      btn.disabled = true;
-      btn.textContent = 'Excluindo...';
-
-      google.script.run
-        .withSuccessHandler(function(result) {
-          btn.disabled = false;
-          btn.textContent = 'Sim, excluir';
-          if (result.success) {
-            showToast('success', 'Registro excluido com sucesso!');
-            hideDeleteModal();
-            loadRecords('');
-            loadStats();
-          } else {
-            showToast('error', result.error || 'Erro ao excluir');
-          }
-        })
-        .withFailureHandler(function(error) {
-          btn.disabled = false;
-          btn.textContent = 'Sim, excluir';
-          showToast('error', 'Erro: ' + error.message);
-        })
-        .deleteRecord(currentTab, deleteRowId);
-    }
-
-    // =============================================
-    // TOAST NOTIFICATIONS
-    // =============================================
-    function showToast(type, message) {
-      var container = document.getElementById('toast-container');
-      var colors = {
-        success: 'bg-green-50 border-green-200 text-green-800',
-        error: 'bg-red-50 border-red-200 text-red-800',
-        info: 'bg-blue-50 border-blue-200 text-blue-800'
-      };
-      var icons = {
-        success: '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>',
-        error: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>',
-        info: '<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
-      };
-
-      var toast = document.createElement('div');
-      toast.className = 'flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[300px] toast-enter ' + (colors[type] || colors.info);
-      toast.innerHTML = (icons[type] || icons.info) + '<p class="text-sm font-medium flex-1">' + escapeHtml(message) + '</p>';
-      container.appendChild(toast);
-
-      setTimeout(function() {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        toast.style.transition = 'all 0.3s';
-        setTimeout(function() { toast.remove(); }, 300);
-      }, 4000);
-    }
-
-    // =============================================
-    // UTILIDADES
-    // =============================================
-    function escapeHtml(text) {
-      if (!text) return '';
-      var div = document.createElement('div');
-      div.textContent = text.toString();
-      return div.innerHTML;
-    }
+    // DELETE
+    function showDeleteModal(id,name){deleteRowId=id;document.getElementById('delete-name').textContent=name;document.getElementById('delete-modal').classList.remove('hidden');}
+    function hideDeleteModal(){document.getElementById('delete-modal').classList.add('hidden');deleteRowId=null;}
+    function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadRecords('');loadStats();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecord(currentTab,deleteRowId);}
+    // TOAST
+    function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-50 dark:bg-green-900/50 border-green-200 dark:border-green-700 text-green-800 dark:text-green-200',error:'bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-700 text-red-800 dark:text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
   </script>
 </body>
 </html>

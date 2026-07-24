@@ -79,37 +79,60 @@ function getRecords(sheetName, searchQuery) {
     var data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
     var records = [];
     
+    // Lista de headers conhecidos para filtrar (caso cabecalho apareca nos dados)
+    var headerValues = [
+      'nome do associado', 'placa', 'valor da parcela', 'valor pago',
+      'consultor', 'motivo do cancelamento', 'status atual', 'observacao',
+      'observação', 'atendente'
+    ];
+    
     for (var i = 0; i < data.length; i++) {
       var row = data[i];
       
-      // Pular linhas completamente vazias
+      // Pular linhas completamente vazias ou so com "-"
       var hasData = row.some(function(cell) {
         return cell && cell.toString().trim() !== '' && cell.toString().trim() !== '-';
       });
       
       if (!hasData) continue;
       
+      // CORRECAO: Pular linha se for cabecalho (verificar primeira celula)
+      var firstCell = row[0] ? row[0].toString().trim().toLowerCase() : '';
+      if (headerValues.indexOf(firstCell) >= 0) continue;
+      
+      // Verificar se a linha inteira parece ser um cabecalho
+      var isHeader = false;
+      var headerMatchCount = 0;
+      for (var h = 0; h < row.length; h++) {
+        var cellValue = row[h] ? row[h].toString().trim().toLowerCase() : '';
+        if (headerValues.indexOf(cellValue) >= 0) {
+          headerMatchCount++;
+        }
+      }
+      // Se 3+ celulas batem com nomes de cabecalho, pular a linha
+      if (headerMatchCount >= 3) continue;
+      
       var record = {
         id: i + 2, // Numero da linha na planilha
-        nomeDoAssociado: row[0] || '',
-        placa: row[1] || '',
-        valorDaParcela: row[2] || '',
-        valorPago: row[3] || '',
-        consultor: row[4] || '',
-        motivoDoCancelamento: row[5] || '-',
-        statusAtual: row[6] || '-',
-        observacao: row[7] || '-',
-        atendente: row[8] || ''
+        nomeDoAssociado: row[0] ? row[0].toString() : '',
+        placa: row[1] ? row[1].toString() : '',
+        valorDaParcela: row[2] ? row[2].toString() : '',
+        valorPago: row[3] ? row[3].toString() : '',
+        consultor: row[4] ? row[4].toString() : '',
+        motivoDoCancelamento: row[5] ? row[5].toString() : '-',
+        statusAtual: row[6] ? row[6].toString() : '-',
+        observacao: row[7] ? row[7].toString() : '-',
+        atendente: row[8] ? row[8].toString() : ''
       };
       
       // Filtro de busca
       if (searchQuery && searchQuery.trim() !== '') {
         var query = searchQuery.toLowerCase();
-        var match = record.nomeDoAssociado.toString().toLowerCase().indexOf(query) >= 0 ||
-                    record.placa.toString().toLowerCase().indexOf(query) >= 0 ||
-                    record.consultor.toString().toLowerCase().indexOf(query) >= 0 ||
-                    record.atendente.toString().toLowerCase().indexOf(query) >= 0 ||
-                    record.statusAtual.toString().toLowerCase().indexOf(query) >= 0;
+        var match = record.nomeDoAssociado.toLowerCase().indexOf(query) >= 0 ||
+                    record.placa.toLowerCase().indexOf(query) >= 0 ||
+                    record.consultor.toLowerCase().indexOf(query) >= 0 ||
+                    record.atendente.toLowerCase().indexOf(query) >= 0 ||
+                    record.statusAtual.toLowerCase().indexOf(query) >= 0;
         
         if (!match) continue;
       }
@@ -275,6 +298,69 @@ function deleteRecord(sheetName, rowId) {
   } catch (error) {
     return { success: false, error: error.message };
   }
+}
+
+// =============================================
+// FUNCOES DE CONFIGURACAO
+// =============================================
+
+/**
+ * Cria as abas de Janeiro a Dezembro com headers
+ * Execute esta funcao UMA VEZ para configurar a planilha
+ */
+function criarAbasMensais() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var meses = [
+    'JANEIRO', 'FEVEREIRO', 'MARCO', 'ABRIL', 'MAIO', 'JUNHO',
+    'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+  ];
+  
+  var headers = [
+    'NOME DO ASSOCIADO', 'PLACA', 'VALOR DA PARCELA', 'VALOR PAGO',
+    'CONSULTOR', 'MOTIVO DO CANCELAMENTO', 'STATUS ATUAL', 'OBSERVACAO', 'ATENDENTE'
+  ];
+  
+  for (var i = 0; i < meses.length; i++) {
+    var sheet = ss.getSheetByName(meses[i]);
+    
+    // Se a aba nao existe, criar
+    if (!sheet) {
+      sheet = ss.insertSheet(meses[i]);
+    }
+    
+    // Verificar se ja tem header na linha 1
+    var firstCell = sheet.getRange(1, 1).getValue();
+    if (!firstCell || firstCell.toString().trim() === '') {
+      // Adicionar headers
+      sheet.getRange(1, 1, 1, 9).setValues([headers]);
+      
+      // Formatar header (negrito, fundo verde, texto branco)
+      var headerRange = sheet.getRange(1, 1, 1, 9);
+      headerRange.setFontWeight('bold');
+      headerRange.setBackground('#166534');
+      headerRange.setFontColor('#ffffff');
+      headerRange.setHorizontalAlignment('center');
+      
+      // Ajustar largura das colunas
+      sheet.setColumnWidth(1, 200); // Nome
+      sheet.setColumnWidth(2, 100); // Placa
+      sheet.setColumnWidth(3, 130); // Valor Parcela
+      sheet.setColumnWidth(4, 130); // Valor Pago
+      sheet.setColumnWidth(5, 130); // Consultor
+      sheet.setColumnWidth(6, 200); // Motivo Cancel.
+      sheet.setColumnWidth(7, 120); // Status
+      sheet.setColumnWidth(8, 200); // Observacao
+      sheet.setColumnWidth(9, 130); // Atendente
+    }
+  }
+  
+  // Congelar primeira linha em todas as abas
+  for (var j = 0; j < meses.length; j++) {
+    var s = ss.getSheetByName(meses[j]);
+    if (s) s.setFrozenRows(1);
+  }
+  
+  return { success: true, message: 'Abas de Janeiro a Dezembro criadas com sucesso!' };
 }
 
 // =============================================
