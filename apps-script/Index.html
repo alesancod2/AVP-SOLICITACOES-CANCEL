@@ -148,12 +148,18 @@
         <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Pagos</p><p class="text-2xl font-bold text-green-500" id="stat-susp-pagos">-</p></div>
         <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Vencidos</p><p class="text-2xl font-bold text-red-500" id="stat-susp-vencidos">-</p></div>
       </div>
-      <!-- TOOLBAR SUSPENSOS -->
-      <div class="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center">
-        <div class="relative flex-1 w-full sm:max-w-md">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input id="search-suspensos" type="text" placeholder="Buscar por associado, placa..." class="w-full pl-10 pr-4 py-2.5 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition" />
-        </div>
+      <!-- FILTERS SUSPENSOS -->
+      <div class="flex flex-wrap gap-3 mb-4 items-end">
+        <div><label class="block text-xs text-gray-400 mb-1">Associado</label><input id="sf-associado" type="text" placeholder="Nome..." class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white w-32 focus:ring-2 focus:ring-green-500 outline-none" /></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Placa</label><input id="sf-placa" type="text" placeholder="Placa..." class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white w-24 focus:ring-2 focus:ring-green-500 outline-none" /></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Venc. De</label><input id="sf-venc-de" type="date" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Venc. Ate</label><input id="sf-venc-ate" type="date" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Situacao</label><select id="sf-situacao" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Ativo">Ativo</option><option value="Cancelado">Cancelado</option></select></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Forma Pgto</label><select id="sf-forma" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="PIX">PIX</option><option value="Cartao Credito">Cartao Credito</option><option value="Cartao Debito">Cartao Debito</option></select></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Atendente</label><select id="sf-atendente" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Fernanda">Fernanda</option><option value="Flavia">Flavia</option><option value="Kris">Kris</option><option value="Leticia">Leticia</option><option value="Tamires">Tamires</option><option value="Thaynara">Thaynara</option><option value="Yasmin">Yasmin</option></select></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Conferencia</label><select id="sf-conf" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Verificar">Verificar</option><option value="OK">OK</option></select></div>
+        <button onclick="loadSuspensos()" class="px-3 py-2 bg-gray-700 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition">Filtrar</button>
+        <button onclick="clearSuspFilters()" class="px-3 py-2 text-sm text-gray-400 hover:text-white transition">Limpar</button>
       </div>
       <!-- TABLE SUSPENSOS -->
       <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-sm">
@@ -161,7 +167,7 @@
           <table class="w-full text-sm">
             <thead><tr class="bg-gray-700 border-b border-gray-600">
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Associado</th>
-              <th class="px-3 py-3 text-left font-semibold text-gray-200">Recebimento</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Dt Pgto</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Vencimento</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Placa</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Situacao</th>
@@ -285,40 +291,57 @@
     function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-900/80 border-green-700 text-green-200',error:'bg-red-900/80 border-red-700 text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
 
     // ===================== SUSPENSOS =====================
-    var suspensosTimeout=null;
+    function fmtDate(d){if(!d)return '';var s=d.toString().split(' ')[0];var p=s.split('/');if(p.length===3){return p[0].padStart(2,'0')+'/'+p[1].padStart(2,'0')+'/'+p[2].toString().slice(-2);}return s;}
+    function getSuspFilters(){return{associado:document.getElementById('sf-associado').value,placa:document.getElementById('sf-placa').value,vencDe:document.getElementById('sf-venc-de').value,vencAte:document.getElementById('sf-venc-ate').value,status:document.getElementById('sf-situacao').value,forma:document.getElementById('sf-forma').value,atendente:document.getElementById('sf-atendente').value,conferencia:document.getElementById('sf-conf').value};}
+    function clearSuspFilters(){document.getElementById('sf-associado').value='';document.getElementById('sf-placa').value='';document.getElementById('sf-venc-de').value='';document.getElementById('sf-venc-ate').value='';document.getElementById('sf-situacao').value='';document.getElementById('sf-forma').value='';document.getElementById('sf-atendente').value='';document.getElementById('sf-conf').value='';loadSuspensos();}
     function loadSuspensos(){
-      var q=document.getElementById('search-suspensos').value||'';
+      var f=getSuspFilters();var searchQ=(f.associado||'')+'|'+(f.placa||'');
       var tb=document.getElementById('table-body-suspensos');
       tb.innerHTML='<tr><td colspan="10" class="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>';
       google.script.run.withSuccessHandler(function(r){
-        if(r.success){renderSuspensos(r.data);document.getElementById('record-count-suspensos').textContent=r.data.length+' registro(s)';}
+        if(r.success){var filtered=applyLocalSuspFilters(r.data,f);renderSuspensos(filtered);document.getElementById('record-count-suspensos').textContent=filtered.length+' registro(s)';}
         else toast('error',r.error);
-      }).withFailureHandler(function(e){toast('error',e.message);}).getSuspensosRecords(q,null);
-      google.script.run.withSuccessHandler(function(r){
-        if(r.success){document.getElementById('stat-susp-total').textContent=r.data.total;document.getElementById('stat-susp-pendentes').textContent=r.data.pendentes;document.getElementById('stat-susp-pagos').textContent=r.data.pagos;document.getElementById('stat-susp-vencidos').textContent=r.data.vencidos;}
-      }).getSuspensosStats();
+      }).withFailureHandler(function(e){toast('error',e.message);}).getSuspensosRecords(f.associado||f.placa||'',{status:f.status,conferencia:f.conferencia});
+      google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-susp-total').textContent=r.data.total;document.getElementById('stat-susp-pendentes').textContent=r.data.pendentes;document.getElementById('stat-susp-pagos').textContent=r.data.pagos;document.getElementById('stat-susp-vencidos').textContent=r.data.vencidos;}}).getSuspensosStats();
     }
+    function applyLocalSuspFilters(recs,f){
+      return recs.filter(function(r){
+        if(f.associado&&r.associado.toLowerCase().indexOf(f.associado.toLowerCase())<0)return false;
+        if(f.placa&&r.placa.toLowerCase().indexOf(f.placa.toLowerCase())<0)return false;
+        if(f.forma&&r.formaPgto.toLowerCase()!==f.forma.toLowerCase())return false;
+        if(f.atendente&&r.atendente.toLowerCase()!==f.atendente.toLowerCase())return false;
+        return true;
+      });
+    }
+    function confClass(c){var v=(c||'').toLowerCase();if(v==='ok')return 'bg-green-600 text-white';if(v==='verificar')return 'bg-yellow-500 text-gray-900';return 'bg-gray-700 text-gray-300';}
     function renderSuspensos(recs){
       var tb=document.getElementById('table-body-suspensos');
-      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="10" class="px-4 py-12 text-center text-gray-500">Nenhum registro encontrado</td></tr>';return;}
+      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="10" class="px-4 py-12 text-center text-gray-500">Nenhum registro</td></tr>';return;}
       tb.innerHTML=recs.map(function(r){
-        return '<tr class="border-b border-gray-700 hover:bg-gray-700/50 transition">'+
-          '<td class="px-3 py-3 font-medium text-white max-w-[160px] truncate">'+esc(r.associado)+'</td>'+
-          '<td class="px-3 py-3 text-gray-300 text-xs">'+esc(r.dataRecebimento)+'</td>'+
-          '<td class="px-3 py-3 text-gray-300 text-xs">'+esc(r.dataVencimento)+'</td>'+
-          '<td class="px-3 py-3 text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td>'+
-          '<td class="px-3 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium '+stClassSusp(r.situacaoAtual)+'">'+esc(r.situacaoAtual)+'</span></td>'+
-          '<td class="px-3 py-3 text-gray-300 text-xs">'+esc(r.formaPgto)+'</td>'+
-          '<td class="px-3 py-3 text-gray-300">'+esc(r.valorRecebido)+'</td>'+
-          '<td class="px-3 py-3 text-gray-300">'+esc(r.valorOriginal)+'</td>'+
-          '<td class="px-3 py-3 text-gray-300">'+esc(r.atendente)+'</td>'+
-          '<td class="px-3 py-3 text-gray-300 text-xs">'+esc(r.conferencia)+'</td>'+
+        var sitOpts='<option value="">-</option><option value="Ativo"'+(r.situacaoAtual==='Ativo'?' selected':'')+'>Ativo</option><option value="Cancelado"'+(r.situacaoAtual==='Cancelado'?' selected':'')+'>Cancelado</option>';
+        var pgtoOpts='<option value="">-</option><option value="Boleto"'+(r.formaPgto==='Boleto'?' selected':'')+'>Boleto</option><option value="Dinheiro"'+(r.formaPgto==='Dinheiro'?' selected':'')+'>Dinheiro</option><option value="PIX"'+(r.formaPgto==='PIX'?' selected':'')+'>PIX</option><option value="Cartao Credito"'+(r.formaPgto==='Cartao Credito'?' selected':'')+'>Cartao Credito</option><option value="Cartao Debito"'+(r.formaPgto==='Cartao Debito'?' selected':'')+'>Cartao Debito</option>';
+        var ateOpts='<option value="">-</option><option value="Fernanda"'+(r.atendente==='Fernanda'?' selected':'')+'>Fernanda</option><option value="Flavia"'+(r.atendente==='Flavia'?' selected':'')+'>Flavia</option><option value="Kris"'+(r.atendente==='Kris'?' selected':'')+'>Kris</option><option value="Leticia"'+(r.atendente==='Leticia'?' selected':'')+'>Leticia</option><option value="Tamires"'+(r.atendente==='Tamires'?' selected':'')+'>Tamires</option><option value="Thaynara"'+(r.atendente==='Thaynara'?' selected':'')+'>Thaynara</option><option value="Yasmin"'+(r.atendente==='Yasmin'?' selected':'')+'>Yasmin</option>';
+        var confOpts='<option value="Verificar"'+(r.conferencia==='Verificar'?' selected':'')+'>Verificar</option><option value="OK"'+(r.conferencia==='OK'?' selected':'')+'>OK</option>';
+        return '<tr class="border-b border-gray-700 hover:bg-gray-700/30 transition">'+
+          '<td class="px-3 py-2 font-medium text-white max-w-[150px] truncate text-xs">'+esc(r.associado)+'</td>'+
+          '<td class="px-3 py-2"><input type="date" value="'+dateToInput(r.dataRecebimento)+'" onchange="saveCell('+r.id+',2,formatDateBR(this.value))" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white w-28 focus:ring-1 focus:ring-green-500 outline-none" /></td>'+
+          '<td class="px-3 py-2 text-gray-300 text-xs">'+fmtDate(r.dataVencimento)+'</td>'+
+          '<td class="px-3 py-2 text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td>'+
+          '<td class="px-3 py-2"><select onchange="saveCell('+r.id+',5,this.value)" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white focus:ring-1 focus:ring-green-500 outline-none">'+sitOpts+'</select></td>'+
+          '<td class="px-3 py-2"><select onchange="saveCell('+r.id+',6,this.value)" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white focus:ring-1 focus:ring-green-500 outline-none">'+pgtoOpts+'</select></td>'+
+          '<td class="px-3 py-2"><input type="text" value="'+esc(r.valorRecebido)+'" onblur="saveCell('+r.id+',7,this.value)" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white w-16 focus:ring-1 focus:ring-green-500 outline-none" /></td>'+
+          '<td class="px-3 py-2 text-gray-300 text-xs">'+esc(r.valorOriginal)+'</td>'+
+          '<td class="px-3 py-2"><select onchange="saveCell('+r.id+',9,this.value)" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white focus:ring-1 focus:ring-green-500 outline-none">'+ateOpts+'</select></td>'+
+          '<td class="px-3 py-2"><select onchange="saveCell('+r.id+',11,this.value);this.className=confSelClass(this.value)" class="'+confSelClass(r.conferencia)+' border-0 rounded px-2 py-1 text-xs font-bold focus:ring-1 focus:ring-green-500 outline-none cursor-pointer">'+confOpts+'</select></td>'+
           '</tr>';
       }).join('');
     }
-    function stClassSusp(s){s=(s||'').toLowerCase();if(s.indexOf('pago')>=0||s.indexOf('quitado')>=0)return 'bg-green-900/40 text-green-300';if(s.indexOf('vencid')>=0)return 'bg-red-900/40 text-red-300';return 'bg-yellow-900/40 text-yellow-300';}
-    // Busca de suspensos com debounce
-    document.getElementById('search-suspensos').addEventListener('input',function(e){clearTimeout(suspensosTimeout);suspensosTimeout=setTimeout(function(){loadSuspensos();},400);});
+    function confSelClass(v){v=(v||'').toLowerCase();if(v==='ok')return 'bg-green-600 text-white';return 'bg-yellow-500 text-gray-900';}
+    function dateToInput(d){if(!d)return '';var s=d.toString().split(' ')[0];var p=s.split('/');if(p.length===3)return p[2].padStart(4,'20')+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');return '';}
+    function formatDateBR(iso){if(!iso)return '';var p=iso.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+    function saveCell(rowId,col,value){
+      google.script.run.withSuccessHandler(function(r){if(!r.success)toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).updateSuspensosCell(rowId,col,value);
+    }
   </script>
 </body>
 </html>

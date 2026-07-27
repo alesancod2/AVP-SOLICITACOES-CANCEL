@@ -449,16 +449,15 @@ function criarAbaSuspensos() {
 // =============================================
 
 /**
- * Recebe os dados do arquivo importado via modal e injeta na aba DB_Suspensos
- * @param {Array} dados - Array de arrays com os dados processados no front
- * @returns {Object} Resultado da importacao
+ * Recebe os dados do arquivo importado - IMPORTA APENAS 4 COLUNAS:
+ * Associado, Placa, Data de Vencimento, Valor Original
+ * As demais colunas ficam em branco para preenchimento inline
  */
 function importarDadosSuspensos(dados) {
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName(SHEET_SUSPENSOS);
     
-    // Criar aba se nao existir
     if (!sheet) {
       criarAbaSuspensos();
       sheet = ss.getSheetByName(SHEET_SUSPENSOS);
@@ -475,10 +474,10 @@ function importarDadosSuspensos(dados) {
     if (lastRow > 1) {
       var existingData = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
       for (var e = 0; e < existingData.length; e++) {
-        var associado = existingData[e][0] ? existingData[e][0].toString().trim().toUpperCase() : '';
-        var placa = existingData[e][3] ? existingData[e][3].toString().trim().toUpperCase() : '';
-        if (associado || placa) {
-          existingKeys[associado + '|' + placa] = e + 2; // linha real na planilha
+        var assoc = existingData[e][0] ? existingData[e][0].toString().trim().toUpperCase() : '';
+        var pl = existingData[e][3] ? existingData[e][3].toString().trim().toUpperCase() : '';
+        if (assoc || pl) {
+          existingKeys[assoc + '|' + pl] = e + 2;
         }
       }
     }
@@ -489,50 +488,46 @@ function importarDadosSuspensos(dados) {
     var rowsToAppend = [];
     
     for (var i = 0; i < dados.length; i++) {
-      var row = dados[i];
+      var importRow = dados[i];
       
-      // Garantir que temos pelo menos as colunas necessarias
-      while (row.length < HEADERS_SUSPENSOS.length) {
-        row.push('');
+      // Extrair apenas as 4 colunas relevantes do arquivo importado
+      // Esperado: [Associado, ..., ..., Placa, ..., ..., ..., ValorOriginal, ...]
+      // Ou mapeamento direto: col0=Associado, col1=Placa, col2=DataVencimento, col3=ValorOriginal
+      var associado = importRow[0] ? importRow[0].toString().trim() : '';
+      var placa = importRow[1] ? importRow[1].toString().trim() : '';
+      var dataVencimento = importRow[2] ? importRow[2].toString().trim() : '';
+      var valorOriginal = importRow[3] ? importRow[3].toString().trim() : '';
+      
+      // Pular linhas vazias
+      if (!associado && !placa) { ignorados++; continue; }
+      
+      // Pular cabecalhos
+      var assocUpper = associado.toUpperCase();
+      if (assocUpper === 'ASSOCIADO' || assocUpper === 'NOME' || assocUpper === 'NOME DO ASSOCIADO') {
+        ignorados++; continue;
       }
       
-      // Limitar ao numero de colunas do header
-      row = row.slice(0, HEADERS_SUSPENSOS.length);
+      // Montar linha com 11 colunas (headers do DB_Suspensos)
+      // ASSOCIADO | DATA RECEBIMENTO | DATA VENCIMENTO | PLACA | SITUAÇÃO ATUAL | FORMA PGTO | VALOR RECEBIDO | VALOR ORIGINAL | ATENDENTE | OBSERVAÇÕES | CONFERENCIA
+      var newRow = [associado, '', dataVencimento, placa, 'Ativo', '', '', valorOriginal, '', '', 'Verificar'];
       
-      var associado = row[0] ? row[0].toString().trim().toUpperCase() : '';
-      var placa = row[3] ? row[3].toString().trim().toUpperCase() : '';
-      
-      // Pular linhas completamente vazias
-      var hasContent = row.some(function(cell) {
-        return cell && cell.toString().trim() !== '';
-      });
-      if (!hasContent) {
-        ignorados++;
-        continue;
-      }
-      
-      // Pular se for linha de cabecalho importada
-      if (associado === 'ASSOCIADO' || associado === 'NOME' || associado === 'NOME DO ASSOCIADO') {
-        ignorados++;
-        continue;
-      }
-      
-      var key = associado + '|' + placa;
+      var key = assocUpper + '|' + placa.toUpperCase();
       
       if (existingKeys[key]) {
-        // Registro ja existe - ATUALIZAR na linha existente
+        // Atualizar apenas Associado, DataVencimento, Placa, ValorOriginal (colunas 1,3,4,8)
         var rowNum = existingKeys[key];
-        sheet.getRange(rowNum, 1, 1, HEADERS_SUSPENSOS.length).setValues([row]);
+        sheet.getRange(rowNum, 1).setValue(associado);
+        sheet.getRange(rowNum, 3).setValue(dataVencimento);
+        sheet.getRange(rowNum, 4).setValue(placa);
+        sheet.getRange(rowNum, 8).setValue(valorOriginal);
         atualizados++;
       } else {
-        // Registro novo - adicionar ao batch
-        rowsToAppend.push(row);
-        existingKeys[key] = true; // Marcar para evitar duplicata dentro do mesmo lote
+        rowsToAppend.push(newRow);
+        existingKeys[key] = true;
         inseridos++;
       }
     }
     
-    // Inserir novos registros em batch (mais eficiente)
     if (rowsToAppend.length > 0) {
       var startRow = sheet.getLastRow() + 1;
       sheet.getRange(startRow, 1, rowsToAppend.length, HEADERS_SUSPENSOS.length).setValues(rowsToAppend);
@@ -541,12 +536,7 @@ function importarDadosSuspensos(dados) {
     return {
       success: true,
       message: 'Importacao concluida!',
-      data: {
-        inseridos: inseridos,
-        atualizados: atualizados,
-        ignorados: ignorados,
-        total: dados.length
-      }
+      data: { inseridos: inseridos, atualizados: atualizados, ignorados: ignorados, total: dados.length }
     };
     
   } catch (error) {
@@ -650,6 +640,45 @@ function getSuspensosStats() {
     }
     
     return { success: true, data: stats };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+
+
+// =============================================
+// INLINE EDIT - ATUALIZAR CELULA INDIVIDUAL
+// =============================================
+
+/**
+ * Atualiza uma celula especifica na aba DB_Suspensos
+ * @param {number} rowId - Numero da linha
+ * @param {number} colIndex - Indice da coluna (1-based)
+ * @param {string} value - Novo valor
+ */
+function updateSuspensosCell(rowId, colIndex, value) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_SUSPENSOS);
+    
+    if (!sheet) {
+      return { success: false, error: 'Aba nao encontrada' };
+    }
+    
+    var row = parseInt(rowId);
+    var col = parseInt(colIndex);
+    
+    if (row < 2 || row > sheet.getLastRow()) {
+      return { success: false, error: 'Linha invalida' };
+    }
+    if (col < 1 || col > HEADERS_SUSPENSOS.length) {
+      return { success: false, error: 'Coluna invalida' };
+    }
+    
+    sheet.getRange(row, col).setValue(value);
+    
+    return { success: true, message: 'Salvo!' };
   } catch (error) {
     return { success: false, error: error.message };
   }
