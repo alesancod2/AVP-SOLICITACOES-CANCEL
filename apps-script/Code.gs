@@ -5,7 +5,7 @@
 // =============================================
 
 const SPREADSHEET_ID = '16DjjPOMnWu-9P88fKkLCxSGFHOSFtv8N7_kt1yWkiOE';
-const SHEET_NAME = 'CANCELAMENTOS'; // Nome da aba unica
+const SHEET_NAME = 'DB_Cancelamentos'; // Nome da aba unica
 
 // =============================================
 // FUNCAO PRINCIPAL - SERVE A PAGINA WEB
