@@ -89,7 +89,8 @@
     </header>
 
     <!-- PAGE CONTENT -->
-    <main class="px-4 md:px-6 py-6">
+    <!-- ========== PAGE: CANCELAMENTOS ========== -->
+    <main class="px-4 md:px-6 py-6 page-content" id="page-cancelamentos">
       <!-- STATS -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Total</p><p class="text-2xl font-bold text-white" id="stat-total">-</p></div>
@@ -136,6 +137,56 @@
         </div>
       </div>
       <div class="mt-3 text-sm text-gray-400" id="record-count"></div>
+    </main>
+
+    <!-- ========== PAGE: SUSPENSOS ========== -->
+    <main class="px-4 md:px-6 py-6 page-content hidden" id="page-suspensos">
+      <!-- STATS SUSPENSOS -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Total</p><p class="text-2xl font-bold text-white" id="stat-susp-total">-</p></div>
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Pendentes</p><p class="text-2xl font-bold text-yellow-500" id="stat-susp-pendentes">-</p></div>
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Pagos</p><p class="text-2xl font-bold text-green-500" id="stat-susp-pagos">-</p></div>
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Vencidos</p><p class="text-2xl font-bold text-red-500" id="stat-susp-vencidos">-</p></div>
+      </div>
+      <!-- TOOLBAR SUSPENSOS -->
+      <div class="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center">
+        <div class="relative flex-1 w-full sm:max-w-md">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input id="search-suspensos" type="text" placeholder="Buscar por associado, placa..." class="w-full pl-10 pr-4 py-2.5 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition" />
+        </div>
+      </div>
+      <!-- TABLE SUSPENSOS -->
+      <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead><tr class="bg-gray-700 border-b border-gray-600">
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Associado</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Recebimento</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Vencimento</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Placa</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Situacao</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Forma Pgto</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Recebido</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Original</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Atendente</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Conferencia</th>
+            </tr></thead>
+            <tbody id="table-body-suspensos"><tr><td colspan="10" class="px-4 py-12 text-center text-gray-500">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="mt-3 text-sm text-gray-400" id="record-count-suspensos"></div>
+    </main>
+
+    <!-- ========== PAGE: DASHBOARD ========== -->
+    <main class="px-4 md:px-6 py-6 page-content hidden" id="page-dashboard">
+      <div class="flex items-center justify-center h-64">
+        <div class="text-center">
+          <svg class="mx-auto h-16 w-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <h2 class="text-xl font-bold text-gray-300">Dashboard</h2>
+          <p class="text-gray-500 mt-2">Visao geral do sistema (em breve)</p>
+        </div>
+      </div>
     </main>
   </div>
   <!-- FORM MODAL -->
@@ -189,7 +240,7 @@
     function togglePin(){isPinned=!isPinned;var icon=document.getElementById('pin-icon');if(isPinned){icon.classList.remove('text-gray-400');icon.classList.add('text-green-400');document.getElementById('sidebar').classList.add('expanded');document.getElementById('main-content').classList.add('shifted');}else{icon.classList.remove('text-green-400');icon.classList.add('text-gray-400');document.getElementById('sidebar').classList.remove('expanded');document.getElementById('main-content').classList.remove('shifted');}}
     function toggleMobileSidebar(){isMobileOpen=!isMobileOpen;document.getElementById('sidebar').classList.toggle('mobile-open',isMobileOpen);document.getElementById('sidebar').classList.toggle('expanded',isMobileOpen);document.getElementById('sidebar-overlay').classList.toggle('hidden',!isMobileOpen);}
     function closeMobileSidebar(){isMobileOpen=false;document.getElementById('sidebar').classList.remove('mobile-open','expanded');document.getElementById('sidebar-overlay').classList.add('hidden');}
-    function navigateTo(page){var titles={'dashboard':'Dashboard','cancelamentos':'Gestao de Cancelamentos','suspensos':'Gestao de Suspensos'};document.getElementById('page-title').textContent=titles[page]||page;document.querySelectorAll('.sidebar-link').forEach(function(l){l.classList.remove('bg-gray-700','text-white');l.classList.add('text-gray-300');});var el=document.querySelector('[data-page="'+page+'"]');if(el){el.classList.add('bg-gray-700','text-white');el.classList.remove('text-gray-300');}closeMobileSidebar();}
+    function navigateTo(page){var titles={'dashboard':'Dashboard','cancelamentos':'Gestao de Cancelamentos','suspensos':'Gestao de Suspensos'};document.getElementById('page-title').textContent=titles[page]||page;document.querySelectorAll('.sidebar-link').forEach(function(l){l.classList.remove('bg-gray-700','text-white');l.classList.add('text-gray-300');});var el=document.querySelector('[data-page="'+page+'"]');if(el){el.classList.add('bg-gray-700','text-white');el.classList.remove('text-gray-300');}document.querySelectorAll('.page-content').forEach(function(p){p.classList.add('hidden');});var targetPage=document.getElementById('page-'+page);if(targetPage)targetPage.classList.remove('hidden');if(page==='suspensos')loadSuspensos();if(page==='cancelamentos')loadData();closeMobileSidebar();}
 
     // ===================== APP LOGIC =====================
     var allRecords=[],deleteRowId=null,searchTimeout=null;
@@ -232,6 +283,42 @@
     function hideDeleteModal(){document.getElementById('delete-modal').classList.add('hidden');deleteRowId=null;}
     function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecord(deleteRowId);}
     function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-900/80 border-green-700 text-green-200',error:'bg-red-900/80 border-red-700 text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
+
+    // ===================== SUSPENSOS =====================
+    var suspensosTimeout=null;
+    function loadSuspensos(){
+      var q=document.getElementById('search-suspensos').value||'';
+      var tb=document.getElementById('table-body-suspensos');
+      tb.innerHTML='<tr><td colspan="10" class="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>';
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){renderSuspensos(r.data);document.getElementById('record-count-suspensos').textContent=r.data.length+' registro(s)';}
+        else toast('error',r.error);
+      }).withFailureHandler(function(e){toast('error',e.message);}).getSuspensosRecords(q,null);
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){document.getElementById('stat-susp-total').textContent=r.data.total;document.getElementById('stat-susp-pendentes').textContent=r.data.pendentes;document.getElementById('stat-susp-pagos').textContent=r.data.pagos;document.getElementById('stat-susp-vencidos').textContent=r.data.vencidos;}
+      }).getSuspensosStats();
+    }
+    function renderSuspensos(recs){
+      var tb=document.getElementById('table-body-suspensos');
+      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="10" class="px-4 py-12 text-center text-gray-500">Nenhum registro encontrado</td></tr>';return;}
+      tb.innerHTML=recs.map(function(r){
+        return '<tr class="border-b border-gray-700 hover:bg-gray-700/50 transition">'+
+          '<td class="px-3 py-3 font-medium text-white max-w-[160px] truncate">'+esc(r.associado)+'</td>'+
+          '<td class="px-3 py-3 text-gray-300 text-xs">'+esc(r.dataRecebimento)+'</td>'+
+          '<td class="px-3 py-3 text-gray-300 text-xs">'+esc(r.dataVencimento)+'</td>'+
+          '<td class="px-3 py-3 text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td>'+
+          '<td class="px-3 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium '+stClassSusp(r.situacaoAtual)+'">'+esc(r.situacaoAtual)+'</span></td>'+
+          '<td class="px-3 py-3 text-gray-300 text-xs">'+esc(r.formaPgto)+'</td>'+
+          '<td class="px-3 py-3 text-gray-300">'+esc(r.valorRecebido)+'</td>'+
+          '<td class="px-3 py-3 text-gray-300">'+esc(r.valorOriginal)+'</td>'+
+          '<td class="px-3 py-3 text-gray-300">'+esc(r.atendente)+'</td>'+
+          '<td class="px-3 py-3 text-gray-300 text-xs">'+esc(r.conferencia)+'</td>'+
+          '</tr>';
+      }).join('');
+    }
+    function stClassSusp(s){s=(s||'').toLowerCase();if(s.indexOf('pago')>=0||s.indexOf('quitado')>=0)return 'bg-green-900/40 text-green-300';if(s.indexOf('vencid')>=0)return 'bg-red-900/40 text-red-300';return 'bg-yellow-900/40 text-yellow-300';}
+    // Busca de suspensos com debounce
+    document.getElementById('search-suspensos').addEventListener('input',function(e){clearTimeout(suspensosTimeout);suspensosTimeout=setTimeout(function(){loadSuspensos();},400);});
   </script>
 </body>
 </html>
