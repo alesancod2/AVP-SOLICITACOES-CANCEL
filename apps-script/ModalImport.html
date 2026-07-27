@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1f2937;color:#e5e7eb;padding:24px}
+    h2{font-size:18px;font-weight:700;margin-bottom:8px;color:#fff}
+    p.desc{font-size:13px;color:#9ca3af;margin-bottom:20px}
+    .upload-area{border:2px dashed #4b5563;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px}
+    .upload-area:hover,.upload-area.dragover{border-color:#22c55e;background:#22c55e10}
+    .upload-area svg{margin:0 auto 12px;display:block}
+    .upload-area p{font-size:14px;color:#9ca3af}
+    .upload-area .file-name{font-size:13px;color:#22c55e;font-weight:600;margin-top:8px}
+    input[type="file"]{display:none}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;border:none;width:100%}
+    .btn-primary{background:#22c55e;color:#fff}.btn-primary:hover{background:#16a34a}
+    .btn-primary:disabled{background:#4b5563;cursor:not-allowed;color:#9ca3af}
+    .btn-secondary{background:#374151;color:#d1d5db;border:1px solid #4b5563;margin-top:8px}.btn-secondary:hover{background:#4b5563}
+    .progress{display:none;margin-top:16px}
+    .progress-bar{height:8px;background:#374151;border-radius:4px;overflow:hidden}
+    .progress-fill{height:100%;background:#22c55e;border-radius:4px;transition:width .3s;width:0}
+    .progress-text{font-size:12px;color:#9ca3af;margin-top:6px;text-align:center}
+    .result{display:none;margin-top:16px;padding:16px;background:#374151;border-radius:8px;font-size:13px}
+    .result .stat{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #4b5563}
+    .result .stat:last-child{border:none}
+    .result .stat span:last-child{font-weight:600;color:#22c55e}
+    .error{color:#ef4444;font-size:13px;margin-top:12px;display:none}
+    .formats{font-size:11px;color:#6b7280;margin-top:4px}
+  </style>
+  <!-- SheetJS para ler Excel -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h2>Importar Dados para DB_Suspensos</h2>
+  <p class="desc">Selecione um arquivo Excel (.xlsx, .xls) ou CSV. Os dados serao adicionados a aba DB_Suspensos.</p>
+  
+  <div class="upload-area" id="drop-area" onclick="document.getElementById('file-input').click()">
+    <svg width="40" height="40" fill="none" stroke="#6b7280" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+    <p>Clique ou arraste o arquivo aqui</p>
+    <p class="formats">Formatos aceitos: .xlsx, .xls, .csv</p>
+    <p class="file-name" id="file-name"></p>
+  </div>
+  <input type="file" id="file-input" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])">
+  
+  <button class="btn btn-primary" id="btn-import" onclick="startImport()" disabled>Importar Dados</button>
+  <button class="btn btn-secondary" onclick="google.script.host.close()">Cancelar</button>
+  
+  <div class="progress" id="progress">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <p class="progress-text" id="progress-text">Processando...</p>
+  </div>
+  
+  <div class="result" id="result"></div>
+  <p class="error" id="error-msg"></p>
+
+  <script>
+    var parsedData = null;
+    
+    // Drag & Drop
+    var dropArea = document.getElementById('drop-area');
+    ['dragenter','dragover'].forEach(function(ev){dropArea.addEventListener(ev,function(e){e.preventDefault();dropArea.classList.add('dragover');});});
+    ['dragleave','drop'].forEach(function(ev){dropArea.addEventListener(ev,function(e){e.preventDefault();dropArea.classList.remove('dragover');});});
+    dropArea.addEventListener('drop',function(e){var f=e.dataTransfer.files[0];if(f)handleFile(f);});
+    
+    function handleFile(file) {
+      if (!file) return;
+      
+      var ext = file.name.split('.').pop().toLowerCase();
+      if (['xlsx','xls','csv'].indexOf(ext) === -1) {
+        showError('Formato nao suportado. Use .xlsx, .xls ou .csv');
+        return;
+      }
+      
+      document.getElementById('file-name').textContent = file.name;
+      document.getElementById('error-msg').style.display = 'none';
+      
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var data = new Uint8Array(e.target.result);
+          var workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          
+          // Pegar primeira aba do arquivo
+          var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          var jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+          
+          // Remover primeira linha se for cabecalho
+          if (jsonData.length > 0) {
+            var firstRow = jsonData[0].map(function(c){ return c.toString().trim().toUpperCase(); });
+            if (firstRow.indexOf('ASSOCIADO') >= 0 || firstRow.indexOf('PLACA') >= 0 || firstRow.indexOf('NOME') >= 0) {
+              jsonData.shift(); // Remove header
+            }
+          }
+          
+          // Converter datas para string legivel
+          parsedData = jsonData.map(function(row) {
+            return row.map(function(cell) {
+              if (cell instanceof Date) {
+                var d = cell.getDate().toString().padStart(2,'0');
+                var m = (cell.getMonth()+1).toString().padStart(2,'0');
+                var y = cell.getFullYear();
+                return d + '/' + m + '/' + y;
+              }
+              return cell !== null && cell !== undefined ? cell.toString() : '';
+            });
+          });
+          
+          // Filtrar linhas vazias
+          parsedData = parsedData.filter(function(row) {
+            return row.some(function(c){ return c && c.toString().trim() !== ''; });
+          });
+          
+          document.getElementById('btn-import').disabled = false;
+          document.getElementById('file-name').textContent = file.name + ' (' + parsedData.length + ' linhas)';
+          
+        } catch(err) {
+          showError('Erro ao ler arquivo: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    
+    function startImport() {
+      if (!parsedData || parsedData.length === 0) {
+        showError('Nenhum dado para importar');
+        return;
+      }
+      
+      document.getElementById('btn-import').disabled = true;
+      document.getElementById('progress').style.display = 'block';
+      document.getElementById('progress-fill').style.width = '30%';
+      document.getElementById('progress-text').textContent = 'Enviando ' + parsedData.length + ' registros...';
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('progress-fill').style.width = '100%';
+          
+          if (result.success) {
+            document.getElementById('progress-text').textContent = 'Concluido!';
+            var html = '<div class="stat"><span>Total processado</span><span>' + result.data.total + '</span></div>';
+            html += '<div class="stat"><span>Inseridos (novos)</span><span style="color:#22c55e">' + result.data.inseridos + '</span></div>';
+            html += '<div class="stat"><span>Atualizados</span><span style="color:#3b82f6">' + result.data.atualizados + '</span></div>';
+            html += '<div class="stat"><span>Ignorados</span><span style="color:#6b7280">' + result.data.ignorados + '</span></div>';
+            document.getElementById('result').innerHTML = html;
+            document.getElementById('result').style.display = 'block';
+          } else {
+            showError(result.error);
+          }
+        })
+        .withFailureHandler(function(error) {
+          showError('Erro: ' + error.message);
+          document.getElementById('btn-import').disabled = false;
+        })
+        .importarDadosSuspensos(parsedData);
+    }
+    
+    function showError(msg) {
+      var el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('progress').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
