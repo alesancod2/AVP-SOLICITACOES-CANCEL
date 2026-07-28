@@ -346,7 +346,7 @@ function getDashboardData() {
       }
       if (dateKey) {
         if (!lineMap[dateKey]) {
-          lineMap[dateKey] = { date: dateKey, total: 0, cancelados: 0, retidos: 0 };
+          lineMap[dateKey] = { data: dateKey, total: 0, cancelados: 0, retidos: 0 };
         }
         lineMap[dateKey].total++;
         if (statusLower === 'cancelado') lineMap[dateKey].cancelados++;
@@ -371,8 +371,8 @@ function getDashboardData() {
       lineData.push(lineMap[key]);
     }
     lineData.sort(function(a, b) {
-      var pa = a.date.split('/');
-      var pb = b.date.split('/');
+      var pa = a.data.split('/');
+      var pb = b.data.split('/');
       var da = new Date(parseInt(pa[2]), parseInt(pa[1]) - 1, parseInt(pa[0]));
       var db = new Date(parseInt(pb[2]), parseInt(pb[1]) - 1, parseInt(pb[0]));
       return da - db;
@@ -387,7 +387,7 @@ function getDashboardData() {
     return {
       success: true,
       data: {
-        pieData: { retido: pieRetido, cancelado: pieCancelado },
+        pieData: { retidos: pieRetido, cancelados: pieCancelado },
         lineData: lineData,
         productivityData: productivityData
       }
@@ -541,19 +541,28 @@ function iniciarAtendimento(email, rowId) {
       return { success: false, error: 'Linha invalida: ' + rowId };
     }
 
-    var currentAtendente = sheet.getRange(row, 9).getValue().toString().trim();
+    var lock = LockService.getScriptLock();
+    try {
+      if (!lock.tryLock(5000)) {
+        return { success: false, error: 'Sistema ocupado. Tente novamente.' };
+      }
 
-    if (currentAtendente === '' || currentAtendente === '-') {
-      // Disponivel - claim ownership
-      sheet.getRange(row, 9).setValue(usuario.nome);
-      registrarLog('Iniciar Atendimento', rowId, 'ATENDENTE', currentAtendente, usuario.nome, usuario);
-      return { success: true, message: 'Atendimento iniciado' };
-    } else if (currentAtendente === usuario.nome) {
-      // Ja e o owner
-      return { success: true, isOwner: true, message: 'Voce ja e o atendente' };
-    } else {
-      // Pertence a outro
-      return { success: false, error: 'Atendimento pertence a: ' + currentAtendente };
+      var currentAtendente = sheet.getRange(row, 9).getValue().toString().trim();
+
+      if (currentAtendente === '' || currentAtendente === '-') {
+        // Disponivel - claim ownership
+        sheet.getRange(row, 9).setValue(usuario.nome);
+        registrarLog('Iniciar Atendimento', rowId, 'ATENDENTE', currentAtendente, usuario.nome, usuario);
+        return { success: true, message: 'Atendimento iniciado' };
+      } else if (currentAtendente === usuario.nome) {
+        // Ja e o owner
+        return { success: true, isOwner: true, message: 'Voce ja e o atendente' };
+      } else {
+        // Pertence a outro
+        return { success: false, error: 'Atendimento pertence a: ' + currentAtendente };
+      }
+    } finally {
+      lock.releaseLock();
     }
   } catch (error) {
     return { success: false, error: error.message };

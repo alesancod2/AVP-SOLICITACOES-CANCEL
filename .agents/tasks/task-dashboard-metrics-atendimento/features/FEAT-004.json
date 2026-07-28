@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-004",
+  "type": "fix",
+  "description": "Fix 4 issues identified in code review: line chart property mismatch, pie chart property mismatch, ownership TOCTOU race condition, and modal timing assumption.",
+  "status": "in_progress",
+  "steps": [
+    "In apps-script/Code.gs: In getDashboardData(), change lineMap entries from property 'date' to 'data' to match frontend expectations",
+    "In apps-script/Code.gs: In getDashboardData(), change pieData return from { retido, cancelado } to { retidos, cancelados } to match frontend expectations",
+    "In apps-script/Code.gs: In iniciarAtendimento(), wrap the read-check-write block with LockService.getScriptLock().tryLock(5000) and release in a finally block",
+    "In apps-script/Index.html: In iniciarAtendimentoClick(), remove setTimeout approach and instead open modal in loadData success callback by adding optional callback parameter to loadData"
+  ],
+  "acceptance_criteria": [
+    "lineMap entries use property name 'data' instead of 'date'",
+    "lineData.sort() comparator uses a.data instead of a.date",
+    "pieData returns { retidos: pieRetido, cancelados: pieCancelado }",
+    "iniciarAtendimento uses LockService.getScriptLock() with tryLock(5000) around the read-check-write",
+    "iniciarAtendimentoClick does not use setTimeout, instead opens modal in a callback after data reload"
+  ],
+  "verification": [
+    "Grep for 'data: dateKey' in Code.gs to confirm property renamed",
+    "Grep for 'retidos:' in getDashboardData return",
+    "Grep for 'LockService' in Code.gs",
+    "Grep for 'setTimeout' in iniciarAtendimentoClick to confirm it's removed"
+  ],
+  "blocked_reason": null,
+  "findings": null
+}

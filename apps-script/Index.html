@@ -469,9 +469,9 @@
     function applyFilters(){loadData();}
     function clearAllFilters(){document.getElementById('filter-mes').value='';document.getElementById('filter-ano').value='';document.getElementById('filter-status').value='';document.getElementById('filter-data-inicio').value='';document.getElementById('filter-data-fim').value='';loadData();}
 
-    function loadData(){
+    function loadData(callback){
       var q=document.getElementById('search-input').value||'';var filters=getFilters();showLoading();
-      google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;renderTable(r.data);document.getElementById('record-count').textContent=r.data.length+' registro(s)';}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords(q,filters);
+      google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;renderTable(r.data);document.getElementById('record-count').textContent=r.data.length+' registro(s)';if(callback)callback();}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords(q,filters);
       google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-total').textContent=r.data.total;document.getElementById('stat-ativos').textContent=r.data.ativos;document.getElementById('stat-negociacao').textContent=r.data.emNegociacao;document.getElementById('stat-cancelados').textContent=r.data.cancelados;document.getElementById('stat-retidos').textContent=r.data.retidos;}}).getStats(filters);
     }
 
@@ -526,12 +526,10 @@
       google.script.run.withSuccessHandler(function(r){
         if(r.success){
           toast('success',r.message);
-          loadData();
-          // If user became or already is the owner, open the modal after data reloads
-          setTimeout(function(){
+          loadData(function(){
             var rec=allRecords.find(function(x){return x.id===rowId;});
             if(rec)openAtendimentoModal(rowId);
-          },1200);
+          });
         }else{
           toast('error',r.error);
         }
