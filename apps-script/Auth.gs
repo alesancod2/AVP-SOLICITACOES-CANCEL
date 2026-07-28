@@ -196,7 +196,7 @@ function autenticarPorEmail(email) {
       };
       
       // Registrar login
-      registrarLog('Login', '', '', '', usuario.nome + ' (' + userEmail + ')');
+      registrarLog('Login', '', '', '', usuario.nome + ' (' + userEmail + ')', usuario);
       
       return { success: true, data: usuario };
     }
@@ -207,10 +207,11 @@ function autenticarPorEmail(email) {
 
 /**
  * Verifica se o usuario atual tem perfil Admin
- * Retorna o objeto usuario se sim, ou null
+ * Recebe email do frontend (ja autenticado)
  */
-function verificarAdmin() {
-  var result = getUsuarioLogado();
+function verificarAdmin_(email) {
+  if (!email) return null;
+  var result = autenticarPorEmail(email);
   if (!result.success) return null;
   if (!result.data.isAdmin) return null;
   return result.data;
@@ -218,9 +219,11 @@ function verificarAdmin() {
 
 /**
  * Verifica se o usuario atual esta autenticado (qualquer perfil)
+ * Recebe email do frontend (ja autenticado)
  */
-function verificarAutenticado() {
-  var result = getUsuarioLogado();
+function verificarAutenticado_(email) {
+  if (!email) return null;
+  var result = autenticarPorEmail(email);
   if (!result.success) return null;
   return result.data;
 }
@@ -237,9 +240,8 @@ function verificarAutenticado() {
  * @param {string} valorAnterior - Valor antes da alteracao
  * @param {string} novoValor - Novo valor
  */
-function registrarLog(tipoAcao, idSolicitacao, campoAlterado, valorAnterior, novoValor) {
+function registrarLog(tipoAcao, idSolicitacao, campoAlterado, valorAnterior, novoValor, usuario) {
   try {
-    var usuario = verificarAutenticado();
     if (!usuario) return;
     
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -278,14 +280,14 @@ function registrarLog(tipoAcao, idSolicitacao, campoAlterado, valorAnterior, nov
 /**
  * Criar registro - qualquer usuario autenticado
  */
-function createRecordAuth(data) {
-  var usuario = verificarAutenticado();
+function createRecordAuth(email, data) {
+  var usuario = verificarAutenticado_(email);
   if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
   
   var result = createRecord(data);
   
   if (result.success) {
-    registrarLog('Nova solicitacao', result.data.id, '', '', 'Associado: ' + (data.nomeDoAssociado || ''));
+    registrarLog('Nova solicitacao', result.data.id, '', '', 'Associado: ' + (data.nomeDoAssociado || ''), usuario);
   }
   
   return result;
@@ -294,14 +296,14 @@ function createRecordAuth(data) {
 /**
  * Atualizar registro - qualquer usuario autenticado
  */
-function updateRecordAuth(rowId, data) {
-  var usuario = verificarAutenticado();
+function updateRecordAuth(email, rowId, data) {
+  var usuario = verificarAutenticado_(email);
   if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
   
   var result = updateRecord(rowId, data);
   
   if (result.success) {
-    registrarLog('Alteracao solicitacao', rowId, 'Multiplos campos', '', JSON.stringify(data).substring(0, 200));
+    registrarLog('Alteracao solicitacao', rowId, 'Multiplos campos', '', JSON.stringify(data).substring(0, 200), usuario);
   }
   
   return result;
@@ -310,8 +312,8 @@ function updateRecordAuth(rowId, data) {
 /**
  * Excluir registro - APENAS ADMIN (exclusao logica)
  */
-function deleteRecordAuth(rowId) {
-  var usuario = verificarAdmin();
+function deleteRecordAuth(email, rowId) {
+  var usuario = verificarAdmin_(email);
   if (!usuario) return { success: false, error: 'Apenas administradores podem excluir registros.' };
   
   // Antes de excluir, registrar o que existia
@@ -326,7 +328,7 @@ function deleteRecordAuth(rowId) {
   var result = deleteRecord(rowId);
   
   if (result.success) {
-    registrarLog('Exclusao solicitacao', rowId, '', valorAnterior, 'EXCLUIDO por ' + usuario.nome);
+    registrarLog('Exclusao solicitacao', rowId, '', valorAnterior, 'EXCLUIDO por ' + usuario.nome, usuario);
   }
   
   return result;
@@ -336,8 +338,8 @@ function deleteRecordAuth(rowId) {
  * Atualizar celula de Suspensos - com verificacao de permissao
  * Coluna 11 (Conferencia) = apenas Admin
  */
-function updateSuspensosCellAuth(rowId, colIndex, value) {
-  var usuario = verificarAutenticado();
+function updateSuspensosCellAuth(email, rowId, colIndex, value) {
+  var usuario = verificarAutenticado_(email);
   if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
   
   // Coluna 11 = Conferencia (Verificado) - apenas Admin
@@ -358,7 +360,7 @@ function updateSuspensosCellAuth(rowId, colIndex, value) {
   if (result.success) {
     var colNames = ['', 'ASSOCIADO', 'DATA RECEBIMENTO', 'DATA VENCIMENTO', 'PLACA', 'SITUAÇÃO', 'FORMA PGTO', 'VALOR RECEBIDO', 'VALOR ORIGINAL', 'ATENDENTE', 'OBSERVAÇÕES', 'CONFERENCIA'];
     var campo = colNames[parseInt(colIndex)] || 'Col ' + colIndex;
-    registrarLog('Alteracao Suspensos', rowId, campo, valorAnterior, value);
+    registrarLog('Alteracao Suspensos', rowId, campo, valorAnterior, value, usuario);
   }
   
   return result;
@@ -371,8 +373,8 @@ function updateSuspensosCellAuth(rowId, colIndex, value) {
 /**
  * Lista todos os usuarios cadastrados (apenas Admin)
  */
-function listarUsuarios() {
-  var admin = verificarAdmin();
+function listarUsuarios(adminEmail) {
+  var admin = verificarAdmin_(adminEmail);
   if (!admin) return { success: false, error: 'Apenas administradores podem gerenciar usuarios.' };
   
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -404,8 +406,8 @@ function listarUsuarios() {
 /**
  * Cadastrar novo usuario (apenas Admin)
  */
-function cadastrarUsuarioAuth(nome, email, perfil) {
-  var admin = verificarAdmin();
+function cadastrarUsuarioAuth(adminEmail, nome, email, perfil) {
+  var admin = verificarAdmin_(adminEmail);
   if (!admin) return { success: false, error: 'Apenas administradores podem cadastrar usuarios.' };
   
   if (!nome || !email) return { success: false, error: 'Nome e email sao obrigatorios.' };
@@ -423,8 +425,8 @@ function cadastrarUsuarioAuth(nome, email, perfil) {
 /**
  * Alterar status de usuario (Ativo/Inativo) - apenas Admin
  */
-function alterarStatusUsuario(rowId, novoStatus) {
-  var admin = verificarAdmin();
+function alterarStatusUsuario(adminEmail, rowId, novoStatus) {
+  var admin = verificarAdmin_(adminEmail);
   if (!admin) return { success: false, error: 'Apenas administradores podem alterar status de usuarios.' };
   
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -446,8 +448,8 @@ function alterarStatusUsuario(rowId, novoStatus) {
 /**
  * Alterar perfil de usuario - apenas Admin
  */
-function alterarPerfilUsuario(rowId, novoPerfil) {
-  var admin = verificarAdmin();
+function alterarPerfilUsuario(adminEmail, rowId, novoPerfil) {
+  var admin = verificarAdmin_(adminEmail);
   if (!admin) return { success: false, error: 'Apenas administradores podem alterar perfis.' };
   
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -498,8 +500,8 @@ function cadastrarPrimeiroAdmin() {
 /**
  * Atualiza permissoes de usuario por email (usado ao cadastrar)
  */
-function atualizarPermissoesUsuario(email, permissoes) {
-  var admin = verificarAdmin();
+function atualizarPermissoesUsuario(adminEmail, email, permissoes) {
+  var admin = verificarAdmin_(adminEmail);
   if (!admin) return { success: false, error: 'Apenas Admin.' };
   
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -523,8 +525,8 @@ function atualizarPermissoesUsuario(email, permissoes) {
 /**
  * Atualiza permissoes de usuario por ID de linha
  */
-function atualizarPermissoesById(rowId, permissoes) {
-  var admin = verificarAdmin();
+function atualizarPermissoesById(adminEmail, rowId, permissoes) {
+  var admin = verificarAdmin_(adminEmail);
   if (!admin) return { success: false, error: 'Apenas Admin.' };
   
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);

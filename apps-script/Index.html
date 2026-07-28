@@ -409,12 +409,12 @@
       e.preventDefault();var btn=document.getElementById('btn-submit');btn.disabled=true;btn.textContent='Salvando...';
       var data={nomeDoAssociado:document.getElementById('f-nome').value,placa:document.getElementById('f-placa').value,valorDaParcela:document.getElementById('f-parcela').value,valorPago:document.getElementById('f-pago').value,consultor:document.getElementById('f-consultor').value,atendente:document.getElementById('f-atendente').value,statusAtual:document.getElementById('f-status').value,motivoDoCancelamento:document.getElementById('f-motivo').value||'-',observacao:document.getElementById('f-obs').value||'-'};
       var rowId=document.getElementById('form-row-id').value;
-      if(rowId){google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecordAuth(parseInt(rowId),data);}
-      else{google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitação criada!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecordAuth(data);}
+      if(rowId){google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecordAuth(currentUser.email,parseInt(rowId),data);}
+      else{google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitação criada!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecordAuth(currentUser.email,data);}
     }
     function showDeleteModal(id,name){deleteRowId=id;document.getElementById('delete-name').textContent=name;document.getElementById('delete-modal').classList.remove('hidden');}
     function hideDeleteModal(){document.getElementById('delete-modal').classList.add('hidden');deleteRowId=null;}
-    function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecordAuth(deleteRowId);}
+    function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecordAuth(currentUser.email,deleteRowId);}
     function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-900/80 border-green-700 text-green-200',error:'bg-red-900/80 border-red-700 text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
 
     // ===================== SUSPENSOS =====================
@@ -467,7 +467,7 @@
     function dateToInput(d){if(!d)return '';var s=d.toString().split(' ')[0];var p=s.split('/');if(p.length===3)return p[2].padStart(4,'20')+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0');return '';}
     function formatDateBR(iso){if(!iso)return '';var p=iso.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
     function saveCell(rowId,col,value){
-      google.script.run.withSuccessHandler(function(r){if(!r.success)toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).updateSuspensosCellAuth(rowId,col,value);
+      google.script.run.withSuccessHandler(function(r){if(!r.success)toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).updateSuspensosCellAuth(currentUser.email,rowId,col,value);
     }
 
     // ===================== GERENCIAR USUARIOS =====================
@@ -477,7 +477,7 @@
       google.script.run.withSuccessHandler(function(r){
         if(r.success)renderUsuarios(r.data);
         else toast('error',r.error);
-      }).withFailureHandler(function(e){toast('error',e.message);}).listarUsuarios();
+      }).withFailureHandler(function(e){toast('error',e.message);}).listarUsuarios(currentUser.email);
     }
     function renderUsuarios(users){
       var tb=document.getElementById('table-body-usuarios');
@@ -514,14 +514,14 @@
         btn.disabled=false;btn.textContent='Salvar';
         if(r.success){toast('success','Usuário cadastrado!');hideUserForm();loadUsuarios();
           // Atualizar permissoes se informadas
-          if(permissoes){google.script.run.atualizarPermissoesUsuario(email,permissoes);}
+          if(permissoes){google.script.run.atualizarPermissoesUsuario(currentUser.email,email,permissoes);}
         }else toast('error',r.error);
-      }).withFailureHandler(function(e){btn.disabled=false;btn.textContent='Salvar';toast('error',e.message);}).cadastrarUsuarioAuth(nome,email,perfil);
+      }).withFailureHandler(function(e){btn.disabled=false;btn.textContent='Salvar';toast('error',e.message);}).cadastrarUsuarioAuth(currentUser.email,nome,email,perfil);
     }
-    function changeUserStatus(rowId,val){google.script.run.withSuccessHandler(function(r){if(r.success)toast('success','Status alterado!');else toast('error',r.error);}).alterarStatusUsuario(rowId,val);}
-    function changeUserPerfil(rowId,val){google.script.run.withSuccessHandler(function(r){if(r.success){toast('success','Perfil alterado!');loadUsuarios();}else toast('error',r.error);}).alterarPerfilUsuario(rowId,val);}
-    function changeUserPermissoes(rowId,val){google.script.run.withSuccessHandler(function(r){if(!r.success)toast('error',r.error);}).atualizarPermissoesById(rowId,val);}
-    function updatePermRow(rowId){var checks=document.querySelectorAll('.perm-row-'+rowId+':checked');var perms=[];checks.forEach(function(c){perms.push(c.value);});var val=perms.join(', ');google.script.run.withSuccessHandler(function(r){if(r.success)toast('success','Permissões salvas!');else toast('error',r.error);}).atualizarPermissoesById(rowId,val);}
+    function changeUserStatus(rowId,val){google.script.run.withSuccessHandler(function(r){if(r.success)toast('success','Status alterado!');else toast('error',r.error);}).alterarStatusUsuario(currentUser.email,rowId,val);}
+    function changeUserPerfil(rowId,val){google.script.run.withSuccessHandler(function(r){if(r.success){toast('success','Perfil alterado!');loadUsuarios();}else toast('error',r.error);}).alterarPerfilUsuario(currentUser.email,rowId,val);}
+    function changeUserPermissoes(rowId,val){google.script.run.withSuccessHandler(function(r){if(!r.success)toast('error',r.error);}).atualizarPermissoesById(currentUser.email,rowId,val);}
+    function updatePermRow(rowId){var checks=document.querySelectorAll('.perm-row-'+rowId+':checked');var perms=[];checks.forEach(function(c){perms.push(c.value);});var val=perms.join(', ');google.script.run.withSuccessHandler(function(r){if(r.success)toast('success','Permissões salvas!');else toast('error',r.error);}).atualizarPermissoesById(currentUser.email,rowId,val);}
   </script>
 </body>
 </html>
