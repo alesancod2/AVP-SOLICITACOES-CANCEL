@@ -212,7 +212,7 @@
         <div><label class="block text-xs text-gray-400 mb-1">Venc. Ate</label><input id="sf-venc-ate" type="date" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
         <div><label class="block text-xs text-gray-400 mb-1">Situação</label><select id="sf-situacao" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Ativo">Ativo</option><option value="Cancelado">Cancelado</option></select></div>
         <div><label class="block text-xs text-gray-400 mb-1">Forma Pgto</label><select id="sf-forma" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="PIX">PIX</option><option value="Cartao Credito">Cartao Credito</option><option value="Cartao Debito">Cartao Debito</option></select></div>
-        <div><label class="block text-xs text-gray-400 mb-1">Atendente</label><select id="sf-atendente" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Fernanda">Fernanda</option><option value="Flavia">Flavia</option><option value="Kris">Kris</option><option value="Leticia">Leticia</option><option value="Tamires">Tamires</option><option value="Thaynara">Thaynara</option><option value="Yasmin">Yasmin</option></select></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Atendente</label><select id="sf-atendente" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option></select></div>
         <div><label class="block text-xs text-gray-400 mb-1">Conferência</label><select id="sf-conf" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Verificar">Verificar</option><option value="OK">OK</option></select></div>
         <button onclick="applySuspFilters()" class="px-3 py-2 bg-gray-700 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition">Filtrar</button>
         <button onclick="clearSuspFilters()" class="px-3 py-2 text-sm text-gray-400 hover:text-white transition">Limpar</button>
@@ -729,6 +729,22 @@
       });
       renderSuspensos(filtered);
       document.getElementById('record-count-suspensos').textContent=filtered.length+' registro(s)';
+      // Popular dropdown de atendentes dinamicamente
+      populateSuspAtendentes();
+    }
+
+    function populateSuspAtendentes(){
+      var sel=document.getElementById('sf-atendente');
+      var currentVal=sel.value;
+      var atendentes={};
+      allSuspRecords.forEach(function(r){
+        var at=(r.atendente||'').trim();
+        if(at&&at!=='-')atendentes[at]=true;
+      });
+      var sorted=Object.keys(atendentes).sort();
+      sel.innerHTML='<option value="">Todos</option>';
+      sorted.forEach(function(nome){sel.innerHTML+='<option value="'+nome+'">'+nome+'</option>';});
+      sel.value=currentVal;
     }
 
     function loadSuspensos(){
