@@ -1,0 +1,30 @@
+{
+  "project_type": "Google Apps Script Web App with HTML frontend",
+  "language": "JavaScript (ES5 compatible - no ES6 modules, use var)",
+  "build_system": "None - Google Apps Script files deployed directly via clasp or web editor",
+  "test_framework": "None - no automated tests",
+  "build_command": "N/A - static files, syntax validation only",
+  "test_command": "N/A - no test runner available",
+  "verification_instructions": "Review code for correct syntax (ES5 compatible), proper function signatures matching google.script.run calls, and consistent UI patterns",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "No setup needed - files are deployed directly to Google Apps Script",
+  "environment_constraints": "INTEGRATIONS_ONLY network - no npm install, no package downloads. All libraries must be loaded via CDN in HTML. Google Apps Script has no ES6 module support - use var, function declarations, no arrow functions in .gs files. Frontend can use modern JS within <script> tags as it runs in browser.",
+  "contribution_requirements": "All backend code goes in .gs files using ES5 syntax. Frontend is a single Index.html with inline CSS/JS. Chart.js loaded via CDN.",
+  "key_patterns": {
+    "backend_crud": "Functions in Code.gs follow pattern: getRecords(query, filters), createRecord(data), updateRecord(rowId, data). Auth wrappers in Auth.gs add email parameter: createRecordAuth(email, data)",
+    "frontend_navigation": "Single page app using show/hide with .page-content class. navigateTo(page) function toggles pages.",
+    "stats_pattern": "getStats(filters) returns {total, ativos, emNegociacao, cancelados}. getSuspensosStats() returns {total, pendentes, pagos, vencidos}",
+    "inline_edit_pattern": "Suspensos uses saveCell(rowId, col, value) calling updateSuspensosCellAuth",
+    "ui_pattern": "Dark theme (bg-gray-900), cards with bg-gray-800 rounded-xl border border-gray-700 p-4, Tailwind CSS via CDN",
+    "status_badge_fn": "stClass(s) returns tailwind classes for status badges",
+    "current_statuses": ["Ativo", "Inadimplente", "Cancelado", "Pendente", "Em negociacao"],
+    "column_layout_cancelamentos": "A=NOME DO ASSOCIADO, B=PLACA, C=VALOR DA PARCELA, D=VALOR PAGO, E=CONSULTOR, F=MOTIVO DO CANCELAMENTO, G=STATUS ATUAL, H=OBSERVACAO, I=ATENDENTE, J=DATA DE CRIACAO",
+    "column_layout_suspensos": "A=ASSOCIADO, B=DATA RECEBIMENTO, C=DATA VENCIMENTO, D=PLACA, E=SITUACAO ATUAL, F=FORMA PGTO, G=VALOR RECEBIDO, H=VALOR ORIGINAL, I=ATENDENTE, J=OBSERVACOES, K=CONFERENCIA"
+  },
+  "relevant_files": [
+    "apps-script/Code.gs",
+    "apps-script/Auth.gs",
+    "apps-script/Index.html"
+  ],
+  "directory_structure": "apps-script/ contains all deployable files: Code.gs (backend CRUD + stats), Auth.gs (auth + permissions + audit), Index.html (full SPA frontend), ModalImport.html (import modal)"
+}

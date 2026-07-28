@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add 'Retido' status globally, update backend stats to count it, add 'Retidos' KPI card in cancelamentos header, and create backend functions getDashboardData() and getSuspensosMetrics() for charts data",
+  "status": "completed",
+  "steps": [
+    "In apps-script/Code.gs: Add 'Retido' status counting in getStats() function - add 'retidos' field to the stats object counting records where statusAtual.toLowerCase() === 'retido'",
+    "In apps-script/Code.gs: Create getDashboardData() function that returns: (a) retention pie chart data: count of 'Retido' vs 'Cancelado', (b) daily line chart data: for each unique date in DATA DE CRIACAO column, count total records, cancelados, and retidos for that day, (c) productivity table: for each unique atendente, count total records, cancelados, and retidos attributed to them",
+    "In apps-script/Code.gs: Create getSuspensosMetrics() function that returns: (a) totalPlacas: count of all records with non-empty PLACA, (b) valoresAReceber: sum of VALOR ORIGINAL column (parse numeric), (c) valorRecebido: sum of VALOR RECEBIDO column only where CONFERENCIA === 'OK', (d) operatorPerformance: array of {atendente, valorOriginal, valorRecebido (only where conf=OK), totalAtendimentos}",
+    "In apps-script/Index.html: Add 'Retido' option to the status filter dropdown (id='filter-status') and to the form status select (id='f-status')",
+    "In apps-script/Index.html: Expand the cancelamentos stats grid from 4 columns to 5 (grid-cols-2 md:grid-cols-5) and add a new card for 'Retidos' with id='stat-retidos' using orange/amber color theme",
+    "In apps-script/Index.html: Update the loadData() function's getStats success handler to also populate the stat-retidos element",
+    "In apps-script/Index.html: Update the stClass() function to add styling for 'retido' status (use amber/orange colors: bg-amber-900/40 text-amber-300)"
+  ],
+  "acceptance_criteria": [
+    "getStats() returns a 'retidos' field counting records with status 'Retido'",
+    "getDashboardData() function exists and returns pieData, lineData, and productivityData",
+    "getSuspensosMetrics() function exists and returns totalPlacas, valoresAReceber, valorRecebido, and operatorPerformance",
+    "'Retido' appears in the status filter dropdown and in the form modal status select",
+    "A fifth KPI card 'Retidos' appears in the cancelamentos stats section",
+    "stClass() returns appropriate amber/orange classes for 'retido' status"
+  ],
+  "verification": [
+    "Grep for 'retido' in Code.gs to confirm getStats counts it",
+    "Grep for 'getDashboardData' in Code.gs to confirm function exists",
+    "Grep for 'getSuspensosMetrics' in Code.gs to confirm function exists",
+    "Grep for 'stat-retidos' in Index.html to confirm the KPI card exists",
+    "Grep for 'Retido' in the filter-status and f-status select areas in Index.html"
+  ],
+  "blocked_reason": null,
+  "findings": "All 7 steps implemented successfully. getStats() now returns retidos field. getDashboardData() groups by date using dd/MM/yyyy format from column J and returns pieData/lineData/productivityData. getSuspensosMetrics() reads directly from DB_Suspensos sheet with parseCurrency() helper that handles both R$ 150,00 and 150.00 formats. Frontend updated with Retido in both dropdowns, 5-col grid with amber-themed card, and stClass() amber styling."
+}

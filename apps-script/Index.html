@@ -215,7 +215,7 @@
         <div><label class="block text-xs text-gray-400 mb-1">Forma Pgto</label><select id="sf-forma" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="PIX">PIX</option><option value="Cartao Credito">Cartao Credito</option><option value="Cartao Debito">Cartao Debito</option></select></div>
         <div><label class="block text-xs text-gray-400 mb-1">Atendente</label><select id="sf-atendente" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Fernanda">Fernanda</option><option value="Flavia">Flavia</option><option value="Kris">Kris</option><option value="Leticia">Leticia</option><option value="Tamires">Tamires</option><option value="Thaynara">Thaynara</option><option value="Yasmin">Yasmin</option></select></div>
         <div><label class="block text-xs text-gray-400 mb-1">Conferência</label><select id="sf-conf" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Verificar">Verificar</option><option value="OK">OK</option></select></div>
-        <button onclick="loadSuspensos()" class="px-3 py-2 bg-gray-700 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition">Filtrar</button>
+        <button onclick="applySuspFilters()" class="px-3 py-2 bg-gray-700 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition">Filtrar</button>
         <button onclick="clearSuspFilters()" class="px-3 py-2 text-sm text-gray-400 hover:text-white transition">Limpar</button>
       </div>
       <!-- TABLE SUSPENSOS -->
@@ -415,7 +415,7 @@
 
     window.onload=function(){
       // Vai direto para tela de login (deploy "Executar como Eu" nao detecta email)
-      document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){loadData();},400);});
+      document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){applyFilters();},300);});
     };
 
     // LOGIN MANUAL
@@ -466,13 +466,50 @@
     document.getElementById('login-email').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();doManualLogin();}});
 
     function getFilters(){return{mes:document.getElementById('filter-mes').value,ano:document.getElementById('filter-ano').value,dataInicio:document.getElementById('filter-data-inicio').value,dataFim:document.getElementById('filter-data-fim').value,status:document.getElementById('filter-status').value};}
-    function applyFilters(){loadData();}
-    function clearAllFilters(){document.getElementById('filter-mes').value='';document.getElementById('filter-ano').value='';document.getElementById('filter-status').value='';document.getElementById('filter-data-inicio').value='';document.getElementById('filter-data-fim').value='';loadData();}
+    
+    // FILTRAGEM 100% CLIENT-SIDE (instantanea, sem chamada ao servidor)
+    function applyFilters(){
+      var f=getFilters();
+      var q=(document.getElementById('search-input').value||'').toLowerCase();
+      var filtered=allRecords.filter(function(r){
+        // Filtro busca texto (nome, placa, consultor, atendente)
+        if(q){
+          var match=((r.nomeDoAssociado||'').toLowerCase().indexOf(q)>=0)||
+                    ((r.placa||'').toLowerCase().indexOf(q)>=0)||
+                    ((r.consultor||'').toLowerCase().indexOf(q)>=0)||
+                    ((r.atendente||'').toLowerCase().indexOf(q)>=0);
+          if(!match)return false;
+        }
+        // Filtro status
+        if(f.status&&(r.statusAtual||'').toLowerCase()!==f.status.toLowerCase())return false;
+        // Filtro por data (coluna dataCriacao)
+        var dc=parseDateBR(r.dataCriacao);
+        if(f.dataInicio){var di=new Date(f.dataInicio+'T00:00:00');if(dc&&dc<di)return false;if(!dc)return false;}
+        if(f.dataFim){var df=new Date(f.dataFim+'T23:59:59');if(dc&&dc>df)return false;if(!dc)return false;}
+        // Filtro mes
+        if(f.mes){var meses=['','JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];var mi=meses.indexOf(f.mes);if(mi>0&&dc){if((dc.getMonth()+1)!==mi)return false;}else if(mi>0&&!dc)return false;}
+        // Filtro ano
+        if(f.ano){var anoF=parseInt(f.ano);if(dc){if(dc.getFullYear()!==anoF)return false;}else return false;}
+        return true;
+      });
+      renderTable(filtered);
+      document.getElementById('record-count').textContent=filtered.length+' registro(s)';
+      // Atualizar stats localmente
+      var stats={total:filtered.length,ativos:0,emNegociacao:0,cancelados:0,retidos:0};
+      filtered.forEach(function(r){var s=(r.statusAtual||'').toLowerCase();if(s==='ativo')stats.ativos++;else if(s==='em negociação'||s==='em negociacao')stats.emNegociacao++;else if(s==='cancelado')stats.cancelados++;else if(s==='retido')stats.retidos++;});
+      document.getElementById('stat-total').textContent=stats.total;
+      document.getElementById('stat-ativos').textContent=stats.ativos;
+      document.getElementById('stat-negociacao').textContent=stats.emNegociacao;
+      document.getElementById('stat-cancelados').textContent=stats.cancelados;
+      document.getElementById('stat-retidos').textContent=stats.retidos;
+    }
+    function clearAllFilters(){document.getElementById('filter-mes').value='';document.getElementById('filter-ano').value='';document.getElementById('filter-status').value='';document.getElementById('filter-data-inicio').value='';document.getElementById('filter-data-fim').value='';document.getElementById('search-input').value='';applyFilters();}
+    // Parsear data BR (dd/MM/yyyy ou timestamp) para Date object
+    function parseDateBR(d){if(!d)return null;var s=d.toString();var p=s.split(' ')[0].split('/');if(p.length===3&&p[0].length<=2)return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));try{var dt=new Date(s);if(!isNaN(dt.getTime()))return dt;}catch(e){}return null;}
 
     function loadData(callback){
-      var q=document.getElementById('search-input').value||'';var filters=getFilters();showLoading();
-      google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;renderTable(r.data);document.getElementById('record-count').textContent=r.data.length+' registro(s)';if(callback)callback();}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords(q,filters);
-      google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-total').textContent=r.data.total;document.getElementById('stat-ativos').textContent=r.data.ativos;document.getElementById('stat-negociacao').textContent=r.data.emNegociacao;document.getElementById('stat-cancelados').textContent=r.data.cancelados;document.getElementById('stat-retidos').textContent=r.data.retidos;}}).getStats(filters);
+      showLoading();
+      google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;applyFilters();if(callback)callback();}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords('',{});
     }
 
     function esc(t){if(!t)return '';var d=document.createElement('div');d.textContent=t.toString();return d.innerHTML;}
@@ -663,17 +700,41 @@
     }
 
     // ===================== SUSPENSOS =====================
+    var allSuspRecords=[];
     function fmtDate(d){if(!d)return '';var s=d.toString().split(' ')[0];var p=s.split('/');if(p.length===3){return p[0].padStart(2,'0')+'/'+p[1].padStart(2,'0')+'/'+p[2].toString().slice(-2);}return s;}
     function getSuspFilters(){return{associado:document.getElementById('sf-associado').value,placa:document.getElementById('sf-placa').value,vencDe:document.getElementById('sf-venc-de').value,vencAte:document.getElementById('sf-venc-ate').value,status:document.getElementById('sf-situacao').value,forma:document.getElementById('sf-forma').value,atendente:document.getElementById('sf-atendente').value,conferencia:document.getElementById('sf-conf').value};}
-    function clearSuspFilters(){document.getElementById('sf-associado').value='';document.getElementById('sf-placa').value='';document.getElementById('sf-venc-de').value='';document.getElementById('sf-venc-ate').value='';document.getElementById('sf-situacao').value='';document.getElementById('sf-forma').value='';document.getElementById('sf-atendente').value='';document.getElementById('sf-conf').value='';loadSuspensos();}
+    function clearSuspFilters(){document.getElementById('sf-associado').value='';document.getElementById('sf-placa').value='';document.getElementById('sf-venc-de').value='';document.getElementById('sf-venc-ate').value='';document.getElementById('sf-situacao').value='';document.getElementById('sf-forma').value='';document.getElementById('sf-atendente').value='';document.getElementById('sf-conf').value='';applySuspFilters();}
+    
+    // Filtragem client-side para Suspensos (instantanea)
+    function applySuspFilters(){
+      var f=getSuspFilters();
+      var filtered=allSuspRecords.filter(function(r){
+        if(f.associado&&(r.associado||'').toLowerCase().indexOf(f.associado.toLowerCase())<0)return false;
+        if(f.placa&&(r.placa||'').toLowerCase().indexOf(f.placa.toLowerCase())<0)return false;
+        if(f.status&&(r.situacaoAtual||'').toLowerCase()!==f.status.toLowerCase())return false;
+        if(f.forma&&(r.formaPgto||'').toLowerCase()!==f.forma.toLowerCase())return false;
+        if(f.atendente&&(r.atendente||'').toLowerCase()!==f.atendente.toLowerCase())return false;
+        if(f.conferencia&&(r.conferencia||'').toLowerCase()!==f.conferencia.toLowerCase())return false;
+        // Filtro data vencimento
+        if(f.vencDe||f.vencAte){
+          var dv=parseDateBR(r.dataVencimento);
+          if(f.vencDe){var di=new Date(f.vencDe+'T00:00:00');if(!dv||dv<di)return false;}
+          if(f.vencAte){var df=new Date(f.vencAte+'T23:59:59');if(!dv||dv>df)return false;}
+        }
+        return true;
+      });
+      renderSuspensos(filtered);
+      document.getElementById('record-count-suspensos').textContent=filtered.length+' registro(s)';
+    }
+
     function loadSuspensos(){
-      var f=getSuspFilters();var searchQ=(f.associado||'')+'|'+(f.placa||'');
       var tb=document.getElementById('table-body-suspensos');
       tb.innerHTML='<tr><td colspan="10" class="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>';
+      // Carregar todos os dados UMA VEZ
       google.script.run.withSuccessHandler(function(r){
-        if(r.success){var filtered=applyLocalSuspFilters(r.data,f);renderSuspensos(filtered);document.getElementById('record-count-suspensos').textContent=filtered.length+' registro(s)';}
+        if(r.success){allSuspRecords=r.data;applySuspFilters();}
         else toast('error',r.error);
-      }).withFailureHandler(function(e){toast('error',e.message);}).getSuspensosRecords(f.associado||f.placa||'',{status:f.status,conferencia:f.conferencia});
+      }).withFailureHandler(function(e){toast('error',e.message);}).getSuspensosRecords('',null);
       google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-susp-total').textContent=r.data.total;document.getElementById('stat-susp-pendentes').textContent=r.data.pendentes;document.getElementById('stat-susp-pagos').textContent=r.data.pagos;document.getElementById('stat-susp-vencidos').textContent=r.data.vencidos;}}).getSuspensosStats();
       google.script.run.withSuccessHandler(function(r){
         if(r.success){
@@ -695,15 +756,6 @@
           '<td class="px-4 py-3 text-gray-300">'+r.totalAtendimentos+'</td>'+
           '</tr>';
       }).join('');
-    }
-    function applyLocalSuspFilters(recs,f){
-      return recs.filter(function(r){
-        if(f.associado&&r.associado.toLowerCase().indexOf(f.associado.toLowerCase())<0)return false;
-        if(f.placa&&r.placa.toLowerCase().indexOf(f.placa.toLowerCase())<0)return false;
-        if(f.forma&&r.formaPgto.toLowerCase()!==f.forma.toLowerCase())return false;
-        if(f.atendente&&r.atendente.toLowerCase()!==f.atendente.toLowerCase())return false;
-        return true;
-      });
     }
     function confClass(c){var v=(c||'').toLowerCase();if(v==='ok')return 'bg-green-600 text-white';if(v==='verificar')return 'bg-yellow-500 text-gray-900';return 'bg-gray-700 text-gray-300';}
     function renderSuspensos(recs){
