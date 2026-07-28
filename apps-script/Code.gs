@@ -294,19 +294,228 @@ function getStats(filters) {
     if (!result.success) return result;
     
     var records = result.data;
-    var stats = { total: records.length, ativos: 0, emNegociacao: 0, cancelados: 0 };
+    var stats = { total: records.length, ativos: 0, emNegociacao: 0, cancelados: 0, retidos: 0 };
     
     for (var i = 0; i < records.length; i++) {
       var status = records[i].statusAtual.toLowerCase();
       if (status === 'ativo') stats.ativos++;
       else if (status === 'em negociação' || status === 'em negociação') stats.emNegociacao++;
       else if (status === 'cancelado') stats.cancelados++;
+      else if (status === 'retido') stats.retidos++;
     }
     
     return { success: true, data: stats };
   } catch (error) {
     return { success: false, error: error.message };
   }
+}
+
+/**
+ * Retorna dados para o Dashboard de Cancelamentos:
+ * - pieData: contagem de Retido vs Cancelado
+ * - lineData: por data (dd/MM/yyyy), total, cancelados e retidos
+ * - productivityData: por atendente, total, cancelados e retidos
+ */
+function getDashboardData() {
+  try {
+    var result = getRecords('', null);
+    if (!result.success) return result;
+    
+    var records = result.data;
+    var pieRetido = 0;
+    var pieCancelado = 0;
+    var lineMap = {};
+    var prodMap = {};
+    
+    for (var i = 0; i < records.length; i++) {
+      var rec = records[i];
+      var statusLower = rec.statusAtual.toLowerCase();
+      
+      // Pie chart data
+      if (statusLower === 'retido') pieRetido++;
+      else if (statusLower === 'cancelado') pieCancelado++;
+      
+      // Line chart data - group by date (dd/MM/yyyy)
+      var dateKey = '';
+      if (rec.dataCriacao) {
+        var dateStr = rec.dataCriacao.toString().split(' ')[0];
+        var parts = dateStr.split('/');
+        if (parts.length === 3) {
+          dateKey = parts[0].padStart(2, '0') + '/' + parts[1].padStart(2, '0') + '/' + parts[2];
+        }
+      }
+      if (dateKey) {
+        if (!lineMap[dateKey]) {
+          lineMap[dateKey] = { date: dateKey, total: 0, cancelados: 0, retidos: 0 };
+        }
+        lineMap[dateKey].total++;
+        if (statusLower === 'cancelado') lineMap[dateKey].cancelados++;
+        if (statusLower === 'retido') lineMap[dateKey].retidos++;
+      }
+      
+      // Productivity table data - group by atendente
+      var atendente = rec.atendente ? rec.atendente.toString().trim() : '';
+      if (atendente) {
+        if (!prodMap[atendente]) {
+          prodMap[atendente] = { atendente: atendente, total: 0, cancelados: 0, retidos: 0 };
+        }
+        prodMap[atendente].total++;
+        if (statusLower === 'cancelado') prodMap[atendente].cancelados++;
+        if (statusLower === 'retido') prodMap[atendente].retidos++;
+      }
+    }
+    
+    // Convert lineMap to sorted array
+    var lineData = [];
+    for (var key in lineMap) {
+      lineData.push(lineMap[key]);
+    }
+    lineData.sort(function(a, b) {
+      var pa = a.date.split('/');
+      var pb = b.date.split('/');
+      var da = new Date(parseInt(pa[2]), parseInt(pa[1]) - 1, parseInt(pa[0]));
+      var db = new Date(parseInt(pb[2]), parseInt(pb[1]) - 1, parseInt(pb[0]));
+      return da - db;
+    });
+    
+    // Convert prodMap to array
+    var productivityData = [];
+    for (var k in prodMap) {
+      productivityData.push(prodMap[k]);
+    }
+    
+    return {
+      success: true,
+      data: {
+        pieData: { retido: pieRetido, cancelado: pieCancelado },
+        lineData: lineData,
+        productivityData: productivityData
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Retorna metricas financeiras para Suspensos:
+ * - totalPlacas: contagem de registros com PLACA nao vazia
+ * - valoresAReceber: soma da coluna VALOR ORIGINAL
+ * - valorRecebido: soma da coluna VALOR RECEBIDO onde CONFERENCIA === 'OK'
+ * - operatorPerformance: array por atendente com valorOriginal, valorRecebido (conf=OK), totalAtendimentos
+ */
+function getSuspensosMetrics() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_SUSPENSOS);
+    
+    if (!sheet) {
+      return { success: false, error: 'Aba DB_Suspensos nao encontrada.' };
+    }
+    
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return {
+        success: true,
+        data: { totalPlacas: 0, valoresAReceber: 0, valorRecebido: 0, operatorPerformance: [] }
+      };
+    }
+    
+    var data = sheet.getRange(2, 1, lastRow - 1, HEADERS_SUSPENSOS.length).getValues();
+    
+    var totalPlacas = 0;
+    var valoresAReceber = 0;
+    var valorRecebido = 0;
+    var opMap = {};
+    
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      
+      // Skip empty rows
+      var hasData = row.some(function(cell) {
+        return cell && cell.toString().trim() !== '';
+      });
+      if (!hasData) continue;
+      
+      var placa = row[3] ? row[3].toString().trim() : '';
+      var valorRecebidoRaw = row[6] ? row[6].toString().trim() : '';
+      var valorOriginalRaw = row[7] ? row[7].toString().trim() : '';
+      var atendente = row[8] ? row[8].toString().trim() : '';
+      var conferencia = row[10] ? row[10].toString().trim() : '';
+      
+      // Count placas
+      if (placa !== '') totalPlacas++;
+      
+      // Parse valor original
+      var valOriginal = parseCurrency(valorOriginalRaw);
+      valoresAReceber += valOriginal;
+      
+      // Parse valor recebido (only where conferencia === 'OK')
+      var valRecebido = parseCurrency(valorRecebidoRaw);
+      var confOK = conferencia.toUpperCase() === 'OK';
+      if (confOK) {
+        valorRecebido += valRecebido;
+      }
+      
+      // Operator performance
+      if (atendente) {
+        if (!opMap[atendente]) {
+          opMap[atendente] = { atendente: atendente, valorOriginal: 0, valorRecebido: 0, totalAtendimentos: 0 };
+        }
+        opMap[atendente].totalAtendimentos++;
+        opMap[atendente].valorOriginal += valOriginal;
+        if (confOK) {
+          opMap[atendente].valorRecebido += valRecebido;
+        }
+      }
+    }
+    
+    // Convert opMap to array
+    var operatorPerformance = [];
+    for (var k in opMap) {
+      operatorPerformance.push(opMap[k]);
+    }
+    
+    return {
+      success: true,
+      data: {
+        totalPlacas: totalPlacas,
+        valoresAReceber: Math.round(valoresAReceber * 100) / 100,
+        valorRecebido: Math.round(valorRecebido * 100) / 100,
+        operatorPerformance: operatorPerformance
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Converte string de moeda para numero.
+ * Aceita formatos: "150.00", "R$ 150,00", "1.500,00", etc.
+ */
+function parseCurrency(val) {
+  if (!val) return 0;
+  var str = val.toString().trim();
+  if (str === '') return 0;
+  // Remove tudo que nao e digito, virgula ou ponto
+  str = str.replace(/[^\d.,]/g, '');
+  if (str === '') return 0;
+  // Se tem virgula e ponto, determinar formato
+  var lastComma = str.lastIndexOf(',');
+  var lastDot = str.lastIndexOf('.');
+  if (lastComma > lastDot) {
+    // Formato brasileiro: 1.500,00 -> remover pontos, trocar virgula por ponto
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (lastDot > lastComma) {
+    // Formato americano: 1,500.00 -> remover virgulas
+    str = str.replace(/,/g, '');
+  } else if (lastComma >= 0 && lastDot < 0) {
+    // So virgula: 150,00 -> trocar por ponto
+    str = str.replace(',', '.');
+  }
+  var num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
 }
 
 // =============================================
