@@ -973,3 +973,46 @@ function updateSuspensosCell(rowId, colIndex, value) {
     return { success: false, error: error.message };
   }
 }
+
+// =============================================
+// SALVAR ATENDIMENTO SUSPENSO (TODOS OS CAMPOS DE UMA VEZ)
+// =============================================
+
+/**
+ * Salva todos os campos editaveis de um atendimento suspenso em uma unica chamada
+ */
+function salvarAtendimentoSuspenso(email, rowId, dados) {
+  try {
+    var usuario = verificarAutenticado_(email);
+    if (!usuario) return { success: false, error: 'Acesso negado.' };
+    
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_SUSPENSOS);
+    if (!sheet) return { success: false, error: 'Aba DB_Suspensos nao encontrada.' };
+    
+    var row = parseInt(rowId);
+    if (row < 2 || row > sheet.getLastRow()) {
+      return { success: false, error: 'Linha invalida: ' + rowId };
+    }
+    
+    // Verificar se e o atendente dono ou admin
+    var currentAtendente = sheet.getRange(row, 9).getValue().toString().trim();
+    if (currentAtendente !== usuario.nome && !usuario.isAdmin) {
+      return { success: false, error: 'Apenas o atendente responsavel pode salvar.' };
+    }
+    
+    // Gravar campos: Col2=DtPgto, Col5=Situacao, Col6=FormaPgto, Col7=ValorRecebido, Col10=Obs
+    sheet.getRange(row, 2).setValue(dados.dataPgto || '');
+    sheet.getRange(row, 5).setValue(dados.situacao || '');
+    sheet.getRange(row, 6).setValue(dados.formaPgto || '');
+    sheet.getRange(row, 7).setValue(dados.valorRecebido || '');
+    sheet.getRange(row, 10).setValue(dados.observacoes || '-');
+    
+    registrarLog('Salvar Atendimento', rowId, 'Multiplos', '', 
+      'Sit:' + (dados.situacao||'') + '|Pgto:' + (dados.formaPgto||'') + '|Val:' + (dados.valorRecebido||''), usuario);
+    
+    return { success: true, message: 'Atendimento salvo!' };
+  } catch (error) {
+    return { success: false, error: 'Erro: ' + error.message };
+  }
+}

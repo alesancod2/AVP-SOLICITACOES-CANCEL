@@ -603,9 +603,17 @@
       var dtPgto="";
       if(dtPgtoInput){var p=dtPgtoInput.split("-");dtPgto=p[2]+"/"+p[1]+"/"+p[0];}
       else{var agora=new Date();dtPgto=String(agora.getDate()).padStart(2,"0")+"/"+String(agora.getMonth()+1).padStart(2,"0")+"/"+agora.getFullYear();}
-      var saves=[[2,dtPgto],[5,document.getElementById("at-situacao").value],[6,document.getElementById("at-forma-pgto").value],[7,document.getElementById("at-valor-recebido").value],[10,document.getElementById("at-obs").value||"-"]];
-      var done=0;
-      saves.forEach(function(s){google.script.run.withSuccessHandler(function(){done++;if(done===saves.length){toast("success","Atendimento salvo!");hideAtendimentoModal();invalidateCache("suspensos");loadSuspensos();}}).withFailureHandler(function(e){done++;toast("error",e.message);}).updateSuspensosCellAuth(currentUser.email,rowId,s[0],s[1]);});
+      var dados={
+        dataPgto:dtPgto,
+        situacao:document.getElementById("at-situacao").value,
+        formaPgto:document.getElementById("at-forma-pgto").value,
+        valorRecebido:document.getElementById("at-valor-recebido").value,
+        observacoes:document.getElementById("at-obs").value||"-"
+      };
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){toast("success",r.message);hideAtendimentoModal();invalidateCache("suspensos");loadSuspensos();}
+        else toast("error",r.error);
+      }).withFailureHandler(function(e){toast("error","Erro: "+e.message);}).salvarAtendimentoSuspenso(currentUser.email,rowId,dados);
     }
     function colocarNaFilaClick(){
       var rowId=parseInt(document.getElementById("at-row-id").value);
