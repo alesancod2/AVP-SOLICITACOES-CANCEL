@@ -511,9 +511,22 @@
     // Parsear data BR (dd/MM/yyyy ou timestamp) para Date object
     function parseDateBR(d){if(!d)return null;var s=d.toString();var p=s.split(' ')[0].split('/');if(p.length===3&&p[0].length<=2)return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));try{var dt=new Date(s);if(!isNaN(dt.getTime()))return dt;}catch(e){}return null;}
 
+    // ===================== CACHE DE DADOS =====================
+    var dataCache={cancelamentos:null,suspensos:null,timestamp:{}};
+    var CACHE_TTL=60000; // 60 segundos
+
+    function isCacheValid(key){
+      return dataCache[key]!==null && dataCache.timestamp[key] && (Date.now()-dataCache.timestamp[key])<CACHE_TTL;
+    }
+    function invalidateCache(key){
+      if(key){dataCache[key]=null;dataCache.timestamp[key]=0;}
+      else{dataCache.cancelamentos=null;dataCache.suspensos=null;dataCache.timestamp={};}
+    }
+
     function loadData(callback){
+      if(isCacheValid('cancelamentos')){allRecords=dataCache.cancelamentos;applyFilters();if(callback)callback();return;}
       showLoading();
-      google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;applyFilters();if(callback)callback();}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords('',{});
+      google.script.run.withSuccessHandler(function(r){if(r.success){allRecords=r.data;dataCache.cancelamentos=r.data;dataCache.timestamp.cancelamentos=Date.now();applyFilters();if(callback)callback();}else toast('error',r.error);}).withFailureHandler(function(e){toast('error',e.message);}).getRecords('',{});
     }
 
     function esc(t){if(!t)return '';var d=document.createElement('div');d.textContent=t.toString();return d.innerHTML;}
@@ -545,18 +558,18 @@
       e.preventDefault();var btn=document.getElementById('btn-submit');btn.disabled=true;btn.textContent='Salvando...';
       var data={nomeDoAssociado:document.getElementById('f-nome').value,placa:document.getElementById('f-placa').value,valorDaParcela:document.getElementById('f-parcela').value,valorPago:document.getElementById('f-pago').value,consultor:document.getElementById('f-consultor').value,atendente:document.getElementById('f-atendente').value,statusAtual:document.getElementById('f-status').value,motivoDoCancelamento:document.getElementById('f-motivo').value||'-',observacao:document.getElementById('f-obs').value||'-'};
       var rowId=document.getElementById('form-row-id').value;
-      if(rowId){google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecordAuth(currentUser.email,parseInt(rowId),data);}
-      else{google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitação criada!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecordAuth(currentUser.email,data);}
+      if(rowId){google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();invalidateCache('cancelamentos');loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecordAuth(currentUser.email,parseInt(rowId),data);}
+      else{google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitação criada!');hideForm();invalidateCache('cancelamentos');loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecordAuth(currentUser.email,data);}
     }
     function showDeleteModal(id,name){deleteRowId=id;document.getElementById('delete-name').textContent=name;document.getElementById('delete-modal').classList.remove('hidden');}
     function hideDeleteModal(){document.getElementById('delete-modal').classList.add('hidden');deleteRowId=null;}
-    function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecordAuth(currentUser.email,deleteRowId);}
+    function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();invalidateCache('cancelamentos');loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecordAuth(currentUser.email,deleteRowId);}
     function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-900/80 border-green-700 text-green-200',error:'bg-red-900/80 border-red-700 text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
 
     // ===================== ATENDIMENTO (SUSPENSOS) =====================
     function iniciarAtendSusp(rowId){
       google.script.run.withSuccessHandler(function(r){
-        if(r.success){toast("success","Atendimento iniciado!");loadSuspensos();openSuspAtendModal(rowId);}
+        if(r.success){toast("success","Atendimento iniciado!");invalidateCache("suspensos");loadSuspensos();openSuspAtendModal(rowId);}
         else toast("error",r.error);
       }).withFailureHandler(function(e){toast("error",e.message);}).iniciarAtendimento(currentUser.email,rowId);
     }
@@ -585,13 +598,13 @@
       else{var agora=new Date();dtPgto=String(agora.getDate()).padStart(2,"0")+"/"+String(agora.getMonth()+1).padStart(2,"0")+"/"+agora.getFullYear();}
       var saves=[[2,dtPgto],[5,document.getElementById("at-situacao").value],[6,document.getElementById("at-forma-pgto").value],[7,document.getElementById("at-valor-recebido").value],[10,document.getElementById("at-obs").value||"-"]];
       var done=0;
-      saves.forEach(function(s){google.script.run.withSuccessHandler(function(){done++;if(done===saves.length){toast("success","Atendimento salvo!");hideAtendimentoModal();loadSuspensos();}}).withFailureHandler(function(e){done++;toast("error",e.message);}).updateSuspensosCellAuth(currentUser.email,rowId,s[0],s[1]);});
+      saves.forEach(function(s){google.script.run.withSuccessHandler(function(){done++;if(done===saves.length){toast("success","Atendimento salvo!");hideAtendimentoModal();invalidateCache("suspensos");loadSuspensos();}}).withFailureHandler(function(e){done++;toast("error",e.message);}).updateSuspensosCellAuth(currentUser.email,rowId,s[0],s[1]);});
     }
     function colocarNaFilaClick(){
       var rowId=parseInt(document.getElementById("at-row-id").value);
       if(!rowId){toast("error","ID invalido.");return;}
       google.script.run.withSuccessHandler(function(r){
-        if(r.success){toast("success","Devolvido a fila!");hideAtendimentoModal();loadSuspensos();}
+        if(r.success){toast("success","Devolvido a fila!");hideAtendimentoModal();invalidateCache("suspensos");loadSuspensos();}
         else toast("error",r.error);
       }).withFailureHandler(function(e){toast("error",e.message);}).colocarNaFila(currentUser.email,rowId);
     }
@@ -704,11 +717,12 @@
     }
 
     function loadSuspensos(){
+      if(isCacheValid('suspensos')){allSuspRecords=dataCache.suspensos;applySuspFilters();return;}
       var tb=document.getElementById('table-body-suspensos');
       tb.innerHTML='<tr><td colspan="10" class="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>';
       // Carregar todos os dados UMA VEZ
       google.script.run.withSuccessHandler(function(r){
-        if(r.success){allSuspRecords=r.data;applySuspFilters();}
+        if(r.success){allSuspRecords=r.data;dataCache.suspensos=r.data;dataCache.timestamp.suspensos=Date.now();applySuspFilters();}
         else toast('error',r.error);
       }).withFailureHandler(function(e){toast('error',e.message);}).getSuspensosRecords('',null);
       google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-susp-total').textContent=r.data.total;document.getElementById('stat-susp-pendentes').textContent=r.data.pendentes;document.getElementById('stat-susp-pagos').textContent=r.data.pagos;document.getElementById('stat-susp-vencidos').textContent=r.data.vencidos;}}).getSuspensosStats();
