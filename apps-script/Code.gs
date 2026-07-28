@@ -299,7 +299,7 @@ function getStats(filters) {
     for (var i = 0; i < records.length; i++) {
       var status = records[i].statusAtual.toLowerCase();
       if (status === 'ativo') stats.ativos++;
-      else if (status === 'em negociacao' || status === 'em negociação') stats.emNegociacao++;
+      else if (status === 'em negociação' || status === 'em negociação') stats.emNegociacao++;
       else if (status === 'cancelado') stats.cancelados++;
     }
     

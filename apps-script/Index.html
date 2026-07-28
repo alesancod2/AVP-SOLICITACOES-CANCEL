@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestao de Cancelamentos</title>
+  <title>Gestão de Cancelamentos</title>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={darkMode:'class'}</script>
@@ -34,7 +34,7 @@
   <div id="auth-loading" class="fixed inset-0 z-[200] bg-gray-900 flex items-center justify-center">
     <div class="text-center">
       <div class="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p class="text-gray-400">Verificando autenticacao...</p>
+      <p class="text-gray-400">Verificando autenticação...</p>
     </div>
   </div>
 
@@ -45,7 +45,7 @@
         <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
       </div>
       <h2 class="text-xl font-bold text-white mb-2">Acesso Negado</h2>
-      <p class="text-gray-400" id="auth-denied-msg">Voce nao tem permissao para acessar este sistema.</p>
+      <p class="text-gray-400" id="auth-denied-msg">Voce não tem permissão para acessar este sistema.</p>
     </div>
   </div>
 
@@ -105,7 +105,7 @@
     <!-- HEADER -->
     <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-30 shadow-sm">
       <div class="px-4 md:px-6 py-3 flex items-center justify-between">
-        <h1 id="page-title" class="text-lg md:text-xl font-bold ml-10 md:ml-0">Gestao de Cancelamentos</h1>
+        <h1 id="page-title" class="text-lg md:text-xl font-bold ml-10 md:ml-0">Gestão de Cancelamentos</h1>
         <span class="text-xs text-gray-500 hidden sm:block">Google Sheets</span>
       </div>
     </header>
@@ -117,15 +117,15 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Total</p><p class="text-2xl font-bold text-white" id="stat-total">-</p></div>
         <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Ativos</p><p class="text-2xl font-bold text-green-500" id="stat-ativos">-</p></div>
-        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Em Negociacao</p><p class="text-2xl font-bold text-blue-500" id="stat-negociacao">-</p></div>
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Em Negociação</p><p class="text-2xl font-bold text-blue-500" id="stat-negociacao">-</p></div>
         <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Cancelados</p><p class="text-2xl font-bold text-gray-300" id="stat-cancelados">-</p></div>
       </div>
       <!-- FILTERS -->
       <div class="flex flex-wrap gap-3 mb-4 items-end">
         <div><label class="block text-xs text-gray-400 mb-1">Mes</label><select id="filter-mes" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="JANEIRO">JANEIRO</option><option value="FEVEREIRO">FEVEREIRO</option><option value="MARÇO">MARÇO</option><option value="ABRIL">ABRIL</option><option value="MAIO">MAIO</option><option value="JUNHO">JUNHO</option><option value="JULHO">JULHO</option><option value="AGOSTO">AGOSTO</option><option value="SETEMBRO">SETEMBRO</option><option value="OUTUBRO">OUTUBRO</option><option value="NOVEMBRO">NOVEMBRO</option><option value="DEZEMBRO">DEZEMBRO</option></select></div>
         <div><label class="block text-xs text-gray-400 mb-1">Ano</label><select id="filter-ano" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select></div>
-        <div><label class="block text-xs text-gray-400 mb-1">Status</label><select id="filter-status" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociacao">Em negociacao</option></select></div>
-        <div><label class="block text-xs text-gray-400 mb-1">Data Inicio</label><input id="filter-data-inicio" type="date" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Status</label><select id="filter-status" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociação">Em negociação</option></select></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Data Início</label><input id="filter-data-inicio" type="date" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
         <div><label class="block text-xs text-gray-400 mb-1">Data Fim</label><input id="filter-data-fim" type="date" onchange="applyFilters()" class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
         <button onclick="clearAllFilters()" class="px-3 py-2 text-sm text-gray-400 hover:text-white transition">Limpar filtros</button>
       </div>
@@ -136,7 +136,7 @@
           <input id="search-input" type="text" placeholder="Buscar por nome, placa, consultor..." class="w-full pl-10 pr-4 py-2.5 border border-gray-600 rounded-lg bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-green-500 outline-none transition" />
         </div>
         <button onclick="showForm()" class="inline-flex items-center px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition shadow-sm">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Nova Solicitacao
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Nova Solicitação
         </button>
       </div>
       <!-- TABLE -->
@@ -152,7 +152,7 @@
               <th class="px-4 py-3 text-left font-semibold text-gray-200">Status</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-200">Atendente</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-200">Data</th>
-              <th class="px-4 py-3 text-center font-semibold text-gray-200">Acoes</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-200">Ações</th>
             </tr></thead>
             <tbody id="table-body"><tr><td colspan="9" class="px-4 py-12 text-center text-gray-500">Carregando...</td></tr></tbody>
           </table>
@@ -176,10 +176,10 @@
         <div><label class="block text-xs text-gray-400 mb-1">Placa</label><input id="sf-placa" type="text" placeholder="Placa..." class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white w-24 focus:ring-2 focus:ring-green-500 outline-none" /></div>
         <div><label class="block text-xs text-gray-400 mb-1">Venc. De</label><input id="sf-venc-de" type="date" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
         <div><label class="block text-xs text-gray-400 mb-1">Venc. Ate</label><input id="sf-venc-ate" type="date" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" /></div>
-        <div><label class="block text-xs text-gray-400 mb-1">Situacao</label><select id="sf-situacao" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Ativo">Ativo</option><option value="Cancelado">Cancelado</option></select></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Situação</label><select id="sf-situacao" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Ativo">Ativo</option><option value="Cancelado">Cancelado</option></select></div>
         <div><label class="block text-xs text-gray-400 mb-1">Forma Pgto</label><select id="sf-forma" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="PIX">PIX</option><option value="Cartao Credito">Cartao Credito</option><option value="Cartao Debito">Cartao Debito</option></select></div>
         <div><label class="block text-xs text-gray-400 mb-1">Atendente</label><select id="sf-atendente" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Fernanda">Fernanda</option><option value="Flavia">Flavia</option><option value="Kris">Kris</option><option value="Leticia">Leticia</option><option value="Tamires">Tamires</option><option value="Thaynara">Thaynara</option><option value="Yasmin">Yasmin</option></select></div>
-        <div><label class="block text-xs text-gray-400 mb-1">Conferencia</label><select id="sf-conf" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Verificar">Verificar</option><option value="OK">OK</option></select></div>
+        <div><label class="block text-xs text-gray-400 mb-1">Conferência</label><select id="sf-conf" class="px-2 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos</option><option value="Verificar">Verificar</option><option value="OK">OK</option></select></div>
         <button onclick="loadSuspensos()" class="px-3 py-2 bg-gray-700 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition">Filtrar</button>
         <button onclick="clearSuspFilters()" class="px-3 py-2 text-sm text-gray-400 hover:text-white transition">Limpar</button>
       </div>
@@ -192,12 +192,12 @@
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Dt Pgto</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Vencimento</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Placa</th>
-              <th class="px-3 py-3 text-left font-semibold text-gray-200">Situacao</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Situação</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Forma Pgto</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Recebido</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Original</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Atendente</th>
-              <th class="px-3 py-3 text-left font-semibold text-gray-200">Conferencia</th>
+              <th class="px-3 py-3 text-left font-semibold text-gray-200">Conferência</th>
             </tr></thead>
             <tbody id="table-body-suspensos"><tr><td colspan="10" class="px-4 py-12 text-center text-gray-500">Carregando...</td></tr></tbody>
           </table>
@@ -222,7 +222,7 @@
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="hideForm()"></div>
     <div class="relative max-w-2xl mx-auto mt-10 bg-gray-800 rounded-xl shadow-2xl p-6 m-4 max-h-[85vh] overflow-y-auto fade-in border border-gray-700">
       <div class="flex items-center justify-between mb-6">
-        <h2 id="form-title" class="text-lg font-bold text-white">Nova Solicitacao</h2>
+        <h2 id="form-title" class="text-lg font-bold text-white">Nova Solicitação</h2>
         <button onclick="hideForm()" class="p-2 hover:bg-gray-700 rounded-lg"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
       <form id="record-form" onsubmit="handleSubmit(event)">
@@ -234,9 +234,9 @@
           <div><label class="block text-sm font-medium text-gray-300 mb-1">Valor Pago</label><input id="f-pago" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
           <div><label class="block text-sm font-medium text-gray-300 mb-1">Consultor</label><input id="f-consultor" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome do consultor" /></div>
           <div><label class="block text-sm font-medium text-gray-300 mb-1">Atendente</label><select id="f-atendente" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Selecione...</option><option value="JOYCE">JOYCE</option><option value="ISABELA">ISABELA</option><option value="LETICIA">LETICIA</option><option value="MARIA">MARIA</option><option value="ISIS">ISIS</option></select></div>
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Status Atual</label><select id="f-status" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociacao">Em negociacao</option></select></div>
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Motivo do Cancelamento</label><select id="f-motivo" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="VENDA">VENDA</option><option value="TROCA DE VEICULO">TROCA DE VEICULO</option><option value="MOTIVO PESSOAL">MOTIVO PESSOAL</option><option value="DIFICULDADE FINANCEIRA">DIFICULDADE FINANCEIRA</option><option value="ERRO DE LANCAMENTO">ERRO DE LANCAMENTO</option><option value="RESSARCIMENTO">RESSARCIMENTO</option><option value="INSATISFACAO">INSATISFACAO</option><option value="SOLICITACAO DA DIRETORIA">SOLICITACAO DA DIRETORIA</option></select></div>
-          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-300 mb-1">Observacao</label><textarea id="f-obs" rows="2" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Observacoes..."></textarea></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Status Atual</label><select id="f-status" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Pendente">Pendente</option><option value="Em negociação">Em negociação</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Motivo do Cancelamento</label><select id="f-motivo" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="VENDA">VENDA</option><option value="TROCA DE VEÍCULO">TROCA DE VEÍCULO</option><option value="MOTIVO PESSOAL">MOTIVO PESSOAL</option><option value="DIFICULDADE FINANCEIRA">DIFICULDADE FINANCEIRA</option><option value="ERRO DE LANÇAMENTO">ERRO DE LANÇAMENTO</option><option value="RESSARCIMENTO">RESSARCIMENTO</option><option value="INSATISFAÇÃO">INSATISFAÇÃO</option><option value="SOLICITAÇÃO DA DIRETORIA">SOLICITAÇÃO DA DIRETORIA</option></select></div>
+          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-300 mb-1">Observação</label><textarea id="f-obs" rows="2" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Observações..."></textarea></div>
         </div>
         <div class="flex gap-3 mt-6 pt-4 border-t border-gray-700">
           <button type="submit" id="btn-submit" class="px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">Cadastrar</button>
@@ -251,7 +251,7 @@
     <div class="relative max-w-md mx-auto mt-32 bg-gray-800 rounded-xl shadow-2xl p-6 m-4 fade-in border border-gray-700">
       <div class="flex items-center gap-4">
         <div class="w-12 h-12 bg-red-900/30 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg></div>
-        <div><h3 class="text-lg font-semibold text-white">Confirmar Exclusao</h3><p class="text-sm text-gray-400 mt-1">Deseja excluir <span id="delete-name" class="font-medium text-gray-200"></span>?</p></div>
+        <div><h3 class="text-lg font-semibold text-white">Confirmar Exclusão</h3><p class="text-sm text-gray-400 mt-1">Deseja excluir <span id="delete-name" class="font-medium text-gray-200"></span>?</p></div>
       </div>
       <div class="flex justify-end gap-3 mt-6">
         <button onclick="hideDeleteModal()" class="px-4 py-2 bg-gray-700 text-gray-200 rounded-lg border border-gray-600 hover:bg-gray-600 transition">Cancelar</button>
@@ -268,7 +268,7 @@
     function togglePin(){isPinned=!isPinned;var icon=document.getElementById('pin-icon');if(isPinned){icon.classList.remove('text-gray-400');icon.classList.add('text-green-400');document.getElementById('sidebar').classList.add('expanded');document.getElementById('main-content').classList.add('shifted');}else{icon.classList.remove('text-green-400');icon.classList.add('text-gray-400');document.getElementById('sidebar').classList.remove('expanded');document.getElementById('main-content').classList.remove('shifted');}}
     function toggleMobileSidebar(){isMobileOpen=!isMobileOpen;document.getElementById('sidebar').classList.toggle('mobile-open',isMobileOpen);document.getElementById('sidebar').classList.toggle('expanded',isMobileOpen);document.getElementById('sidebar-overlay').classList.toggle('hidden',!isMobileOpen);}
     function closeMobileSidebar(){isMobileOpen=false;document.getElementById('sidebar').classList.remove('mobile-open','expanded');document.getElementById('sidebar-overlay').classList.add('hidden');}
-    function navigateTo(page){var titles={'dashboard':'Dashboard','cancelamentos':'Gestao de Cancelamentos','suspensos':'Gestao de Suspensos'};document.getElementById('page-title').textContent=titles[page]||page;document.querySelectorAll('.sidebar-link').forEach(function(l){l.classList.remove('bg-gray-700','text-white');l.classList.add('text-gray-300');});var el=document.querySelector('[data-page="'+page+'"]');if(el){el.classList.add('bg-gray-700','text-white');el.classList.remove('text-gray-300');}document.querySelectorAll('.page-content').forEach(function(p){p.classList.add('hidden');});var targetPage=document.getElementById('page-'+page);if(targetPage)targetPage.classList.remove('hidden');if(page==='suspensos')loadSuspensos();if(page==='cancelamentos')loadData();closeMobileSidebar();}
+    function navigateTo(page){var titles={'dashboard':'Dashboard','cancelamentos':'Gestão de Cancelamentos','suspensos':'Gestão de Suspensos'};document.getElementById('page-title').textContent=titles[page]||page;document.querySelectorAll('.sidebar-link').forEach(function(l){l.classList.remove('bg-gray-700','text-white');l.classList.add('text-gray-300');});var el=document.querySelector('[data-page="'+page+'"]');if(el){el.classList.add('bg-gray-700','text-white');el.classList.remove('text-gray-300');}document.querySelectorAll('.page-content').forEach(function(p){p.classList.add('hidden');});var targetPage=document.getElementById('page-'+page);if(targetPage)targetPage.classList.remove('hidden');if(page==='suspensos')loadSuspensos();if(page==='cancelamentos')loadData();closeMobileSidebar();}
 
     // ===================== APP LOGIC =====================
     var allRecords=[],deleteRowId=null,searchTimeout=null;
@@ -315,7 +315,7 @@
     }
 
     function esc(t){if(!t)return '';var d=document.createElement('div');d.textContent=t.toString();return d.innerHTML;}
-    function stClass(s){s=(s||'').toLowerCase();if(s==='ativo')return 'bg-green-900/40 text-green-300';if(s==='inadimplente')return 'bg-red-900/40 text-red-300';if(s==='cancelado')return 'bg-gray-600 text-gray-200';if(s==='pendente')return 'bg-yellow-900/40 text-yellow-300';if(s==='em negociacao')return 'bg-blue-900/40 text-blue-300';return 'bg-gray-700 text-gray-400';}
+    function stClass(s){s=(s||'').toLowerCase();if(s==='ativo')return 'bg-green-900/40 text-green-300';if(s==='inadimplente')return 'bg-red-900/40 text-red-300';if(s==='cancelado')return 'bg-gray-600 text-gray-200';if(s==='pendente')return 'bg-yellow-900/40 text-yellow-300';if(s==='em negociação')return 'bg-blue-900/40 text-blue-300';return 'bg-gray-700 text-gray-400';}
     function showLoading(){var t=document.getElementById('table-body'),r='';for(var i=0;i<5;i++){r+='<tr class="border-b border-gray-700">';for(var j=0;j<9;j++)r+='<td class="px-4 py-3"><div class="skeleton h-4 rounded" style="width:'+(Math.random()*40+50)+'%"></div></td>';r+='</tr>';}t.innerHTML=r;}
 
     function renderTable(recs){
@@ -326,7 +326,7 @@
       }).join('');
     }
 
-    function showForm(rec){document.getElementById('form-modal').classList.remove('hidden');document.getElementById('form-title').textContent=rec?'Editar Solicitacao':'Nova Solicitacao';document.getElementById('btn-submit').textContent=rec?'Atualizar':'Cadastrar';if(rec){document.getElementById('form-row-id').value=rec.id;document.getElementById('f-nome').value=rec.nomeDoAssociado||'';document.getElementById('f-placa').value=rec.placa||'';document.getElementById('f-parcela').value=rec.valorDaParcela||'';document.getElementById('f-pago').value=rec.valorPago||'';document.getElementById('f-consultor').value=rec.consultor||'';document.getElementById('f-atendente').value=rec.atendente||'';document.getElementById('f-status').value=rec.statusAtual||'-';document.getElementById('f-motivo').value=rec.motivoDoCancelamento||'-';document.getElementById('f-obs').value=(rec.observacao==='-'?'':rec.observacao)||'';}else{document.getElementById('record-form').reset();document.getElementById('form-row-id').value='';}}
+    function showForm(rec){document.getElementById('form-modal').classList.remove('hidden');document.getElementById('form-title').textContent=rec?'Editar Solicitação':'Nova Solicitação';document.getElementById('btn-submit').textContent=rec?'Atualizar':'Cadastrar';if(rec){document.getElementById('form-row-id').value=rec.id;document.getElementById('f-nome').value=rec.nomeDoAssociado||'';document.getElementById('f-placa').value=rec.placa||'';document.getElementById('f-parcela').value=rec.valorDaParcela||'';document.getElementById('f-pago').value=rec.valorPago||'';document.getElementById('f-consultor').value=rec.consultor||'';document.getElementById('f-atendente').value=rec.atendente||'';document.getElementById('f-status').value=rec.statusAtual||'-';document.getElementById('f-motivo').value=rec.motivoDoCancelamento||'-';document.getElementById('f-obs').value=(rec.observacao==='-'?'':rec.observacao)||'';}else{document.getElementById('record-form').reset();document.getElementById('form-row-id').value='';}}
     function hideForm(){document.getElementById('form-modal').classList.add('hidden');}
     function editRecord(id){var rec=allRecords.find(function(r){return r.id===id;});if(rec)showForm(rec);}
     function handleSubmit(e){
@@ -334,7 +334,7 @@
       var data={nomeDoAssociado:document.getElementById('f-nome').value,placa:document.getElementById('f-placa').value,valorDaParcela:document.getElementById('f-parcela').value,valorPago:document.getElementById('f-pago').value,consultor:document.getElementById('f-consultor').value,atendente:document.getElementById('f-atendente').value,statusAtual:document.getElementById('f-status').value,motivoDoCancelamento:document.getElementById('f-motivo').value||'-',observacao:document.getElementById('f-obs').value||'-'};
       var rowId=document.getElementById('form-row-id').value;
       if(rowId){google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Atualizar';if(r.success){toast('success','Atualizado!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Atualizar';toast('error',er.message);}).updateRecordAuth(parseInt(rowId),data);}
-      else{google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitacao criada!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecordAuth(data);}
+      else{google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Cadastrar';if(r.success){toast('success','Solicitação criada!');hideForm();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Cadastrar';toast('error',er.message);}).createRecordAuth(data);}
     }
     function showDeleteModal(id,name){deleteRowId=id;document.getElementById('delete-name').textContent=name;document.getElementById('delete-modal').classList.remove('hidden');}
     function hideDeleteModal(){document.getElementById('delete-modal').classList.add('hidden');deleteRowId=null;}
