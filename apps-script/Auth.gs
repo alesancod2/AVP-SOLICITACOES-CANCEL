@@ -96,7 +96,7 @@ function adicionarUsuario(nome, email, perfil) {
   }
   
   var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
-  sheet.appendRow([nome, email.trim().toLowerCase(), perfil || PERFIL_USER, 'Ativo', agora, '']);
+  sheet.appendRow([nome, email.trim().toLowerCase(), perfil || PERFIL_USER, 'Ativo', '', agora, '']);
   
   return { success: true, message: 'Usuario ' + nome + ' cadastrado como ' + perfil };
 }
@@ -178,7 +178,7 @@ function autenticarPorEmail(email) {
       var permissoes = [];
       
       if (isAdmin) {
-        permissoes = ['dashboard', 'cancelamentos', 'suspensos'];
+        permissoes = ['dashboard', 'cancelamentos', 'suspensos', 'usuarios'];
       } else if (permissoesRaw) {
         permissoes = permissoesRaw.toLowerCase().split(',').map(function(p) { return p.trim(); });
       } else {
@@ -392,8 +392,9 @@ function listarUsuarios() {
       email: data[i][1] || '',
       perfil: data[i][2] || '',
       status: data[i][3] || '',
-      dataCriacao: data[i][4] || '',
-      ultimoAcesso: data[i][5] || ''
+      permissoes: data[i][4] || '',
+      dataCriacao: data[i][5] || '',
+      ultimoAcesso: data[i][6] || ''
     });
   }
   
@@ -486,4 +487,58 @@ function cadastrarPrimeiroAdmin() {
   } else {
     SpreadsheetApp.getUi().alert('Erro: ' + result.error);
   }
+}
+
+
+
+// =============================================================
+// ATUALIZAR PERMISSOES DE USUARIO
+// =============================================================
+
+/**
+ * Atualiza permissoes de usuario por email (usado ao cadastrar)
+ */
+function atualizarPermissoesUsuario(email, permissoes) {
+  var admin = verificarAdmin();
+  if (!admin) return { success: false, error: 'Apenas Admin.' };
+  
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_USUARIOS);
+  if (!sheet) return { success: false, error: 'Aba nao encontrada.' };
+  
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: false, error: 'Nenhum usuario.' };
+  
+  var emails = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+  for (var i = 0; i < emails.length; i++) {
+    if (emails[i][0].toString().trim().toLowerCase() === email.trim().toLowerCase()) {
+      sheet.getRange(i + 2, 5).setValue(permissoes);
+      registrarLog('Alteracao permissoes', i + 2, 'PERMISSOES', '', permissoes + ' (' + email + ')');
+      return { success: true };
+    }
+  }
+  return { success: false, error: 'Email nao encontrado.' };
+}
+
+/**
+ * Atualiza permissoes de usuario por ID de linha
+ */
+function atualizarPermissoesById(rowId, permissoes) {
+  var admin = verificarAdmin();
+  if (!admin) return { success: false, error: 'Apenas Admin.' };
+  
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_USUARIOS);
+  if (!sheet) return { success: false, error: 'Aba nao encontrada.' };
+  
+  var row = parseInt(rowId);
+  if (row < 2 || row > sheet.getLastRow()) return { success: false, error: 'Linha invalida.' };
+  
+  var anterior = sheet.getRange(row, 5).getValue().toString();
+  sheet.getRange(row, 5).setValue(permissoes);
+  
+  var email = sheet.getRange(row, 2).getValue().toString();
+  registrarLog('Alteracao permissoes', rowId, 'PERMISSOES', anterior, permissoes + ' (' + email + ')');
+  
+  return { success: true, message: 'Permissoes atualizadas.' };
 }
