@@ -45,7 +45,16 @@
         <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
       </div>
       <h2 class="text-xl font-bold text-white mb-2">Acesso Negado</h2>
-      <p class="text-gray-400" id="auth-denied-msg">Voce não tem permissão para acessar este sistema.</p>
+      <p class="text-gray-400 mb-4" id="auth-denied-msg">Você não tem permissão para acessar este sistema.</p>
+      <!-- LOGIN MANUAL FORM -->
+      <div id="login-form-container" class="hidden">
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 text-left mt-4">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Informe seu email cadastrado:</label>
+          <input id="login-email" type="email" class="w-full px-4 py-2.5 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none mb-3" placeholder="seu.email@empresa.com" />
+          <button onclick="doManualLogin()" id="btn-login" class="w-full px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">Entrar</button>
+          <p class="text-red-400 text-xs mt-2 hidden" id="login-error"></p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -283,11 +292,17 @@
           document.getElementById('user-name-display').textContent=currentUser.nome;
           document.getElementById('user-perfil-display').textContent=currentUser.perfil;
           document.getElementById('user-avatar').textContent=currentUser.nome.charAt(0).toUpperCase();
-          // Esconder elementos admin-only para Users
           if(!currentUser.isAdmin){
             document.querySelectorAll('.admin-only').forEach(function(el){el.classList.add('hidden');});
           }
           loadData();
+        }else if(r.requireLogin){
+          // Mostrar tela de login manual
+          document.getElementById('auth-loading').classList.add('hidden');
+          document.getElementById('auth-denied').classList.remove('hidden');
+          document.getElementById('auth-denied').classList.add('flex');
+          document.getElementById('auth-denied-msg').textContent='Faça login para continuar:';
+          document.getElementById('login-form-container').classList.remove('hidden');
         }else{
           document.getElementById('auth-loading').classList.add('hidden');
           document.getElementById('auth-denied').classList.remove('hidden');
@@ -299,10 +314,40 @@
         document.getElementById('auth-denied').classList.remove('hidden');
         document.getElementById('auth-denied').classList.add('flex');
         document.getElementById('auth-denied-msg').textContent='Erro: '+e.message;
+        document.getElementById('login-form-container').classList.remove('hidden');
       }).getUsuarioLogado();
 
       document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){loadData();},400);});
     };
+
+    // LOGIN MANUAL
+    function doManualLogin(){
+      var email=document.getElementById('login-email').value.trim();
+      if(!email){document.getElementById('login-error').textContent='Informe um email.';document.getElementById('login-error').classList.remove('hidden');return;}
+      var btn=document.getElementById('btn-login');btn.disabled=true;btn.textContent='Verificando...';
+      document.getElementById('login-error').classList.add('hidden');
+      google.script.run.withSuccessHandler(function(r){
+        btn.disabled=false;btn.textContent='Entrar';
+        if(r.success){
+          currentUser=r.data;
+          document.getElementById('auth-denied').classList.add('hidden');
+          document.getElementById('user-name-display').textContent=currentUser.nome;
+          document.getElementById('user-perfil-display').textContent=currentUser.perfil;
+          document.getElementById('user-avatar').textContent=currentUser.nome.charAt(0).toUpperCase();
+          if(!currentUser.isAdmin){document.querySelectorAll('.admin-only').forEach(function(el){el.classList.add('hidden');});}
+          loadData();
+        }else{
+          document.getElementById('login-error').textContent=r.error;
+          document.getElementById('login-error').classList.remove('hidden');
+        }
+      }).withFailureHandler(function(e){
+        btn.disabled=false;btn.textContent='Entrar';
+        document.getElementById('login-error').textContent='Erro: '+e.message;
+        document.getElementById('login-error').classList.remove('hidden');
+      }).loginManual(email);
+    }
+    // Enter key no campo de login
+    document.getElementById('login-email').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();doManualLogin();}});
 
     function getFilters(){return{mes:document.getElementById('filter-mes').value,ano:document.getElementById('filter-ano').value,dataInicio:document.getElementById('filter-data-inicio').value,dataFim:document.getElementById('filter-data-fim').value,status:document.getElementById('filter-status').value};}
     function applyFilters(){loadData();}

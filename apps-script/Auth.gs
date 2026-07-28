@@ -107,67 +107,106 @@ function adicionarUsuario(nome, email, perfil) {
 
 /**
  * Retorna o usuario logado com base no email da sessao Google
- * Esta e a funcao principal de autenticacao
+ * 
+ * IMPORTANTE: Para funcionar com deploy "Executar como: Eu" + "Qualquer pessoa com conta Google":
+ * O Session.getActiveUser().getEmail() retorna o email do usuario que acessa
+ * APENAS quando "Quem tem acesso" = "Qualquer pessoa com conta Google" (nao anonimo).
+ * 
+ * Se ainda nao funcionar, esta funcao usa PropertiesService como fallback
+ * e permite login manual via interface.
  */
 function getUsuarioLogado() {
   try {
-    // Tentar obter email do usuario de varias formas
     var email = '';
     
+    // Metodo 1: getActiveUser (funciona com "Qualquer pessoa com conta Google")
     try { email = Session.getActiveUser().getEmail(); } catch(e) {}
+    
+    // Metodo 2: getEffectiveUser (funciona quando deploy = "Executar como usuario")
     if (!email) { try { email = Session.getEffectiveUser().getEmail(); } catch(e) {} }
     
+    // Se nenhum metodo retornou email, permitir login manual
     if (!email || email === '') {
-      return { success: false, error: 'Não foi possível identificar o usuário. Verifique se está logado com conta Google.' };
+      return { 
+        success: false, 
+        requireLogin: true,
+        error: 'Identificação automática indisponível. Faça login manualmente.' 
+      };
     }
     
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var sheet = ss.getSheetByName(SHEET_USUARIOS);
-    
-    if (!sheet) {
-      return { success: false, error: 'Aba Usuarios nao encontrada. Execute criarAbasAuth().' };
-    }
-    
-    var lastRow = sheet.getLastRow();
-    if (lastRow <= 1) {
-      return { success: false, error: 'Nenhum usuario cadastrado. Cadastre pelo menos um Admin.' };
-    }
-    
-    var data = sheet.getRange(2, 1, lastRow - 1, HEADERS_USUARIOS.length).getValues();
-    
-    for (var i = 0; i < data.length; i++) {
-      var row = data[i];
-      var userEmail = row[1] ? row[1].toString().trim().toLowerCase() : '';
-      
-      if (userEmail === email.toLowerCase()) {
-        var status = row[3] ? row[3].toString().trim() : '';
-        
-        if (status !== 'Ativo') {
-          return { success: false, error: 'Sua conta esta inativa. Contate o administrador.' };
-        }
-        
-        // Atualizar ultimo acesso
-        var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
-        sheet.getRange(i + 2, 6).setValue(agora);
-        
-        var usuario = {
-          nome: row[0] ? row[0].toString() : '',
-          email: userEmail,
-          perfil: row[2] ? row[2].toString().trim() : PERFIL_USER,
-          status: status,
-          isAdmin: (row[2] ? row[2].toString().trim() : '') === PERFIL_ADMIN
-        };
-        
-        return { success: true, data: usuario };
-      }
-    }
-    
-    // Usuario nao encontrado
-    return { success: false, error: 'Acesso negado. Seu email (' + email + ') nao esta cadastrado no sistema.' };
+    return autenticarPorEmail(email);
     
   } catch (error) {
-    return { success: false, error: 'Erro de autenticacao: ' + error.message };
+    return { success: false, error: 'Erro de autenticação: ' + error.message };
   }
+}
+
+/**
+ * Login manual - usuario informa o email cadastrado
+ * Validacao: so aceita emails que estao na aba Usuarios
+ */
+function loginManual(emailInformado) {
+  try {
+    if (!emailInformado || emailInformado.trim() === '') {
+      return { success: false, error: 'Email é obrigatório.' };
+    }
+    
+    return autenticarPorEmail(emailInformado.trim().toLowerCase());
+    
+  } catch (error) {
+    return { success: false, error: 'Erro no login: ' + error.message };
+  }
+}
+
+/**
+ * Funcao interna que busca o usuario pelo email na aba Usuarios
+ */
+function autenticarPorEmail(email) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_USUARIOS);
+  
+  if (!sheet) {
+    return { success: false, error: 'Aba Usuários não encontrada. Execute criarAbasAuth().' };
+  }
+  
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
+    return { success: false, error: 'Nenhum usuário cadastrado. Cadastre pelo menos um Admin.' };
+  }
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, HEADERS_USUARIOS.length).getValues();
+  
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    var userEmail = row[1] ? row[1].toString().trim().toLowerCase() : '';
+    
+    if (userEmail === email.toLowerCase()) {
+      var status = row[3] ? row[3].toString().trim() : '';
+      
+      if (status !== 'Ativo') {
+        return { success: false, error: 'Sua conta está inativa. Contate o administrador.' };
+      }
+      
+      // Atualizar ultimo acesso
+      var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+      sheet.getRange(i + 2, 6).setValue(agora);
+      
+      var usuario = {
+        nome: row[0] ? row[0].toString() : '',
+        email: userEmail,
+        perfil: row[2] ? row[2].toString().trim() : PERFIL_USER,
+        status: status,
+        isAdmin: (row[2] ? row[2].toString().trim() : '') === PERFIL_ADMIN
+      };
+      
+      // Registrar login
+      registrarLog('Login', '', '', '', usuario.nome + ' (' + userEmail + ')');
+      
+      return { success: true, data: usuario };
+    }
+  }
+  
+  return { success: false, error: 'Acesso negado. O email (' + email + ') não está cadastrado no sistema.' };
 }
 
 /**
