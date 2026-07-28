@@ -533,11 +533,11 @@ function iniciarAtendimento(email, rowId) {
     if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
 
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var sheet = ss.getSheetByName(SHEET_NAME);
-    if (!sheet) return { success: false, error: 'Aba nao encontrada' };
+    var sheet = ss.getSheetByName(SHEET_SUSPENSOS);
+    if (!sheet) return { success: false, error: 'Aba DB_Suspensos nao encontrada' };
 
     var row = parseInt(rowId);
-    if (row < 3 || row > sheet.getLastRow()) {
+    if (row < 2 || row > sheet.getLastRow()) {
       return { success: false, error: 'Linha invalida: ' + rowId };
     }
 
@@ -550,15 +550,12 @@ function iniciarAtendimento(email, rowId) {
       var currentAtendente = sheet.getRange(row, 9).getValue().toString().trim();
 
       if (currentAtendente === '' || currentAtendente === '-') {
-        // Disponivel - claim ownership
         sheet.getRange(row, 9).setValue(usuario.nome);
         registrarLog('Iniciar Atendimento', rowId, 'ATENDENTE', currentAtendente, usuario.nome, usuario);
         return { success: true, message: 'Atendimento iniciado' };
       } else if (currentAtendente === usuario.nome) {
-        // Ja e o owner
         return { success: true, isOwner: true, message: 'Voce ja e o atendente' };
       } else {
-        // Pertence a outro
         return { success: false, error: 'Atendimento pertence a: ' + currentAtendente };
       }
     } finally {
@@ -580,11 +577,11 @@ function colocarNaFila(email, rowId) {
     if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
 
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var sheet = ss.getSheetByName(SHEET_NAME);
-    if (!sheet) return { success: false, error: 'Aba nao encontrada' };
+    var sheet = ss.getSheetByName(SHEET_SUSPENSOS);
+    if (!sheet) return { success: false, error: 'Aba DB_Suspensos nao encontrada' };
 
     var row = parseInt(rowId);
-    if (row < 3 || row > sheet.getLastRow()) {
+    if (row < 2 || row > sheet.getLastRow()) {
       return { success: false, error: 'Linha invalida: ' + rowId };
     }
 
