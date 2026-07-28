@@ -6,6 +6,7 @@
   <title>Gestão de Cancelamentos</title>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>tailwind.config={darkMode:'class'}</script>
   <style>
     .fade-in{animation:fadeIn .3s ease-in}@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
@@ -179,6 +180,31 @@
         <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Pagos</p><p class="text-2xl font-bold text-green-500" id="stat-susp-pagos">-</p></div>
         <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Vencidos</p><p class="text-2xl font-bold text-red-500" id="stat-susp-vencidos">-</p></div>
       </div>
+      <!-- METRICS SUSPENSOS (Placas, Valores a Receber, Valor Recebido) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Qtd. Placas</p><p class="text-2xl font-bold text-purple-500" id="stat-susp-placas">-</p></div>
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Valores a Receber</p><p class="text-2xl font-bold text-blue-500" id="stat-susp-a-receber">-</p></div>
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4"><p class="text-sm text-gray-400">Valor Recebido (OK)</p><p class="text-2xl font-bold text-green-500" id="stat-susp-recebido-ok">-</p></div>
+      </div>
+      <!-- OPERATOR PERFORMANCE TABLE -->
+      <div class="bg-gray-800 rounded-xl border border-gray-700 p-4 mb-6">
+        <h3 class="text-sm font-semibold text-gray-300 mb-3">Desempenho por Operador</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-700 border-b border-gray-600">
+                <th class="px-4 py-3 text-left font-semibold text-gray-200">Atendente</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-200">Valor a Receber</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-200">Valor Recebido (OK)</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-200">Atendimentos</th>
+              </tr>
+            </thead>
+            <tbody id="table-body-susp-performance">
+              <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
       <!-- FILTERS SUSPENSOS -->
       <div class="flex flex-wrap gap-3 mb-4 items-end">
         <div><label class="block text-xs text-gray-400 mb-1">Associado</label><input id="sf-associado" type="text" placeholder="Nome..." class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white w-32 focus:ring-2 focus:ring-green-500 outline-none" /></div>
@@ -217,11 +243,40 @@
 
     <!-- ========== PAGE: DASHBOARD ========== -->
     <main class="px-4 md:px-6 py-6 page-content hidden" id="page-dashboard">
-      <div class="flex items-center justify-center h-64">
-        <div class="text-center">
-          <svg class="mx-auto h-16 w-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-          <h2 class="text-xl font-bold text-gray-300">Dashboard</h2>
-          <p class="text-gray-500 mt-2">Visao geral do sistema (em breve)</p>
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Pie Chart Card -->
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4">
+          <h3 class="text-sm font-semibold text-gray-300 mb-3">Retencao vs Cancelamento</h3>
+          <div class="flex items-center justify-center" style="height:280px;">
+            <canvas id="chart-pie-retencao"></canvas>
+          </div>
+        </div>
+        <!-- Line Chart Card -->
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-4">
+          <h3 class="text-sm font-semibold text-gray-300 mb-3">Historico Diario</h3>
+          <div style="height:280px;">
+            <canvas id="chart-line-historico"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Productivity Table Card -->
+      <div class="bg-gray-800 rounded-xl border border-gray-700 p-4">
+        <h3 class="text-sm font-semibold text-gray-300 mb-3">Produtividade por Atendente</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-700 border-b border-gray-600">
+                <th class="px-4 py-3 text-left font-semibold text-gray-200">Atendente</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-200">Total Solicitacoes</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-200">Cancelados</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-200">Retidos</th>
+              </tr>
+            </thead>
+            <tbody id="table-body-productivity">
+              <tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">Carregando...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </main>
@@ -323,11 +378,12 @@
       if(currentUser&&currentUser.permissoes&&currentUser.permissoes.indexOf(page)<0){
         toast('error','Você não tem permissão para acessar esta página.');return;
       }
-      var titles={'dashboard':'Dashboard','cancelamentos':'Gestão de Cancelamentos','suspensos':'Gestão de Suspensos','usuarios':'Gerenciar Usuários'};document.getElementById('page-title').textContent=titles[page]||page;document.querySelectorAll('.sidebar-link').forEach(function(l){l.classList.remove('bg-gray-700','text-white');l.classList.add('text-gray-300');});var el=document.querySelector('[data-page="'+page+'"]');if(el){el.classList.add('bg-gray-700','text-white');el.classList.remove('text-gray-300');}document.querySelectorAll('.page-content').forEach(function(p){p.classList.add('hidden');});var targetPage=document.getElementById('page-'+page);if(targetPage)targetPage.classList.remove('hidden');if(page==='suspensos')loadSuspensos();if(page==='cancelamentos')loadData();if(page==='usuarios')loadUsuarios();closeMobileSidebar();}
+      var titles={'dashboard':'Dashboard','cancelamentos':'Gestão de Cancelamentos','suspensos':'Gestão de Suspensos','usuarios':'Gerenciar Usuários'};document.getElementById('page-title').textContent=titles[page]||page;document.querySelectorAll('.sidebar-link').forEach(function(l){l.classList.remove('bg-gray-700','text-white');l.classList.add('text-gray-300');});var el=document.querySelector('[data-page="'+page+'"]');if(el){el.classList.add('bg-gray-700','text-white');el.classList.remove('text-gray-300');}document.querySelectorAll('.page-content').forEach(function(p){p.classList.add('hidden');});var targetPage=document.getElementById('page-'+page);if(targetPage)targetPage.classList.remove('hidden');if(page==='suspensos')loadSuspensos();if(page==='cancelamentos')loadData();if(page==='usuarios')loadUsuarios();if(page==='dashboard')loadDashboard();closeMobileSidebar();}
 
     // ===================== APP LOGIC =====================
     var allRecords=[],deleteRowId=null,searchTimeout=null;
     var currentUser=null; // {nome, email, perfil, isAdmin}
+    var pieChart=null,lineChart=null;
 
     window.onload=function(){
       // Vai direto para tela de login (deploy "Executar como Eu" nao detecta email)
@@ -428,6 +484,78 @@
     function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecordAuth(currentUser.email,deleteRowId);}
     function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-900/80 border-green-700 text-green-200',error:'bg-red-900/80 border-red-700 text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
 
+    // ===================== DASHBOARD =====================
+    function loadDashboard(){
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){
+          renderPieChart(r.data.pieData);
+          renderLineChart(r.data.lineData);
+          renderProductivityTable(r.data.productivityData);
+        }else{toast('error',r.error);}
+      }).withFailureHandler(function(e){toast('error',e.message);}).getDashboardData();
+    }
+    function renderPieChart(pieData){
+      var ctx=document.getElementById('chart-pie-retencao').getContext('2d');
+      if(pieChart)pieChart.destroy();
+      pieChart=new Chart(ctx,{
+        type:'pie',
+        data:{
+          labels:['Retidos','Cancelados'],
+          datasets:[{data:[pieData.retidos,pieData.cancelados],backgroundColor:['#f59e0b','#6b7280'],borderColor:['#d97706','#4b5563'],borderWidth:1}]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'#d1d5db'}}}
+        }
+      });
+    }
+    function renderLineChart(lineData){
+      var sorted=lineData.slice().sort(function(a,b){
+        var pa=a.data.split('/'),pb=b.data.split('/');
+        var da=new Date(pa[2],pa[1]-1,pa[0]),db=new Date(pb[2],pb[1]-1,pb[0]);
+        return da-db;
+      });
+      var labels=sorted.map(function(d){return d.data;});
+      var totals=sorted.map(function(d){return d.total;});
+      var cancelados=sorted.map(function(d){return d.cancelados;});
+      var retidos=sorted.map(function(d){return d.retidos;});
+      var ctx=document.getElementById('chart-line-historico').getContext('2d');
+      if(lineChart)lineChart.destroy();
+      lineChart=new Chart(ctx,{
+        type:'line',
+        data:{
+          labels:labels,
+          datasets:[
+            {label:'Total',data:totals,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',tension:0.3,fill:false},
+            {label:'Cancelados',data:cancelados,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.1)',tension:0.3,fill:false},
+            {label:'Retidos',data:retidos,borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.1)',tension:0.3,fill:false}
+          ]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'#d1d5db'}}},
+          scales:{
+            x:{ticks:{color:'#9ca3af'},grid:{color:'#374151'}},
+            y:{ticks:{color:'#9ca3af'},grid:{color:'#374151'}}
+          }
+        }
+      });
+    }
+    function renderProductivityTable(data){
+      var tb=document.getElementById('table-body-productivity');
+      if(!data||data.length===0){tb.innerHTML='<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">Nenhum dado</td></tr>';return;}
+      tb.innerHTML=data.map(function(r){
+        return '<tr class="border-b border-gray-700 hover:bg-gray-700/30 transition">'+
+          '<td class="px-4 py-3 text-white font-medium">'+esc(r.atendente)+'</td>'+
+          '<td class="px-4 py-3 text-gray-300">'+r.total+'</td>'+
+          '<td class="px-4 py-3 text-gray-300">'+r.cancelados+'</td>'+
+          '<td class="px-4 py-3 text-gray-300">'+r.retidos+'</td>'+
+          '</tr>';
+      }).join('');
+    }
+
     // ===================== SUSPENSOS =====================
     function fmtDate(d){if(!d)return '';var s=d.toString().split(' ')[0];var p=s.split('/');if(p.length===3){return p[0].padStart(2,'0')+'/'+p[1].padStart(2,'0')+'/'+p[2].toString().slice(-2);}return s;}
     function getSuspFilters(){return{associado:document.getElementById('sf-associado').value,placa:document.getElementById('sf-placa').value,vencDe:document.getElementById('sf-venc-de').value,vencAte:document.getElementById('sf-venc-ate').value,status:document.getElementById('sf-situacao').value,forma:document.getElementById('sf-forma').value,atendente:document.getElementById('sf-atendente').value,conferencia:document.getElementById('sf-conf').value};}
@@ -441,6 +569,26 @@
         else toast('error',r.error);
       }).withFailureHandler(function(e){toast('error',e.message);}).getSuspensosRecords(f.associado||f.placa||'',{status:f.status,conferencia:f.conferencia});
       google.script.run.withSuccessHandler(function(r){if(r.success){document.getElementById('stat-susp-total').textContent=r.data.total;document.getElementById('stat-susp-pendentes').textContent=r.data.pendentes;document.getElementById('stat-susp-pagos').textContent=r.data.pagos;document.getElementById('stat-susp-vencidos').textContent=r.data.vencidos;}}).getSuspensosStats();
+      google.script.run.withSuccessHandler(function(r){
+        if(r.success){
+          document.getElementById('stat-susp-placas').textContent=r.data.totalPlacas.toLocaleString();
+          document.getElementById('stat-susp-a-receber').textContent='R$ '+r.data.valoresAReceber.toLocaleString();
+          document.getElementById('stat-susp-recebido-ok').textContent='R$ '+r.data.valorRecebido.toLocaleString();
+          renderSuspPerformanceTable(r.data.operatorPerformance);
+        }
+      }).withFailureHandler(function(e){toast('error',e.message);}).getSuspensosMetrics();
+    }
+    function renderSuspPerformanceTable(data){
+      var tb=document.getElementById('table-body-susp-performance');
+      if(!data||data.length===0){tb.innerHTML='<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">Nenhum dado</td></tr>';return;}
+      tb.innerHTML=data.map(function(r){
+        return '<tr class="border-b border-gray-700 hover:bg-gray-700/30 transition">'+
+          '<td class="px-4 py-3 text-white font-medium">'+esc(r.atendente)+'</td>'+
+          '<td class="px-4 py-3 text-gray-300">R$ '+r.valorOriginal.toLocaleString()+'</td>'+
+          '<td class="px-4 py-3 text-gray-300">R$ '+r.valorRecebido.toLocaleString()+'</td>'+
+          '<td class="px-4 py-3 text-gray-300">'+r.totalAtendimentos+'</td>'+
+          '</tr>';
+      }).join('');
     }
     function applyLocalSuspFilters(recs,f){
       return recs.filter(function(r){

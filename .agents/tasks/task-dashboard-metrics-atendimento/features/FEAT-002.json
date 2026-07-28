@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Build the Dashboard page with Chart.js: pie chart (Retidos vs Cancelados), line chart (daily history with 3 lines), and productivity table per atendente. Also add new Suspensos metrics cards and operator performance chart/table.",
+  "status": "in_progress",
+  "steps": [
+    "In apps-script/Index.html: Add Chart.js CDN script tag in the <head>: <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>",
+    "In apps-script/Index.html: Replace the placeholder content of #page-dashboard with a full dashboard layout containing: (a) a grid row with 2 chart cards side by side - left card for pie chart (canvas id='chart-pie-retencao'), right card for line chart (canvas id='chart-line-historico'), (b) below that, a productivity table showing Atendente, Total Solicitacoes, Cancelados, Retidos per operator. Use the same bg-gray-800 rounded-xl border border-gray-700 card pattern.",
+    "In apps-script/Index.html: Add a loadDashboard() function that calls google.script.run.getDashboardData() and on success: (a) renders the pie chart using Chart.js with labels ['Retidos','Cancelados'] and data from response.pieData, (b) renders the line chart with x-axis as dates and 3 datasets (Total, Cancelados, Retidos) from response.lineData, (c) populates the productivity table rows from response.productivityData",
+    "In apps-script/Index.html: Update navigateTo() function to call loadDashboard() when page==='dashboard'",
+    "In apps-script/Index.html: Add new metrics cards section at the top of #page-suspensos - a second row of cards (below existing 4) with 3 cards: 'Qtd. Placas' (id='stat-susp-placas'), 'Valores a Receber' (id='stat-susp-a-receber'), 'Valor Recebido (OK)' (id='stat-susp-recebido-ok'). Use appropriate colors (purple, blue, green).",
+    "In apps-script/Index.html: Add an operator performance section below the suspensos metrics cards and above the filters - a card with title 'Desempenho por Operador' containing a responsive table with columns: Atendente, Valor a Receber, Valor Recebido (OK), Atendimentos. Give it id='table-body-susp-performance'.",
+    "In apps-script/Index.html: Update the loadSuspensos() function to also call google.script.run.getSuspensosMetrics() and on success: populate the 3 new metric cards AND render the operator performance table rows",
+    "Ensure all Chart.js instances are properly destroyed before re-creating (store chart instances in variables like var pieChart=null, var lineChart=null, and call .destroy() before new Chart())"
+  ],
+  "acceptance_criteria": [
+    "Chart.js CDN is loaded in the HTML head",
+    "#page-dashboard contains a pie chart canvas and a line chart canvas with proper Chart.js initialization",
+    "A productivity table in the dashboard shows per-atendente data",
+    "loadDashboard() function exists and is called when navigating to dashboard page",
+    "#page-suspensos has 3 new metric cards (Placas, Valores a Receber, Valor Recebido OK)",
+    "#page-suspensos has an operator performance table",
+    "loadSuspensos() calls getSuspensosMetrics() and populates both cards and performance table"
+  ],
+  "verification": [
+    "Grep for 'chart.js' CDN link in Index.html",
+    "Grep for 'chart-pie-retencao' and 'chart-line-historico' canvas elements",
+    "Grep for 'loadDashboard' function definition",
+    "Grep for 'stat-susp-placas' and 'stat-susp-a-receber' and 'stat-susp-recebido-ok' in Index.html",
+    "Grep for 'getSuspensosMetrics' call in the loadSuspensos function",
+    "Grep for 'table-body-susp-performance' in Index.html"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
