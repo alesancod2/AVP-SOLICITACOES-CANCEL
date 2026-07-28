@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Implement 'Iniciar Atendimento' button with ownership lock logic in the cancelamentos listing. Includes backend function for claiming/releasing ownership and frontend modal with edit fields and 'Colocar na Fila' option.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In apps-script/Code.gs: The ATENDENTE column (column I, index 9 in 0-based / col 9 in sheet) is already being used. We will use this field as the ownership indicator. When empty or '-', the record is 'in queue' (available). When populated, the atendente listed is the 'owner'. Add a new function iniciarAtendimento(email, rowId) that: (a) verifies the user via verificarAutenticado_(email), (b) reads the current ATENDENTE value from the row, (c) if ATENDENTE is empty or '-', sets it to the user's nome and returns {success:true, message:'Atendimento iniciado'}, (d) if ATENDENTE is already set AND equals the user's nome, returns {success:true, isOwner:true} (user is already the owner), (e) if ATENDENTE is already set to someone else, returns {success:false, error:'Atendimento pertence a outro operador'}, (f) logs the action via registrarLog",
     "In apps-script/Code.gs: Add a new function colocarNaFila(email, rowId) that: (a) verifies the user, (b) checks that the current ATENDENTE equals the user's nome (only the owner can release), (c) clears the ATENDENTE field (sets to ''), (d) returns success, (e) logs the action",
@@ -29,5 +29,5 @@
     "Grep for 'colocarNaFilaClick' in Index.html"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 9 steps implemented successfully. Backend: iniciarAtendimento and colocarNaFila functions added to Code.gs with proper auth verification, ownership checking, and audit logging. Frontend: renderTable updated with contextual atendimento button (green/blue/gray). Atendimento modal with at-* prefixed field IDs added. JS functions: iniciarAtendimentoClick, openAtendimentoModal, handleAtendimentoSubmit, colocarNaFilaClick, hideAtendimentoModal all implemented. Modal uses amber/orange Colocar na Fila button and follows the form-modal pattern."
 }
