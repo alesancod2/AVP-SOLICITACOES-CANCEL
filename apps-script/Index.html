@@ -31,26 +31,21 @@
 <body class="bg-gray-900 min-h-screen text-white">
 
   <!-- LOADING / AUTH SCREEN -->
-  <div id="auth-loading" class="fixed inset-0 z-[200] bg-gray-900 flex items-center justify-center">
-    <div class="text-center">
-      <div class="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p class="text-gray-400">Verificando autenticação...</p>
-    </div>
-  </div>
+  <div id="auth-loading" class="fixed inset-0 z-[200] bg-gray-900 hidden"></div>
 
-  <!-- ACCESS DENIED SCREEN (hidden by default) -->
-  <div id="auth-denied" class="fixed inset-0 z-[200] bg-gray-900 hidden flex items-center justify-center">
+  <!-- ACCESS DENIED / LOGIN SCREEN -->
+  <div id="auth-denied" class="fixed inset-0 z-[200] bg-gray-900 flex items-center justify-center">
     <div class="text-center max-w-md px-6">
-      <div class="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+      <div class="w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
       </div>
-      <h2 class="text-xl font-bold text-white mb-2">Acesso Negado</h2>
-      <p class="text-gray-400 mb-4" id="auth-denied-msg">Você não tem permissão para acessar este sistema.</p>
-      <!-- LOGIN MANUAL FORM -->
-      <div id="login-form-container" class="hidden">
-        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 text-left mt-4">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Informe seu email cadastrado:</label>
-          <input id="login-email" type="email" class="w-full px-4 py-2.5 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none mb-3" placeholder="seu.email@empresa.com" />
+      <h2 class="text-xl font-bold text-white mb-2">AVP System</h2>
+      <p class="text-gray-400 mb-4" id="auth-denied-msg">Faça login para continuar:</p>
+      <!-- LOGIN FORM -->
+      <div id="login-form-container">
+        <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 text-left">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Email cadastrado:</label>
+          <input id="login-email" type="email" class="w-full px-4 py-2.5 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none mb-3" placeholder="seu.email@empresa.com" autofocus />
           <button onclick="doManualLogin()" id="btn-login" class="w-full px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">Entrar</button>
           <p class="text-red-400 text-xs mt-2 hidden" id="login-error"></p>
         </div>
@@ -284,39 +279,7 @@
     var currentUser=null; // {nome, email, perfil, isAdmin}
 
     window.onload=function(){
-      // Autenticar primeiro
-      google.script.run.withSuccessHandler(function(r){
-        if(r.success){
-          currentUser=r.data;
-          document.getElementById('auth-loading').classList.add('hidden');
-          document.getElementById('user-name-display').textContent=currentUser.nome;
-          document.getElementById('user-perfil-display').textContent=currentUser.perfil;
-          document.getElementById('user-avatar').textContent=currentUser.nome.charAt(0).toUpperCase();
-          if(!currentUser.isAdmin){
-            document.querySelectorAll('.admin-only').forEach(function(el){el.classList.add('hidden');});
-          }
-          loadData();
-        }else if(r.requireLogin){
-          // Mostrar tela de login manual
-          document.getElementById('auth-loading').classList.add('hidden');
-          document.getElementById('auth-denied').classList.remove('hidden');
-          document.getElementById('auth-denied').classList.add('flex');
-          document.getElementById('auth-denied-msg').textContent='Faça login para continuar:';
-          document.getElementById('login-form-container').classList.remove('hidden');
-        }else{
-          document.getElementById('auth-loading').classList.add('hidden');
-          document.getElementById('auth-denied').classList.remove('hidden');
-          document.getElementById('auth-denied').classList.add('flex');
-          document.getElementById('auth-denied-msg').textContent=r.error;
-        }
-      }).withFailureHandler(function(e){
-        document.getElementById('auth-loading').classList.add('hidden');
-        document.getElementById('auth-denied').classList.remove('hidden');
-        document.getElementById('auth-denied').classList.add('flex');
-        document.getElementById('auth-denied-msg').textContent='Erro: '+e.message;
-        document.getElementById('login-form-container').classList.remove('hidden');
-      }).getUsuarioLogado();
-
+      // Vai direto para tela de login (deploy "Executar como Eu" nao detecta email)
       document.getElementById('search-input').addEventListener('input',function(e){clearTimeout(searchTimeout);searchTimeout=setTimeout(function(){loadData();},400);});
     };
 

@@ -106,39 +106,15 @@ function adicionarUsuario(nome, email, perfil) {
 // =============================================================
 
 /**
- * Retorna o usuario logado com base no email da sessao Google
- * 
- * IMPORTANTE: Para funcionar com deploy "Executar como: Eu" + "Qualquer pessoa com conta Google":
- * O Session.getActiveUser().getEmail() retorna o email do usuario que acessa
- * APENAS quando "Quem tem acesso" = "Qualquer pessoa com conta Google" (nao anonimo).
- * 
- * Se ainda nao funcionar, esta funcao usa PropertiesService como fallback
- * e permite login manual via interface.
+ * Retorna o usuario logado - vai direto ao login manual
+ * pois o deploy e "Executar como: Eu" (getActiveUser nao funciona)
  */
 function getUsuarioLogado() {
-  try {
-    var email = '';
-    
-    // Metodo 1: getActiveUser (funciona com "Qualquer pessoa com conta Google")
-    try { email = Session.getActiveUser().getEmail(); } catch(e) {}
-    
-    // Metodo 2: getEffectiveUser (funciona quando deploy = "Executar como usuario")
-    if (!email) { try { email = Session.getEffectiveUser().getEmail(); } catch(e) {} }
-    
-    // Se nenhum metodo retornou email, permitir login manual
-    if (!email || email === '') {
-      return { 
-        success: false, 
-        requireLogin: true,
-        error: 'Identificação automática indisponível. Faça login manualmente.' 
-      };
-    }
-    
-    return autenticarPorEmail(email);
-    
-  } catch (error) {
-    return { success: false, error: 'Erro de autenticação: ' + error.message };
-  }
+  return { 
+    success: false, 
+    requireLogin: true,
+    error: 'Faça login para continuar.' 
+  };
 }
 
 /**
