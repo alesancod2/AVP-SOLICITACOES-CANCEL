@@ -569,7 +569,14 @@
     // ===================== ATENDIMENTO (SUSPENSOS) =====================
     function iniciarAtendSusp(rowId){
       google.script.run.withSuccessHandler(function(r){
-        if(r.success){toast("success","Atendimento iniciado!");invalidateCache("suspensos");loadSuspensos();openSuspAtendModal(rowId);}
+        if(r.success){
+          toast("success","Atendimento iniciado!");
+          invalidateCache("suspensos");
+          // Recarregar dados e depois abrir modal
+          google.script.run.withSuccessHandler(function(r2){
+            if(r2.success){allSuspRecords=r2.data;dataCache.suspensos=r2.data;dataCache.timestamp.suspensos=Date.now();applySuspFilters();openSuspAtendModal(rowId);}
+          }).getSuspensosRecords('',null);
+        }
         else toast("error",r.error);
       }).withFailureHandler(function(e){toast("error",e.message);}).iniciarAtendimento(currentUser.email,rowId);
     }
@@ -761,10 +768,10 @@
           atBtn='<button onclick="iniciarAtendSusp('+r.id+')" class="px-2 py-1 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 transition">Iniciar</button>';
         }else if(currentUser&&atVal===currentUser.nome){
           // Meu atendimento - posso editar
-          atBtn='<button onclick="openSuspAtendModal('+r.id+')" class="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition">Meu Atend.</button>';
+          atBtn='<button onclick="openSuspAtendModal('+r.id+')" class="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition" title="Clique para editar">'+esc(atVal)+'</button>';
         }else{
           // Atendimento de outro operador - bloqueado
-          atBtn='<span class="px-2 py-1 text-xs font-medium bg-gray-600 text-gray-400 rounded">'+esc(atVal)+'</span>';
+          atBtn='<span class="px-2 py-1 text-xs font-medium bg-gray-600 text-gray-300 rounded" title="Atendente: '+esc(atVal)+'">'+esc(atVal)+'</span>';
         }
         return '<tr class="border-b border-gray-700 hover:bg-gray-700/30 transition">'+
           '<td class="px-3 py-2 font-medium text-white max-w-[150px] truncate text-xs">'+esc(r.associado)+'</td>'+
