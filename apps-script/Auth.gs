@@ -1,0 +1,450 @@
+// =============================================================
+// MODULO: AUTENTICACAO, PERMISSOES E AUDITORIA
+// =============================================================
+
+const SHEET_USUARIOS = 'Usuarios';
+const SHEET_LOGS = 'Logs';
+
+const PERFIL_ADMIN = 'Admin';
+const PERFIL_USER = 'User';
+
+// Headers da aba Usuarios
+const HEADERS_USUARIOS = ['NOME', 'EMAIL', 'PERFIL', 'STATUS', 'DATA CRIACAO', 'ULTIMO ACESSO'];
+
+// Headers da aba Logs
+const HEADERS_LOGS = ['DATA HORA', 'USUARIO', 'EMAIL', 'PERFIL', 'TIPO ACAO', 'ID SOLICITACAO', 'CAMPO ALTERADO', 'VALOR ANTERIOR', 'NOVO VALOR'];
+
+// =============================================================
+// CONFIGURACAO - EXECUTAR UMA VEZ
+// =============================================================
+
+/**
+ * Cria as abas Usuarios e Logs (se nao existirem)
+ * Execute esta funcao uma vez para configurar
+ */
+function criarAbasAuth() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  
+  // Aba Usuarios
+  var sheetU = ss.getSheetByName(SHEET_USUARIOS);
+  if (!sheetU) {
+    sheetU = ss.insertSheet(SHEET_USUARIOS);
+  }
+  var firstU = sheetU.getRange(1, 1).getValue();
+  if (!firstU || firstU.toString().trim() === '') {
+    sheetU.getRange(1, 1, 1, HEADERS_USUARIOS.length).setValues([HEADERS_USUARIOS]);
+    var hR = sheetU.getRange(1, 1, 1, HEADERS_USUARIOS.length);
+    hR.setFontWeight('bold');
+    hR.setBackground('#7c3aed');
+    hR.setFontColor('#ffffff');
+    hR.setHorizontalAlignment('center');
+    sheetU.setColumnWidth(1, 180);
+    sheetU.setColumnWidth(2, 250);
+    sheetU.setColumnWidth(3, 80);
+    sheetU.setColumnWidth(4, 80);
+    sheetU.setColumnWidth(5, 150);
+    sheetU.setColumnWidth(6, 150);
+    sheetU.setFrozenRows(1);
+  }
+  
+  // Aba Logs
+  var sheetL = ss.getSheetByName(SHEET_LOGS);
+  if (!sheetL) {
+    sheetL = ss.insertSheet(SHEET_LOGS);
+  }
+  var firstL = sheetL.getRange(1, 1).getValue();
+  if (!firstL || firstL.toString().trim() === '') {
+    sheetL.getRange(1, 1, 1, HEADERS_LOGS.length).setValues([HEADERS_LOGS]);
+    var hRL = sheetL.getRange(1, 1, 1, HEADERS_LOGS.length);
+    hRL.setFontWeight('bold');
+    hRL.setBackground('#dc2626');
+    hRL.setFontColor('#ffffff');
+    hRL.setHorizontalAlignment('center');
+    sheetL.setColumnWidth(1, 160);
+    sheetL.setColumnWidth(2, 150);
+    sheetL.setColumnWidth(3, 220);
+    sheetL.setColumnWidth(4, 70);
+    sheetL.setColumnWidth(5, 150);
+    sheetL.setColumnWidth(6, 100);
+    sheetL.setColumnWidth(7, 140);
+    sheetL.setColumnWidth(8, 180);
+    sheetL.setColumnWidth(9, 180);
+    sheetL.setFrozenRows(1);
+  }
+  
+  SpreadsheetApp.getUi().alert('Abas Usuarios e Logs criadas com sucesso!');
+}
+
+/**
+ * Adiciona um usuario a aba Usuarios
+ * Use para cadastrar o primeiro Admin
+ */
+function adicionarUsuario(nome, email, perfil) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_USUARIOS);
+  if (!sheet) { criarAbasAuth(); sheet = ss.getSheetByName(SHEET_USUARIOS); }
+  
+  // Verificar se ja existe
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var emails = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+    for (var i = 0; i < emails.length; i++) {
+      if (emails[i][0].toString().trim().toLowerCase() === email.trim().toLowerCase()) {
+        return { success: false, error: 'Usuario ja cadastrado: ' + email };
+      }
+    }
+  }
+  
+  var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  sheet.appendRow([nome, email.trim().toLowerCase(), perfil || PERFIL_USER, 'Ativo', agora, '']);
+  
+  return { success: true, message: 'Usuario ' + nome + ' cadastrado como ' + perfil };
+}
+
+// =============================================================
+// AUTENTICACAO
+// =============================================================
+
+/**
+ * Retorna o usuario logado com base no email da sessao Google
+ * Esta e a funcao principal de autenticacao
+ */
+function getUsuarioLogado() {
+  try {
+    var email = Session.getActiveUser().getEmail();
+    
+    if (!email || email === '') {
+      return { success: false, error: 'Nao foi possivel identificar o usuario. Verifique se esta logado com conta Google.' };
+    }
+    
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_USUARIOS);
+    
+    if (!sheet) {
+      return { success: false, error: 'Aba Usuarios nao encontrada. Execute criarAbasAuth().' };
+    }
+    
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: false, error: 'Nenhum usuario cadastrado. Cadastre pelo menos um Admin.' };
+    }
+    
+    var data = sheet.getRange(2, 1, lastRow - 1, HEADERS_USUARIOS.length).getValues();
+    
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      var userEmail = row[1] ? row[1].toString().trim().toLowerCase() : '';
+      
+      if (userEmail === email.toLowerCase()) {
+        var status = row[3] ? row[3].toString().trim() : '';
+        
+        if (status !== 'Ativo') {
+          return { success: false, error: 'Sua conta esta inativa. Contate o administrador.' };
+        }
+        
+        // Atualizar ultimo acesso
+        var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+        sheet.getRange(i + 2, 6).setValue(agora);
+        
+        var usuario = {
+          nome: row[0] ? row[0].toString() : '',
+          email: userEmail,
+          perfil: row[2] ? row[2].toString().trim() : PERFIL_USER,
+          status: status,
+          isAdmin: (row[2] ? row[2].toString().trim() : '') === PERFIL_ADMIN
+        };
+        
+        return { success: true, data: usuario };
+      }
+    }
+    
+    // Usuario nao encontrado
+    return { success: false, error: 'Acesso negado. Seu email (' + email + ') nao esta cadastrado no sistema.' };
+    
+  } catch (error) {
+    return { success: false, error: 'Erro de autenticacao: ' + error.message };
+  }
+}
+
+/**
+ * Verifica se o usuario atual tem perfil Admin
+ * Retorna o objeto usuario se sim, ou null
+ */
+function verificarAdmin() {
+  var result = getUsuarioLogado();
+  if (!result.success) return null;
+  if (!result.data.isAdmin) return null;
+  return result.data;
+}
+
+/**
+ * Verifica se o usuario atual esta autenticado (qualquer perfil)
+ */
+function verificarAutenticado() {
+  var result = getUsuarioLogado();
+  if (!result.success) return null;
+  return result.data;
+}
+
+// =============================================================
+// AUDITORIA (LOGS)
+// =============================================================
+
+/**
+ * Registra uma acao no log de auditoria
+ * @param {string} tipoAcao - Ex: 'Nova solicitacao', 'Alteracao', 'Exclusao'
+ * @param {string} idSolicitacao - ID/linha do registro afetado
+ * @param {string} campoAlterado - Nome do campo (ou '' se nao aplicavel)
+ * @param {string} valorAnterior - Valor antes da alteracao
+ * @param {string} novoValor - Novo valor
+ */
+function registrarLog(tipoAcao, idSolicitacao, campoAlterado, valorAnterior, novoValor) {
+  try {
+    var usuario = verificarAutenticado();
+    if (!usuario) return;
+    
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_LOGS);
+    if (!sheet) {
+      criarAbasAuth();
+      sheet = ss.getSheetByName(SHEET_LOGS);
+    }
+    
+    var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+    
+    var logRow = [
+      agora,
+      usuario.nome,
+      usuario.email,
+      usuario.perfil,
+      tipoAcao,
+      idSolicitacao || '',
+      campoAlterado || '',
+      valorAnterior || '',
+      novoValor || ''
+    ];
+    
+    sheet.appendRow(logRow);
+    
+  } catch (error) {
+    // Log silencioso - nao quebrar a operacao principal
+    Logger.log('Erro ao registrar log: ' + error.message);
+  }
+}
+
+// =============================================================
+// FUNCOES PROTEGIDAS (WRAPPERS COM PERMISSAO)
+// =============================================================
+
+/**
+ * Criar registro - qualquer usuario autenticado
+ */
+function createRecordAuth(data) {
+  var usuario = verificarAutenticado();
+  if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
+  
+  var result = createRecord(data);
+  
+  if (result.success) {
+    registrarLog('Nova solicitacao', result.data.id, '', '', 'Associado: ' + (data.nomeDoAssociado || ''));
+  }
+  
+  return result;
+}
+
+/**
+ * Atualizar registro - qualquer usuario autenticado
+ */
+function updateRecordAuth(rowId, data) {
+  var usuario = verificarAutenticado();
+  if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
+  
+  var result = updateRecord(rowId, data);
+  
+  if (result.success) {
+    registrarLog('Alteracao solicitacao', rowId, 'Multiplos campos', '', JSON.stringify(data).substring(0, 200));
+  }
+  
+  return result;
+}
+
+/**
+ * Excluir registro - APENAS ADMIN (exclusao logica)
+ */
+function deleteRecordAuth(rowId) {
+  var usuario = verificarAdmin();
+  if (!usuario) return { success: false, error: 'Apenas administradores podem excluir registros.' };
+  
+  // Antes de excluir, registrar o que existia
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  var valorAnterior = '';
+  if (sheet) {
+    var row = sheet.getRange(parseInt(rowId), 1, 1, 10).getValues()[0];
+    valorAnterior = row[0] + ' | ' + row[1]; // Nome + Placa
+  }
+  
+  var result = deleteRecord(rowId);
+  
+  if (result.success) {
+    registrarLog('Exclusao solicitacao', rowId, '', valorAnterior, 'EXCLUIDO por ' + usuario.nome);
+  }
+  
+  return result;
+}
+
+/**
+ * Atualizar celula de Suspensos - com verificacao de permissao
+ * Coluna 11 (Conferencia) = apenas Admin
+ */
+function updateSuspensosCellAuth(rowId, colIndex, value) {
+  var usuario = verificarAutenticado();
+  if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
+  
+  // Coluna 11 = Conferencia (Verificado) - apenas Admin
+  if (parseInt(colIndex) === 11 && !usuario.isAdmin) {
+    return { success: false, error: 'Apenas administradores podem alterar o campo Conferencia/Verificado.' };
+  }
+  
+  // Buscar valor anterior para o log
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_SUSPENSOS);
+  var valorAnterior = '';
+  if (sheet) {
+    valorAnterior = sheet.getRange(parseInt(rowId), parseInt(colIndex)).getValue().toString();
+  }
+  
+  var result = updateSuspensosCell(rowId, colIndex, value);
+  
+  if (result.success) {
+    var colNames = ['', 'ASSOCIADO', 'DATA RECEBIMENTO', 'DATA VENCIMENTO', 'PLACA', 'SITUAÇÃO', 'FORMA PGTO', 'VALOR RECEBIDO', 'VALOR ORIGINAL', 'ATENDENTE', 'OBSERVAÇÕES', 'CONFERENCIA'];
+    var campo = colNames[parseInt(colIndex)] || 'Col ' + colIndex;
+    registrarLog('Alteracao Suspensos', rowId, campo, valorAnterior, value);
+  }
+  
+  return result;
+}
+
+// =============================================================
+// GESTAO DE USUARIOS (APENAS ADMIN)
+// =============================================================
+
+/**
+ * Lista todos os usuarios cadastrados (apenas Admin)
+ */
+function listarUsuarios() {
+  var admin = verificarAdmin();
+  if (!admin) return { success: false, error: 'Apenas administradores podem gerenciar usuarios.' };
+  
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_USUARIOS);
+  if (!sheet) return { success: false, error: 'Aba Usuarios nao encontrada.' };
+  
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, data: [] };
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, HEADERS_USUARIOS.length).getValues();
+  var usuarios = [];
+  
+  for (var i = 0; i < data.length; i++) {
+    usuarios.push({
+      id: i + 2,
+      nome: data[i][0] || '',
+      email: data[i][1] || '',
+      perfil: data[i][2] || '',
+      status: data[i][3] || '',
+      dataCriacao: data[i][4] || '',
+      ultimoAcesso: data[i][5] || ''
+    });
+  }
+  
+  return { success: true, data: usuarios };
+}
+
+/**
+ * Cadastrar novo usuario (apenas Admin)
+ */
+function cadastrarUsuarioAuth(nome, email, perfil) {
+  var admin = verificarAdmin();
+  if (!admin) return { success: false, error: 'Apenas administradores podem cadastrar usuarios.' };
+  
+  if (!nome || !email) return { success: false, error: 'Nome e email sao obrigatorios.' };
+  if (perfil !== PERFIL_ADMIN && perfil !== PERFIL_USER) perfil = PERFIL_USER;
+  
+  var result = adicionarUsuario(nome, email, perfil);
+  
+  if (result.success) {
+    registrarLog('Cadastro usuario', '', 'Novo usuario', '', nome + ' (' + email + ') como ' + perfil);
+  }
+  
+  return result;
+}
+
+/**
+ * Alterar status de usuario (Ativo/Inativo) - apenas Admin
+ */
+function alterarStatusUsuario(rowId, novoStatus) {
+  var admin = verificarAdmin();
+  if (!admin) return { success: false, error: 'Apenas administradores podem alterar status de usuarios.' };
+  
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_USUARIOS);
+  if (!sheet) return { success: false, error: 'Aba nao encontrada.' };
+  
+  var row = parseInt(rowId);
+  if (row < 2 || row > sheet.getLastRow()) return { success: false, error: 'Usuario invalido.' };
+  
+  var statusAnterior = sheet.getRange(row, 4).getValue().toString();
+  sheet.getRange(row, 4).setValue(novoStatus);
+  
+  var emailAlterado = sheet.getRange(row, 2).getValue().toString();
+  registrarLog('Alteracao status usuario', rowId, 'STATUS', statusAnterior, novoStatus + ' (' + emailAlterado + ')');
+  
+  return { success: true, message: 'Status alterado para ' + novoStatus };
+}
+
+/**
+ * Alterar perfil de usuario - apenas Admin
+ */
+function alterarPerfilUsuario(rowId, novoPerfil) {
+  var admin = verificarAdmin();
+  if (!admin) return { success: false, error: 'Apenas administradores podem alterar perfis.' };
+  
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_USUARIOS);
+  if (!sheet) return { success: false, error: 'Aba nao encontrada.' };
+  
+  var row = parseInt(rowId);
+  var perfilAnterior = sheet.getRange(row, 3).getValue().toString();
+  sheet.getRange(row, 3).setValue(novoPerfil);
+  
+  var emailAlterado = sheet.getRange(row, 2).getValue().toString();
+  registrarLog('Alteracao perfil usuario', rowId, 'PERFIL', perfilAnterior, novoPerfil + ' (' + emailAlterado + ')');
+  
+  return { success: true, message: 'Perfil alterado para ' + novoPerfil };
+}
+
+// =============================================================
+// HELPER: Cadastrar primeiro Admin manualmente
+// Execute esta funcao UMA VEZ no editor para se cadastrar
+// =============================================================
+
+function cadastrarPrimeiroAdmin() {
+  // ALTERE ESTES VALORES com seu nome e email real:
+  var nome = 'Administrador';
+  var email = Session.getActiveUser().getEmail();
+  
+  if (!email) {
+    Logger.log('Erro: nao foi possivel obter o email. Execute pelo editor do Apps Script.');
+    return;
+  }
+  
+  var result = adicionarUsuario(nome, email, PERFIL_ADMIN);
+  Logger.log(JSON.stringify(result));
+  
+  if (result.success) {
+    SpreadsheetApp.getUi().alert('Admin cadastrado!\nEmail: ' + email + '\nPerfil: Admin');
+  } else {
+    SpreadsheetApp.getUi().alert('Erro: ' + result.error);
+  }
+}
