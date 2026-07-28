@@ -153,7 +153,9 @@ function autenticarPorEmail(email) {
     return { success: false, error: 'Nenhum usuário cadastrado. Cadastre pelo menos um Admin.' };
   }
   
-  var data = sheet.getRange(2, 1, lastRow - 1, HEADERS_USUARIOS.length).getValues();
+  var lastCol = sheet.getLastColumn();
+  var numCols = Math.max(lastCol, 7);
+  var data = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
   
   for (var i = 0; i < data.length; i++) {
     var row = data[i];
@@ -384,19 +386,25 @@ function listarUsuarios(adminEmail) {
   var lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, data: [] };
   
-  var data = sheet.getRange(2, 1, lastRow - 1, HEADERS_USUARIOS.length).getValues();
+  var lastCol = sheet.getLastColumn();
+  var numCols = Math.max(lastCol, 7);
+  var data = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
   var usuarios = [];
   
   for (var i = 0; i < data.length; i++) {
+    // Verificar se a linha tem dados
+    var hasData = data[i][0] || data[i][1];
+    if (!hasData) continue;
+    
     usuarios.push({
       id: i + 2,
-      nome: data[i][0] || '',
-      email: data[i][1] || '',
-      perfil: data[i][2] || '',
-      status: data[i][3] || '',
-      permissoes: data[i][4] || '',
-      dataCriacao: data[i][5] || '',
-      ultimoAcesso: data[i][6] || ''
+      nome: data[i][0] ? data[i][0].toString() : '',
+      email: data[i][1] ? data[i][1].toString() : '',
+      perfil: data[i][2] ? data[i][2].toString() : '',
+      status: data[i][3] ? data[i][3].toString() : '',
+      permissoes: data[i][4] ? data[i][4].toString() : '',
+      dataCriacao: data[i][5] ? data[i][5].toString() : '',
+      ultimoAcesso: data[i][6] ? data[i][6].toString() : ''
     });
   }
   
