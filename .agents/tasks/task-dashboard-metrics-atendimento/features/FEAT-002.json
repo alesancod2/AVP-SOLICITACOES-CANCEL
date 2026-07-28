@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Build the Dashboard page with Chart.js: pie chart (Retidos vs Cancelados), line chart (daily history with 3 lines), and productivity table per atendente. Also add new Suspensos metrics cards and operator performance chart/table.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In apps-script/Index.html: Add Chart.js CDN script tag in the <head>: <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>",
     "In apps-script/Index.html: Replace the placeholder content of #page-dashboard with a full dashboard layout containing: (a) a grid row with 2 chart cards side by side - left card for pie chart (canvas id='chart-pie-retencao'), right card for line chart (canvas id='chart-line-historico'), (b) below that, a productivity table showing Atendente, Total Solicitacoes, Cancelados, Retidos per operator. Use the same bg-gray-800 rounded-xl border border-gray-700 card pattern.",
@@ -31,5 +31,5 @@
     "Grep for 'table-body-susp-performance' in Index.html"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 8 steps implemented successfully. Chart.js CDN added in head. Dashboard page has pie chart (amber for retidos, gray for cancelados), line chart (blue/red/amber for total/cancelados/retidos with dark theme scales), and productivity table. navigateTo calls loadDashboard for dashboard page. Suspensos page has 3 new metrics cards (purple/blue/green) and operator performance table. loadSuspensos now calls getSuspensosMetrics to populate new elements. Chart instances stored in pieChart/lineChart vars and destroyed before recreation."
 }
