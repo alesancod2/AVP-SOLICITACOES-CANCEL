@@ -519,6 +519,81 @@ function parseCurrency(val) {
 }
 
 // =============================================
+// ATENDIMENTO - OWNERSHIP LOCK
+// =============================================
+
+/**
+ * Inicia atendimento (claim ownership) - seta ATENDENTE para o usuario
+ * @param {string} email - Email do usuario logado
+ * @param {number} rowId - Numero da linha no sheet
+ */
+function iniciarAtendimento(email, rowId) {
+  try {
+    var usuario = verificarAutenticado_(email);
+    if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) return { success: false, error: 'Aba nao encontrada' };
+
+    var row = parseInt(rowId);
+    if (row < 3 || row > sheet.getLastRow()) {
+      return { success: false, error: 'Linha invalida: ' + rowId };
+    }
+
+    var currentAtendente = sheet.getRange(row, 9).getValue().toString().trim();
+
+    if (currentAtendente === '' || currentAtendente === '-') {
+      // Disponivel - claim ownership
+      sheet.getRange(row, 9).setValue(usuario.nome);
+      registrarLog('Iniciar Atendimento', rowId, 'ATENDENTE', currentAtendente, usuario.nome, usuario);
+      return { success: true, message: 'Atendimento iniciado' };
+    } else if (currentAtendente === usuario.nome) {
+      // Ja e o owner
+      return { success: true, isOwner: true, message: 'Voce ja e o atendente' };
+    } else {
+      // Pertence a outro
+      return { success: false, error: 'Atendimento pertence a: ' + currentAtendente };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Coloca atendimento na fila (release ownership) - limpa ATENDENTE
+ * @param {string} email - Email do usuario logado
+ * @param {number} rowId - Numero da linha no sheet
+ */
+function colocarNaFila(email, rowId) {
+  try {
+    var usuario = verificarAutenticado_(email);
+    if (!usuario) return { success: false, error: 'Acesso negado. Faca login.' };
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) return { success: false, error: 'Aba nao encontrada' };
+
+    var row = parseInt(rowId);
+    if (row < 3 || row > sheet.getLastRow()) {
+      return { success: false, error: 'Linha invalida: ' + rowId };
+    }
+
+    var currentAtendente = sheet.getRange(row, 9).getValue().toString().trim();
+
+    if (currentAtendente !== usuario.nome) {
+      return { success: false, error: 'Apenas o atendente atual pode liberar o atendimento.' };
+    }
+
+    sheet.getRange(row, 9).setValue('');
+    registrarLog('Colocar na Fila', rowId, 'ATENDENTE', currentAtendente, '', usuario);
+    return { success: true, message: 'Atendimento liberado para a fila' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// =============================================
 // CONFIGURACAO - EXECUTAR UMA VEZ
 // =============================================
 

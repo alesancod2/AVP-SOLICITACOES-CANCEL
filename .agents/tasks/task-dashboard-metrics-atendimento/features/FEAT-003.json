@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Implement 'Iniciar Atendimento' button with ownership lock logic in the cancelamentos listing. Includes backend function for claiming/releasing ownership and frontend modal with edit fields and 'Colocar na Fila' option.",
+  "status": "in_progress",
+  "steps": [
+    "In apps-script/Code.gs: The ATENDENTE column (column I, index 9 in 0-based / col 9 in sheet) is already being used. We will use this field as the ownership indicator. When empty or '-', the record is 'in queue' (available). When populated, the atendente listed is the 'owner'. Add a new function iniciarAtendimento(email, rowId) that: (a) verifies the user via verificarAutenticado_(email), (b) reads the current ATENDENTE value from the row, (c) if ATENDENTE is empty or '-', sets it to the user's nome and returns {success:true, message:'Atendimento iniciado'}, (d) if ATENDENTE is already set AND equals the user's nome, returns {success:true, isOwner:true} (user is already the owner), (e) if ATENDENTE is already set to someone else, returns {success:false, error:'Atendimento pertence a outro operador'}, (f) logs the action via registrarLog",
+    "In apps-script/Code.gs: Add a new function colocarNaFila(email, rowId) that: (a) verifies the user, (b) checks that the current ATENDENTE equals the user's nome (only the owner can release), (c) clears the ATENDENTE field (sets to ''), (d) returns success, (e) logs the action",
+    "In apps-script/Index.html: In the renderTable() function, add an 'Iniciar Atendimento' button in the actions column for each row. The button logic: if record.atendente is empty or '-', show a green 'Iniciar Atendimento' button. If record.atendente equals currentUser.nome, show a blue 'Meu Atendimento' button (clickable to open edit modal). If record.atendente is set to someone else, show a disabled gray button with title showing who owns it.",
+    "In apps-script/Index.html: Create a new modal (id='atendimento-modal') similar to form-modal but titled 'Atendimento'. It should contain the same editable fields as the record form (Nome, Placa, Valor Parcela, Valor Pago, Consultor, Status, Motivo, Observacao) plus a 'Colocar na Fila' button that calls colocarNaFila and refreshes.",
+    "In apps-script/Index.html: Add function iniciarAtendimentoClick(rowId) that calls google.script.run.iniciarAtendimento(currentUser.email, rowId). On success, reload data and if the user became owner, open the atendimento modal. On failure (owned by another), show error toast.",
+    "In apps-script/Index.html: Add function openAtendimentoModal(record) that populates the atendimento modal fields with the record data and shows it. Add function handleAtendimentoSubmit(event) to save changes via updateRecordAuth. Add function colocarNaFilaClick(rowId) that calls colocarNaFila and on success reloads data and closes modal.",
+    "In apps-script/Auth.gs: No changes needed - the existing verificarAutenticado_ and registrarLog functions handle auth and audit already"
+  ],
+  "acceptance_criteria": [
+    "iniciarAtendimento(email, rowId) function exists in Code.gs and implements ownership claim logic",
+    "colocarNaFila(email, rowId) function exists in Code.gs and clears ownership",
+    "The cancelamentos table shows an 'Iniciar Atendimento' button that is contextual based on ownership",
+    "Clicking 'Iniciar Atendimento' when available claims the record and opens edit modal",
+    "The atendimento modal allows editing all permitted fields",
+    "The 'Colocar na Fila' button releases the record back to available state",
+    "A record owned by another operator shows a disabled button for other users"
+  ],
+  "verification": [
+    "Grep for 'iniciarAtendimento' function in Code.gs",
+    "Grep for 'colocarNaFila' function in Code.gs",
+    "Grep for 'atendimento-modal' in Index.html",
+    "Grep for 'iniciarAtendimentoClick' in Index.html",
+    "Grep for 'colocarNaFilaClick' in Index.html"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
