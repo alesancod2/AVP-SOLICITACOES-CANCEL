@@ -272,7 +272,12 @@
     function togglePin(){isPinned=!isPinned;var icon=document.getElementById('pin-icon');if(isPinned){icon.classList.remove('text-gray-400');icon.classList.add('text-green-400');document.getElementById('sidebar').classList.add('expanded');document.getElementById('main-content').classList.add('shifted');}else{icon.classList.remove('text-green-400');icon.classList.add('text-gray-400');document.getElementById('sidebar').classList.remove('expanded');document.getElementById('main-content').classList.remove('shifted');}}
     function toggleMobileSidebar(){isMobileOpen=!isMobileOpen;document.getElementById('sidebar').classList.toggle('mobile-open',isMobileOpen);document.getElementById('sidebar').classList.toggle('expanded',isMobileOpen);document.getElementById('sidebar-overlay').classList.toggle('hidden',!isMobileOpen);}
     function closeMobileSidebar(){isMobileOpen=false;document.getElementById('sidebar').classList.remove('mobile-open','expanded');document.getElementById('sidebar-overlay').classList.add('hidden');}
-    function navigateTo(page){var titles={'dashboard':'Dashboard','cancelamentos':'Gestão de Cancelamentos','suspensos':'Gestão de Suspensos'};document.getElementById('page-title').textContent=titles[page]||page;document.querySelectorAll('.sidebar-link').forEach(function(l){l.classList.remove('bg-gray-700','text-white');l.classList.add('text-gray-300');});var el=document.querySelector('[data-page="'+page+'"]');if(el){el.classList.add('bg-gray-700','text-white');el.classList.remove('text-gray-300');}document.querySelectorAll('.page-content').forEach(function(p){p.classList.add('hidden');});var targetPage=document.getElementById('page-'+page);if(targetPage)targetPage.classList.remove('hidden');if(page==='suspensos')loadSuspensos();if(page==='cancelamentos')loadData();closeMobileSidebar();}
+    function navigateTo(page){
+      // Verificar permissao
+      if(currentUser&&currentUser.permissoes&&currentUser.permissoes.indexOf(page)<0){
+        toast('error','Você não tem permissão para acessar esta página.');return;
+      }
+      var titles={'dashboard':'Dashboard','cancelamentos':'Gestão de Cancelamentos','suspensos':'Gestão de Suspensos'};document.getElementById('page-title').textContent=titles[page]||page;document.querySelectorAll('.sidebar-link').forEach(function(l){l.classList.remove('bg-gray-700','text-white');l.classList.add('text-gray-300');});var el=document.querySelector('[data-page="'+page+'"]');if(el){el.classList.add('bg-gray-700','text-white');el.classList.remove('text-gray-300');}document.querySelectorAll('.page-content').forEach(function(p){p.classList.add('hidden');});var targetPage=document.getElementById('page-'+page);if(targetPage)targetPage.classList.remove('hidden');if(page==='suspensos')loadSuspensos();if(page==='cancelamentos')loadData();closeMobileSidebar();}
 
     // ===================== APP LOGIC =====================
     var allRecords=[],deleteRowId=null,searchTimeout=null;
@@ -298,7 +303,11 @@
           document.getElementById('user-perfil-display').textContent=currentUser.perfil;
           document.getElementById('user-avatar').textContent=currentUser.nome.charAt(0).toUpperCase();
           if(!currentUser.isAdmin){document.querySelectorAll('.admin-only').forEach(function(el){el.classList.add('hidden');});}
-          loadData();
+          // Aplicar permissoes de paginas
+          applyPagePermissions();
+          // Navegar para primeira pagina permitida
+          var firstPage=currentUser.permissoes[0]||'cancelamentos';
+          navigateTo(firstPage);
         }else{
           document.getElementById('login-error').textContent=r.error;
           document.getElementById('login-error').classList.remove('hidden');
@@ -309,6 +318,20 @@
         document.getElementById('login-error').classList.remove('hidden');
       }).loginManual(email);
     }
+
+    // Esconder menus sem permissao na sidebar
+    function applyPagePermissions(){
+      if(!currentUser||!currentUser.permissoes)return;
+      var perms=currentUser.permissoes;
+      // Esconder links da sidebar que o usuario nao tem acesso
+      document.querySelectorAll('.sidebar-link').forEach(function(link){
+        var page=link.getAttribute('data-page');
+        if(perms.indexOf(page)<0){
+          link.classList.add('hidden');
+        }
+      });
+    }
+
     // Enter key no campo de login
     document.getElementById('login-email').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();doManualLogin();}});
 

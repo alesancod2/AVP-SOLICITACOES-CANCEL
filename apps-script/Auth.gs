@@ -9,7 +9,7 @@ const PERFIL_ADMIN = 'Admin';
 const PERFIL_USER = 'User';
 
 // Headers da aba Usuarios
-const HEADERS_USUARIOS = ['NOME', 'EMAIL', 'PERFIL', 'STATUS', 'DATA CRIACAO', 'ULTIMO ACESSO'];
+const HEADERS_USUARIOS = ['NOME', 'EMAIL', 'PERFIL', 'STATUS', 'PERMISSOES', 'DATA CRIACAO', 'ULTIMO ACESSO'];
 
 // Headers da aba Logs
 const HEADERS_LOGS = ['DATA HORA', 'USUARIO', 'EMAIL', 'PERFIL', 'TIPO ACAO', 'ID SOLICITACAO', 'CAMPO ALTERADO', 'VALOR ANTERIOR', 'NOVO VALOR'];
@@ -136,6 +136,9 @@ function loginManual(emailInformado) {
 
 /**
  * Funcao interna que busca o usuario pelo email na aba Usuarios
+ * Coluna PERMISSOES (col 5): valores separados por virgula
+ * Opcoes: cancelamentos, suspensos, dashboard
+ * Admin tem acesso total independente da coluna
  */
 function autenticarPorEmail(email) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -163,16 +166,33 @@ function autenticarPorEmail(email) {
         return { success: false, error: 'Sua conta está inativa. Contate o administrador.' };
       }
       
-      // Atualizar ultimo acesso
+      // Atualizar ultimo acesso (coluna 7 agora)
       var agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
-      sheet.getRange(i + 2, 6).setValue(agora);
+      sheet.getRange(i + 2, 7).setValue(agora);
+      
+      var perfil = row[2] ? row[2].toString().trim() : PERFIL_USER;
+      var isAdmin = perfil === PERFIL_ADMIN;
+      
+      // Permissoes: Admin tem tudo, User usa coluna PERMISSOES
+      var permissoesRaw = row[4] ? row[4].toString().trim() : '';
+      var permissoes = [];
+      
+      if (isAdmin) {
+        permissoes = ['dashboard', 'cancelamentos', 'suspensos'];
+      } else if (permissoesRaw) {
+        permissoes = permissoesRaw.toLowerCase().split(',').map(function(p) { return p.trim(); });
+      } else {
+        // Se nao tem permissoes definidas, acesso a nenhuma pagina
+        permissoes = [];
+      }
       
       var usuario = {
         nome: row[0] ? row[0].toString() : '',
         email: userEmail,
-        perfil: row[2] ? row[2].toString().trim() : PERFIL_USER,
+        perfil: perfil,
         status: status,
-        isAdmin: (row[2] ? row[2].toString().trim() : '') === PERFIL_ADMIN
+        isAdmin: isAdmin,
+        permissoes: permissoes
       };
       
       // Registrar login
