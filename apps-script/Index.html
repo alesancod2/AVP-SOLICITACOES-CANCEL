@@ -240,7 +240,7 @@
           <div><label class="block text-xs text-gray-400 mb-1">Nome</label><input id="uf-nome" type="text" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome completo" /></div>
           <div><label class="block text-xs text-gray-400 mb-1">Email</label><input id="uf-email" type="email" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="email@empresa.com" /></div>
           <div><label class="block text-xs text-gray-400 mb-1">Perfil</label><select id="uf-perfil" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="User">User</option><option value="Admin">Admin</option></select></div>
-          <div class="lg:col-span-2"><label class="block text-xs text-gray-400 mb-1">Permissões (separar por vírgula)</label><input id="uf-permissoes" type="text" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="cancelamentos, suspensos" /><p class="text-[10px] text-gray-500 mt-1">Opções: cancelamentos, suspensos, dashboard. Admin não precisa preencher.</p></div>
+          <div class="lg:col-span-2"><label class="block text-xs text-gray-400 mb-2">Permissões de Acesso</label><div class="flex flex-wrap gap-4" id="uf-permissoes-checks"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="cancelamentos" class="uf-perm-check w-4 h-4 rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500 focus:ring-2" /><span class="text-sm text-gray-300">Cancelamentos</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="suspensos" class="uf-perm-check w-4 h-4 rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500 focus:ring-2" /><span class="text-sm text-gray-300">Suspensos</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="dashboard" class="uf-perm-check w-4 h-4 rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500 focus:ring-2" /><span class="text-sm text-gray-300">Dashboard</span></label></div><p class="text-[10px] text-gray-500 mt-1">Admin tem acesso total automaticamente. Marque as páginas que o User poderá acessar.</p></div>
         </div>
         <div class="flex gap-2 mt-4">
           <button onclick="saveUser()" id="btn-save-user" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition">Salvar</button>
@@ -490,19 +490,24 @@
           '<td class="px-4 py-3 text-gray-300 text-xs">'+esc(u.email)+'</td>'+
           '<td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-medium '+perfilBadge+'">'+esc(u.perfil)+'</span></td>'+
           '<td class="px-4 py-3"><select onchange="changeUserStatus('+u.id+',this.value)" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none"><option value="Ativo"'+(u.status==='Ativo'?' selected':'')+'>Ativo</option><option value="Inativo"'+(u.status==='Inativo'?' selected':'')+'>Inativo</option></select></td>'+
-          '<td class="px-4 py-3"><input type="text" value="'+esc(u.permissoes||'')+'" onblur="changeUserPermissoes('+u.id+',this.value)" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white w-40 outline-none" placeholder="cancelamentos, suspensos" /></td>'+
+          '<td class="px-4 py-3"><div class="flex gap-3">'+
+            '<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" onchange="updatePermRow('+u.id+')" class="perm-row-'+u.id+' w-3.5 h-3.5 rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500" value="cancelamentos" '+((u.permissoes||'').indexOf('cancelamentos')>=0?'checked':'')+' /><span class="text-[11px] text-gray-400">Cancel.</span></label>'+
+            '<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" onchange="updatePermRow('+u.id+')" class="perm-row-'+u.id+' w-3.5 h-3.5 rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500" value="suspensos" '+((u.permissoes||'').indexOf('suspensos')>=0?'checked':'')+' /><span class="text-[11px] text-gray-400">Susp.</span></label>'+
+            '<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" onchange="updatePermRow('+u.id+')" class="perm-row-'+u.id+' w-3.5 h-3.5 rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500" value="dashboard" '+((u.permissoes||'').indexOf('dashboard')>=0?'checked':'')+' /><span class="text-[11px] text-gray-400">Dash.</span></label>'+
+          '</div></td>'+
           '<td class="px-4 py-3 text-gray-400 text-xs">'+esc(u.ultimoAcesso||'-')+'</td>'+
           '<td class="px-4 py-3 text-center"><button onclick="changeUserPerfil('+u.id+',\''+(u.perfil==='Admin'?'User':'Admin')+'\')" class="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded border border-gray-600 hover:bg-gray-600">'+(u.perfil==='Admin'?'Tornar User':'Tornar Admin')+'</button></td>'+
           '</tr>';
       }).join('');
     }
-    function showUserForm(){document.getElementById('user-form-panel').classList.remove('hidden');document.getElementById('uf-nome').value='';document.getElementById('uf-email').value='';document.getElementById('uf-perfil').value='User';document.getElementById('uf-permissoes').value='';}
+    function showUserForm(){document.getElementById('user-form-panel').classList.remove('hidden');document.getElementById('uf-nome').value='';document.getElementById('uf-email').value='';document.getElementById('uf-perfil').value='User';document.querySelectorAll('.uf-perm-check').forEach(function(c){c.checked=false;});}
     function hideUserForm(){document.getElementById('user-form-panel').classList.add('hidden');}
+    function getPermChecks(){var perms=[];document.querySelectorAll('.uf-perm-check:checked').forEach(function(c){perms.push(c.value);});return perms.join(', ');}
     function saveUser(){
       var nome=document.getElementById('uf-nome').value.trim();
       var email=document.getElementById('uf-email').value.trim();
       var perfil=document.getElementById('uf-perfil').value;
-      var permissoes=document.getElementById('uf-permissoes').value.trim();
+      var permissoes=getPermChecks();
       if(!nome||!email){toast('error','Nome e email são obrigatórios.');return;}
       var btn=document.getElementById('btn-save-user');btn.disabled=true;btn.textContent='Salvando...';
       google.script.run.withSuccessHandler(function(r){
@@ -516,6 +521,7 @@
     function changeUserStatus(rowId,val){google.script.run.withSuccessHandler(function(r){if(r.success)toast('success','Status alterado!');else toast('error',r.error);}).alterarStatusUsuario(rowId,val);}
     function changeUserPerfil(rowId,val){google.script.run.withSuccessHandler(function(r){if(r.success){toast('success','Perfil alterado!');loadUsuarios();}else toast('error',r.error);}).alterarPerfilUsuario(rowId,val);}
     function changeUserPermissoes(rowId,val){google.script.run.withSuccessHandler(function(r){if(!r.success)toast('error',r.error);}).atualizarPermissoesById(rowId,val);}
+    function updatePermRow(rowId){var checks=document.querySelectorAll('.perm-row-'+rowId+':checked');var perms=[];checks.forEach(function(c){perms.push(c.value);});var val=perms.join(', ');google.script.run.withSuccessHandler(function(r){if(r.success)toast('success','Permissões salvas!');else toast('error',r.error);}).atualizarPermissoesById(rowId,val);}
   </script>
 </body>
 </html>
