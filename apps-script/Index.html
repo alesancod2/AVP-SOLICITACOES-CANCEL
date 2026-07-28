@@ -396,9 +396,9 @@
       var s=d.toString();
       // Se ja esta em dd/MM/yyyy ou dd/MM/yyyy HH:mm:ss
       var p=s.split(' ')[0].split('/');
-      if(p.length===3&&p[0].length<=2)return p[0].padStart(2,'0')+'/'+p[1].padStart(2,'0')+'/'+p[2].slice(-2);
+      if(p.length===3&&p[0].length<=2)return p[0].padStart(2,'0')+'/'+p[1].padStart(2,'0')+'/'+p[2].padStart(4,'20');
       // Se e um timestamp ou Date string (ex: "Tue Jun 30 2026...")
-      try{var dt=new Date(s);if(!isNaN(dt.getTime())){var dd=String(dt.getDate()).padStart(2,'0');var mm=String(dt.getMonth()+1).padStart(2,'0');var yy=String(dt.getFullYear()).slice(-2);return dd+'/'+mm+'/'+yy;}}catch(e){}
+      try{var dt=new Date(s);if(!isNaN(dt.getTime())){var dd=String(dt.getDate()).padStart(2,'0');var mm=String(dt.getMonth()+1).padStart(2,'0');var yyyy=String(dt.getFullYear());return dd+'/'+mm+'/'+yyyy;}}catch(e){}
       return s;
     }
     function stClass(s){s=(s||'').toLowerCase();if(s==='ativo')return 'bg-green-900/40 text-green-300';if(s==='inadimplente')return 'bg-red-900/40 text-red-300';if(s==='cancelado')return 'bg-gray-600 text-gray-200';if(s==='pendente')return 'bg-yellow-900/40 text-yellow-300';if(s==='em negociação')return 'bg-blue-900/40 text-blue-300';return 'bg-gray-700 text-gray-400';}
