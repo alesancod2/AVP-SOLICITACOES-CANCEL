@@ -230,7 +230,7 @@
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Forma Pgto</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Recebido</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Original</th>
-              <th class="px-3 py-3 text-left font-semibold text-gray-200">Atendente</th>
+              <th class="px-3 py-3 text-center font-semibold text-gray-200">Atendente</th>
               <th class="px-3 py-3 text-left font-semibold text-gray-200">Conferência</th>
             </tr></thead>
             <tbody id="table-body-suspensos"><tr><td colspan="10" class="px-4 py-12 text-center text-gray-500">Carregando...</td></tr></tbody>
@@ -363,25 +363,29 @@
       </div>
     </div>
   </div>
-  <!-- ATENDIMENTO MODAL -->
+  <!-- ATENDIMENTO MODAL (SUSPENSOS) -->
   <div id="atendimento-modal" class="fixed inset-0 z-[80] hidden">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="hideAtendimentoModal()"></div>
-    <div class="relative max-w-2xl mx-auto mt-10 bg-gray-800 rounded-xl shadow-2xl p-6 m-4 max-h-[85vh] overflow-y-auto fade-in border border-gray-700">
+    <div class="relative max-w-lg mx-auto mt-10 bg-gray-800 rounded-xl shadow-2xl p-6 m-4 max-h-[85vh] overflow-y-auto fade-in border border-gray-700">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold text-white">Atendimento</h2>
+        <h2 class="text-lg font-bold text-white">Atendimento Suspenso</h2>
         <button onclick="hideAtendimentoModal()" class="p-2 hover:bg-gray-700 rounded-lg"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
       <form id="atendimento-form" onsubmit="handleAtendimentoSubmit(event)">
         <input type="hidden" id="at-row-id" value="" />
+        <!-- DADOS IMPORTADOS (somente leitura) -->
+        <div class="grid grid-cols-2 gap-3 mb-4 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+          <div><p class="text-[10px] text-gray-400 uppercase">Associado</p><p class="text-sm text-white font-medium" id="at-nome">-</p></div>
+          <div><p class="text-[10px] text-gray-400 uppercase">Placa</p><p class="text-sm text-white font-mono" id="at-placa">-</p></div>
+          <div><p class="text-[10px] text-gray-400 uppercase">Vencimento</p><p class="text-sm text-gray-300" id="at-venc">-</p></div>
+          <div><p class="text-[10px] text-gray-400 uppercase">Valor Original</p><p class="text-sm text-green-400 font-medium" id="at-original">-</p></div>
+        </div>
+        <!-- CAMPOS EDITAVEIS PELO ATENDENTE -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Nome do Associado</label><input id="at-nome" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome completo" /></div>
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Placa</label><input id="at-placa" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ex: ABC-1234" /></div>
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Valor da Parcela</label><input id="at-parcela" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Valor Pago</label><input id="at-pago" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Consultor</label><input id="at-consultor" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="Nome do consultor" /></div>
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Status Atual</label><select id="at-status" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="Ativo">Ativo</option><option value="Inadimplente">Inadimplente</option><option value="Cancelado">Cancelado</option><option value="Retido">Retido</option><option value="Pendente">Pendente</option><option value="Em negociação">Em negociação</option></select></div>
-          <div><label class="block text-sm font-medium text-gray-300 mb-1">Motivo do Cancelamento</label><select id="at-motivo" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="-">Selecione...</option><option value="VENDA">VENDA</option><option value="TROCA DE VEÍCULO">TROCA DE VEÍCULO</option><option value="MOTIVO PESSOAL">MOTIVO PESSOAL</option><option value="DIFICULDADE FINANCEIRA">DIFICULDADE FINANCEIRA</option><option value="ERRO DE LANÇAMENTO">ERRO DE LANÇAMENTO</option><option value="RESSARCIMENTO">RESSARCIMENTO</option><option value="INSATISFAÇÃO">INSATISFAÇÃO</option><option value="SOLICITAÇÃO DA DIRETORIA">SOLICITAÇÃO DA DIRETORIA</option></select></div>
-          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-300 mb-1">Observacao</label><textarea id="at-obs" rows="2" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Observacoes..."></textarea></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Situação</label><select id="at-situacao" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="Ativo">Ativo</option><option value="Cancelado">Cancelado</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Forma de Pagamento</label><select id="at-forma-pgto" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none"><option value="">Selecione...</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="PIX">PIX</option><option value="Cartao Credito">Cartão Crédito</option><option value="Cartao Debito">Cartão Débito</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-300 mb-1">Valor Recebido</label><input id="at-valor-recebido" type="text" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none" placeholder="R$ 0,00" /></div>
+          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-300 mb-1">Observações</label><textarea id="at-obs" rows="2" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500 outline-none resize-none" placeholder="Observações..."></textarea></div>
         </div>
         <div class="flex gap-3 mt-6 pt-4 border-t border-gray-700">
           <button type="submit" class="px-5 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition">Salvar</button>
@@ -529,16 +533,7 @@
       var tb=document.getElementById('table-body');
       if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="9" class="px-4 py-12 text-center text-gray-500"><p class="font-medium">Nenhum registro encontrado</p></td></tr>';return;}
       tb.innerHTML=recs.map(function(r){var sc=stClass(r.statusAtual);var dc=fmtDateCancel(r.dataCriacao);
-        var atBtn='';
-        var atVal=(r.atendente||'').trim();
-        if(!atVal||atVal==='-'){
-          atBtn='<button onclick="iniciarAtendimentoClick('+r.id+')" class="px-2 py-1 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 transition" title="Iniciar Atendimento">Iniciar</button>';
-        }else if(currentUser&&atVal===currentUser.nome){
-          atBtn='<button onclick="openAtendimentoModal('+r.id+')" class="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition" title="Meu Atendimento">Meu Atend.</button>';
-        }else{
-          atBtn='<button disabled class="px-2 py-1 text-xs font-medium bg-gray-600 text-gray-400 rounded cursor-not-allowed" title="Atendente: '+esc(atVal)+'">Ocupado</button>';
-        }
-        return '<tr class="border-b border-gray-700 hover:bg-gray-700/50 transition"><td class="px-4 py-3 font-medium text-white max-w-[180px] truncate">'+esc(r.nomeDoAssociado)+'</td><td class="px-4 py-3 text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.valorDaParcela)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.valorPago)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.consultor)+'</td><td class="px-4 py-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium '+sc+'">'+esc(r.statusAtual)+'</span></td><td class="px-4 py-3 text-gray-300">'+esc(r.atendente)+'</td><td class="px-4 py-3 text-gray-400 text-xs">'+esc(dc)+'</td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1">'+atBtn+'<button onclick="editRecord('+r.id+')" class="p-1.5 text-blue-400 hover:bg-blue-900/30 rounded-lg" title="Editar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'+(currentUser&&currentUser.isAdmin?'<button onclick="showDeleteModal('+r.id+',\''+esc(r.nomeDoAssociado).replace(/\x27/g,"")+'\')" class="p-1.5 text-red-400 hover:bg-red-900/30 rounded-lg" title="Excluir"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>':'')+'</div></td></tr>';
+        return '<tr class="border-b border-gray-700 hover:bg-gray-700/50 transition"><td class="px-4 py-3 font-medium text-white max-w-[180px] truncate">'+esc(r.nomeDoAssociado)+'</td><td class="px-4 py-3 text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.valorDaParcela)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.valorPago)+'</td><td class="px-4 py-3 text-gray-300">'+esc(r.consultor)+'</td><td class="px-4 py-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium '+sc+'">'+esc(r.statusAtual)+'</span></td><td class="px-4 py-3 text-gray-300">'+esc(r.atendente)+'</td><td class="px-4 py-3 text-gray-400 text-xs">'+esc(dc)+'</td><td class="px-4 py-3 text-center"><div class="flex items-center justify-center gap-1"><button onclick="editRecord('+r.id+')" class="p-1.5 text-blue-400 hover:bg-blue-900/30 rounded-lg" title="Editar"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'+(currentUser&&currentUser.isAdmin?'<button onclick="showDeleteModal('+r.id+',\''+esc(r.nomeDoAssociado).replace(/\x27/g,"")+'\')" class="p-1.5 text-red-400 hover:bg-red-900/30 rounded-lg" title="Excluir"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>':'')+'</div></td></tr>';
       }).join('');
     }
 
@@ -557,73 +552,43 @@
     function confirmDelete(){if(!deleteRowId)return;var btn=document.getElementById('btn-delete');btn.disabled=true;btn.textContent='Excluindo...';google.script.run.withSuccessHandler(function(r){btn.disabled=false;btn.textContent='Sim, excluir';if(r.success){toast('success','Excluido!');hideDeleteModal();loadData();}else toast('error',r.error);}).withFailureHandler(function(er){btn.disabled=false;btn.textContent='Sim, excluir';toast('error',er.message);}).deleteRecordAuth(currentUser.email,deleteRowId);}
     function toast(type,msg){var c=document.getElementById('toast-container');var cls={success:'bg-green-900/80 border-green-700 text-green-200',error:'bg-red-900/80 border-red-700 text-red-200'};var t=document.createElement('div');t.className='flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg min-w-[280px] toast-enter '+(cls[type]||cls.error);t.innerHTML='<p class="text-sm font-medium flex-1">'+esc(msg)+'</p>';c.appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},4000);}
 
-    // ===================== ATENDIMENTO =====================
-    function iniciarAtendimentoClick(rowId){
+    // ===================== ATENDIMENTO (SUSPENSOS) =====================
+    function iniciarAtendSusp(rowId){
       google.script.run.withSuccessHandler(function(r){
-        if(r.success){
-          toast('success',r.message);
-          loadData(function(){
-            var rec=allRecords.find(function(x){return x.id===rowId;});
-            if(rec)openAtendimentoModal(rowId);
-          });
-        }else{
-          toast('error',r.error);
-        }
-      }).withFailureHandler(function(e){
-        toast('error',e.message);
-      }).iniciarAtendimento(currentUser.email,rowId);
+        if(r.success){toast("success","Atendimento iniciado!");loadSuspensos();}
+        else toast("error",r.error);
+      }).withFailureHandler(function(e){toast("error",e.message);}).iniciarAtendimento(currentUser.email,rowId);
     }
-
-    function openAtendimentoModal(rowId){
-      var rec=allRecords.find(function(x){return x.id===rowId;});
-      if(!rec){toast('error','Registro nao encontrado.');return;}
-      document.getElementById('at-row-id').value=rec.id;
-      document.getElementById('at-nome').value=rec.nomeDoAssociado||'';
-      document.getElementById('at-placa').value=rec.placa||'';
-      document.getElementById('at-parcela').value=rec.valorDaParcela||'';
-      document.getElementById('at-pago').value=rec.valorPago||'';
-      document.getElementById('at-consultor').value=rec.consultor||'';
-      document.getElementById('at-status').value=rec.statusAtual||'-';
-      document.getElementById('at-motivo').value=rec.motivoDoCancelamento||'-';
-      document.getElementById('at-obs').value=(rec.observacao==='-'?'':rec.observacao)||'';
-      document.getElementById('atendimento-modal').classList.remove('hidden');
+    function openSuspAtendModal(rowId){
+      var rec=allSuspRecords.find(function(x){return x.id===rowId;});
+      if(!rec){toast("error","Registro nao encontrado.");return;}
+      document.getElementById("at-row-id").value=rec.id;
+      document.getElementById("at-nome").value=rec.associado||"";
+      document.getElementById("at-placa").value=rec.placa||"";
+      document.getElementById("at-venc").textContent=rec.dataVencimento||"-";
+      document.getElementById("at-original").textContent=rec.valorOriginal||"-";
+      document.getElementById("at-situacao").value=rec.situacaoAtual||"-";
+      document.getElementById("at-forma-pgto").value=rec.formaPgto||"-";
+      document.getElementById("at-valor-recebido").value=rec.valorRecebido||"";
+      document.getElementById("at-obs").value=(rec.observacoes==="-"?"":rec.observacoes)||"";
+      document.getElementById("atendimento-modal").classList.remove("hidden");
     }
-
-    function hideAtendimentoModal(){
-      document.getElementById('atendimento-modal').classList.add('hidden');
-    }
-
+    function hideAtendimentoModal(){document.getElementById("atendimento-modal").classList.add("hidden");}
     function handleAtendimentoSubmit(event){
       event.preventDefault();
-      var rowId=parseInt(document.getElementById('at-row-id').value);
-      var data={
-        nomeDoAssociado:document.getElementById('at-nome').value,
-        placa:document.getElementById('at-placa').value,
-        valorDaParcela:document.getElementById('at-parcela').value,
-        valorPago:document.getElementById('at-pago').value,
-        consultor:document.getElementById('at-consultor').value,
-        atendente:currentUser.nome,
-        statusAtual:document.getElementById('at-status').value,
-        motivoDoCancelamento:document.getElementById('at-motivo').value||'-',
-        observacao:document.getElementById('at-obs').value||'-'
-      };
-      google.script.run.withSuccessHandler(function(r){
-        if(r.success){toast('success','Atendimento salvo!');hideAtendimentoModal();loadData();}
-        else toast('error',r.error);
-      }).withFailureHandler(function(e){
-        toast('error',e.message);
-      }).updateRecordAuth(currentUser.email,rowId,data);
+      var rowId=parseInt(document.getElementById("at-row-id").value);
+      var agora=new Date();var dtPgto=String(agora.getDate()).padStart(2,"0")+"/"+String(agora.getMonth()+1).padStart(2,"0")+"/"+agora.getFullYear();
+      var saves=[[2,dtPgto],[5,document.getElementById("at-situacao").value],[6,document.getElementById("at-forma-pgto").value],[7,document.getElementById("at-valor-recebido").value],[10,document.getElementById("at-obs").value||"-"]];
+      var done=0;
+      saves.forEach(function(s){google.script.run.withSuccessHandler(function(){done++;if(done===saves.length){toast("success","Atendimento salvo!");hideAtendimentoModal();loadSuspensos();}}).withFailureHandler(function(e){done++;toast("error",e.message);}).updateSuspensosCellAuth(currentUser.email,rowId,s[0],s[1]);});
     }
-
     function colocarNaFilaClick(){
-      var rowId=parseInt(document.getElementById('at-row-id').value);
-      if(!rowId){toast('error','ID invalido.');return;}
+      var rowId=parseInt(document.getElementById("at-row-id").value);
+      if(!rowId){toast("error","ID invalido.");return;}
       google.script.run.withSuccessHandler(function(r){
-        if(r.success){toast('success',r.message);hideAtendimentoModal();loadData();}
-        else toast('error',r.error);
-      }).withFailureHandler(function(e){
-        toast('error',e.message);
-      }).colocarNaFila(currentUser.email,rowId);
+        if(r.success){toast("success","Devolvido a fila!");hideAtendimentoModal();loadSuspensos();}
+        else toast("error",r.error);
+      }).withFailureHandler(function(e){toast("error",e.message);}).colocarNaFila(currentUser.email,rowId);
     }
 
     // ===================== DASHBOARD =====================
@@ -766,22 +731,32 @@
     function confClass(c){var v=(c||'').toLowerCase();if(v==='ok')return 'bg-green-600 text-white';if(v==='verificar')return 'bg-yellow-500 text-gray-900';return 'bg-gray-700 text-gray-300';}
     function renderSuspensos(recs){
       var tb=document.getElementById('table-body-suspensos');
-      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="10" class="px-4 py-12 text-center text-gray-500">Nenhum registro</td></tr>';return;}
+      if(!recs||recs.length===0){tb.innerHTML='<tr><td colspan="11" class="px-4 py-12 text-center text-gray-500">Nenhum registro</td></tr>';return;}
       tb.innerHTML=recs.map(function(r){
-        var sitOpts='<option value="">-</option><option value="Ativo"'+(r.situacaoAtual==='Ativo'?' selected':'')+'>Ativo</option><option value="Cancelado"'+(r.situacaoAtual==='Cancelado'?' selected':'')+'>Cancelado</option>';
-        var pgtoOpts='<option value="">-</option><option value="Boleto"'+(r.formaPgto==='Boleto'?' selected':'')+'>Boleto</option><option value="Dinheiro"'+(r.formaPgto==='Dinheiro'?' selected':'')+'>Dinheiro</option><option value="PIX"'+(r.formaPgto==='PIX'?' selected':'')+'>PIX</option><option value="Cartao Credito"'+(r.formaPgto==='Cartao Credito'?' selected':'')+'>Cartao Credito</option><option value="Cartao Debito"'+(r.formaPgto==='Cartao Debito'?' selected':'')+'>Cartao Debito</option>';
-        var ateOpts='<option value="">-</option><option value="Fernanda"'+(r.atendente==='Fernanda'?' selected':'')+'>Fernanda</option><option value="Flavia"'+(r.atendente==='Flavia'?' selected':'')+'>Flavia</option><option value="Kris"'+(r.atendente==='Kris'?' selected':'')+'>Kris</option><option value="Leticia"'+(r.atendente==='Leticia'?' selected':'')+'>Leticia</option><option value="Tamires"'+(r.atendente==='Tamires'?' selected':'')+'>Tamires</option><option value="Thaynara"'+(r.atendente==='Thaynara'?' selected':'')+'>Thaynara</option><option value="Yasmin"'+(r.atendente==='Yasmin'?' selected':'')+'>Yasmin</option>';
         var confOpts='<option value="Verificar"'+(r.conferencia==='Verificar'?' selected':'')+'>Verificar</option><option value="OK"'+(r.conferencia==='OK'?' selected':'')+'>OK</option>';
+        // Botao de atendimento: logica de trava por operador
+        var atVal=(r.atendente||'').trim();
+        var atBtn='';
+        if(!atVal||atVal==='-'){
+          // Na fila - qualquer operador pode pegar
+          atBtn='<button onclick="iniciarAtendSusp('+r.id+')" class="px-2 py-1 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 transition">Iniciar</button>';
+        }else if(currentUser&&atVal===currentUser.nome){
+          // Meu atendimento - posso editar
+          atBtn='<button onclick="openSuspAtendModal('+r.id+')" class="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition">Meu Atend.</button>';
+        }else{
+          // Atendimento de outro operador - bloqueado
+          atBtn='<span class="px-2 py-1 text-xs font-medium bg-gray-600 text-gray-400 rounded">'+esc(atVal)+'</span>';
+        }
         return '<tr class="border-b border-gray-700 hover:bg-gray-700/30 transition">'+
           '<td class="px-3 py-2 font-medium text-white max-w-[150px] truncate text-xs">'+esc(r.associado)+'</td>'+
-          '<td class="px-3 py-2"><input type="date" value="'+dateToInput(r.dataRecebimento)+'" onchange="saveCell('+r.id+',2,formatDateBR(this.value))" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white w-28 focus:ring-1 focus:ring-green-500 outline-none" /></td>'+
+          '<td class="px-3 py-2 text-gray-300 text-xs">'+fmtDate(r.dataRecebimento)+'</td>'+
           '<td class="px-3 py-2 text-gray-300 text-xs">'+fmtDate(r.dataVencimento)+'</td>'+
           '<td class="px-3 py-2 text-gray-300 font-mono text-xs">'+esc(r.placa)+'</td>'+
-          '<td class="px-3 py-2"><select onchange="saveCell('+r.id+',5,this.value)" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white focus:ring-1 focus:ring-green-500 outline-none">'+sitOpts+'</select></td>'+
-          '<td class="px-3 py-2"><select onchange="saveCell('+r.id+',6,this.value)" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white focus:ring-1 focus:ring-green-500 outline-none">'+pgtoOpts+'</select></td>'+
-          '<td class="px-3 py-2"><input type="text" value="'+esc(r.valorRecebido)+'" onblur="saveCell('+r.id+',7,this.value)" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white w-16 focus:ring-1 focus:ring-green-500 outline-none" /></td>'+
+          '<td class="px-3 py-2 text-gray-300 text-xs">'+esc(r.situacaoAtual||'-')+'</td>'+
+          '<td class="px-3 py-2 text-gray-300 text-xs">'+esc(r.formaPgto||'-')+'</td>'+
+          '<td class="px-3 py-2 text-gray-300 text-xs">'+esc(r.valorRecebido||'-')+'</td>'+
           '<td class="px-3 py-2 text-gray-300 text-xs">'+esc(r.valorOriginal)+'</td>'+
-          '<td class="px-3 py-2"><select onchange="saveCell('+r.id+',9,this.value)" class="bg-gray-700 border border-gray-600 rounded px-1 py-1 text-xs text-white focus:ring-1 focus:ring-green-500 outline-none">'+ateOpts+'</select></td>'+
+          '<td class="px-3 py-2 text-center">'+atBtn+'</td>'+
           '<td class="px-3 py-2">'+((currentUser&&currentUser.isAdmin)?'<select onchange="saveCell('+r.id+',11,this.value);this.className=confSelClass(this.value)" class="'+confSelClass(r.conferencia)+' border-0 rounded px-2 py-1 text-xs font-bold focus:ring-1 focus:ring-green-500 outline-none cursor-pointer">'+confOpts+'</select>':'<span class="px-2 py-1 rounded text-xs font-bold '+confSelClass(r.conferencia)+'">'+esc(r.conferencia)+'</span>')+'</td>'+
           '</tr>';
       }).join('');
