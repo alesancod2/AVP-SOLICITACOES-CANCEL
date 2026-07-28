@@ -111,10 +111,14 @@ function adicionarUsuario(nome, email, perfil) {
  */
 function getUsuarioLogado() {
   try {
-    var email = Session.getActiveUser().getEmail();
+    // Tentar obter email do usuario de varias formas
+    var email = '';
+    
+    try { email = Session.getActiveUser().getEmail(); } catch(e) {}
+    if (!email) { try { email = Session.getEffectiveUser().getEmail(); } catch(e) {} }
     
     if (!email || email === '') {
-      return { success: false, error: 'Nao foi possivel identificar o usuario. Verifique se esta logado com conta Google.' };
+      return { success: false, error: 'Não foi possível identificar o usuário. Verifique se está logado com conta Google.' };
     }
     
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
