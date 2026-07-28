@@ -141,6 +141,10 @@ function loginManual(emailInformado) {
  * Admin tem acesso total independente da coluna
  */
 function autenticarPorEmail(email) {
+  // Garantir que email e uma string
+  if (!email) return { success: false, error: 'Email não informado.' };
+  email = String(email).trim().toLowerCase();
+  
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName(SHEET_USUARIOS);
   
@@ -161,7 +165,7 @@ function autenticarPorEmail(email) {
     var row = data[i];
     var userEmail = row[1] ? row[1].toString().trim().toLowerCase() : '';
     
-    if (userEmail === email.toLowerCase()) {
+    if (userEmail === email) {
       var status = row[3] ? row[3].toString().trim() : '';
       
       if (status !== 'Ativo') {
@@ -213,6 +217,7 @@ function autenticarPorEmail(email) {
  */
 function verificarAdmin_(email) {
   if (!email) return null;
+  email = String(email).trim();
   var result = autenticarPorEmail(email);
   if (!result.success) return null;
   if (!result.data.isAdmin) return null;
@@ -225,6 +230,7 @@ function verificarAdmin_(email) {
  */
 function verificarAutenticado_(email) {
   if (!email) return null;
+  email = String(email).trim();
   var result = autenticarPorEmail(email);
   if (!result.success) return null;
   return result.data;
