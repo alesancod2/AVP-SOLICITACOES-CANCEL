@@ -665,7 +665,7 @@
 
     // ===================== SUSPENSOS =====================
     var allSuspRecords=[];
-    function fmtDate(d){if(!d)return '';var s=d.toString().split(' ')[0];var p=s.split('/');if(p.length===3){return p[0].padStart(2,'0')+'/'+p[1].padStart(2,'0')+'/'+p[2].toString().slice(-2);}return s;}
+    function fmtDate(d){if(!d)return '';var s=d.toString();var p=s.split(' ')[0].split('/');if(p.length===3&&p[0].length<=2)return p[0].padStart(2,'0')+'/'+p[1].padStart(2,'0')+'/'+p[2].padStart(4,'20');try{var dt=new Date(s);if(!isNaN(dt.getTime())){return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();}}catch(e){}return s;}
     function getSuspFilters(){return{busca:document.getElementById('sf-busca').value,vencDe:document.getElementById('sf-venc-de').value,vencAte:document.getElementById('sf-venc-ate').value,status:document.getElementById('sf-situacao').value,forma:document.getElementById('sf-forma').value,atendente:document.getElementById('sf-atendente').value,conferencia:document.getElementById('sf-conf').value};}
     function clearSuspFilters(){document.getElementById('sf-busca').value='';document.getElementById('sf-venc-de').value='';document.getElementById('sf-venc-ate').value='';document.getElementById('sf-situacao').value='';document.getElementById('sf-forma').value='';document.getElementById('sf-atendente').value='';document.getElementById('sf-conf').value='';applySuspFilters();}
     
