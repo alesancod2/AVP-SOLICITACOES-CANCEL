@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "fix",
   "description": "Fix 4 issues identified in code review: line chart property mismatch, pie chart property mismatch, ownership TOCTOU race condition, and modal timing assumption.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In apps-script/Code.gs: In getDashboardData(), change lineMap entries from property 'date' to 'data' to match frontend expectations",
     "In apps-script/Code.gs: In getDashboardData(), change pieData return from { retido, cancelado } to { retidos, cancelados } to match frontend expectations",
@@ -23,5 +23,5 @@
     "Grep for 'setTimeout' in iniciarAtendimentoClick to confirm it's removed"
   ],
   "blocked_reason": null,
-  "findings": null
+  "findings": "All 4 review issues fixed. Backend getDashboardData() now uses 'data' property (matching frontend renderLineChart which reads .data) and returns pieData with 'retidos'/'cancelados' (matching frontend which reads pieData.retidos/pieData.cancelados). iniciarAtendimento now uses LockService.getScriptLock().tryLock(5000) with finally block for lock release. Frontend loadData() accepts optional callback parameter, and iniciarAtendimentoClick uses it instead of setTimeout to open modal after data reloads."
 }
