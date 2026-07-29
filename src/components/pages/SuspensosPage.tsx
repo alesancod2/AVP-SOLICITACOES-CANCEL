@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { FixedSizeList as List } from "react-window";
 import { useAuth } from "@/contexts/AuthContext";
 import { Suspenso, SuspensoFilters, STATUS_COLORS } from "@/lib/types";
 import {
@@ -361,76 +362,87 @@ export default function SuspensosPage() {
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-800 bg-gray-800/50">
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase">Associado</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase">Placa</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase hidden md:table-cell">Vencimento</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase hidden lg:table-cell">Valor Orig.</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase">Situacao</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase hidden md:table-cell">Atendente</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase hidden lg:table-cell">Conferencia</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase">Acoes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/50">
-                {filteredRecords.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="px-3 py-3 text-gray-200 font-medium max-w-[150px] truncate">{record.associado}</td>
-                    <td className="px-3 py-3 text-gray-400 font-mono text-xs">{record.placa}</td>
-                    <td className="px-3 py-3 text-gray-400 hidden md:table-cell">{record.dtVencimento}</td>
-                    <td className="px-3 py-3 text-gray-400 hidden lg:table-cell">{record.valorOriginal}</td>
-                    <td className="px-3 py-3">
-                      {record.situacao ? (
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[record.situacao] || "bg-gray-800 text-gray-400"}`}>{record.situacao}</span>
-                      ) : <span className="text-gray-600 text-xs">-</span>}
-                    </td>
-                    <td className="px-3 py-3 text-gray-400 hidden md:table-cell">{record.atendente || "-"}</td>
-                    <td className="px-3 py-3 hidden lg:table-cell">
-                      {isAdmin ? (
-                        <select
-                          value={record.conferencia}
-                          onChange={(e) => handleConferencia(record, e.target.value)}
-                          className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300"
-                        >
-                          <option value="">-</option>
-                          <option value="OK">OK</option>
-                          <option value="Verificar">Verificar</option>
-                        </select>
-                      ) : (
-                        <span className={`text-xs ${record.conferencia ? STATUS_COLORS[record.conferencia] || "" : "text-gray-600"} px-2 py-0.5 rounded-full`}>
-                          {record.conferencia || "-"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        {!record.atendente ? (
-                          <button
-                            onClick={() => handleIniciarAtendimento(record)}
-                            className="px-2 py-1 text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-700/50 rounded-lg hover:bg-emerald-900/50 transition-colors"
-                            disabled={submitting}
+            {/* Sticky header outside FixedSizeList */}
+            <div className="w-full text-sm">
+              <div className="border-b border-gray-800 bg-gray-800/50 flex">
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[18%] min-w-[120px]">Associado</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px]">Placa</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[90px] hidden md:block">Vencimento</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[90px] hidden lg:block">Valor Orig.</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px]">Situacao</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px] hidden md:block">Atendente</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px] hidden lg:block">Conferencia</div>
+                <div className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px]">Acoes</div>
+              </div>
+              {/* Virtualized rows */}
+              <List
+                height={600}
+                itemCount={filteredRecords.length}
+                itemSize={48}
+                width="100%"
+              >
+                {({ index, style }) => {
+                  const record = filteredRecords[index];
+                  return (
+                    <div
+                      style={style}
+                      className={`flex items-center border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${index % 2 === 0 ? "" : "bg-gray-800/10"}`}
+                    >
+                      <div className="px-3 text-gray-200 font-medium w-[18%] min-w-[120px] truncate">{record.associado}</div>
+                      <div className="px-3 text-gray-400 font-mono text-xs w-[10%] min-w-[80px]">{record.placa}</div>
+                      <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden md:block">{record.dtVencimento}</div>
+                      <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden lg:block">{record.valorOriginal}</div>
+                      <div className="px-3 w-[12%] min-w-[80px]">
+                        {record.situacao ? (
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[record.situacao] || "bg-gray-800 text-gray-400"}`}>{record.situacao}</span>
+                        ) : <span className="text-gray-600 text-xs">-</span>}
+                      </div>
+                      <div className="px-3 text-gray-400 w-[12%] min-w-[80px] hidden md:block truncate">{record.atendente || "-"}</div>
+                      <div className="px-3 w-[12%] min-w-[80px] hidden lg:block">
+                        {isAdmin ? (
+                          <select
+                            value={record.conferencia}
+                            onChange={(e) => handleConferencia(record, e.target.value)}
+                            className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300"
                           >
-                            <Play className="w-3 h-3 inline mr-1" />Iniciar
-                          </button>
-                        ) : record.atendente === user?.nome ? (
-                          <button
-                            onClick={() => handleLiberarFila(record)}
-                            className="px-2 py-1 text-xs bg-yellow-900/30 text-yellow-400 border border-yellow-700/50 rounded-lg hover:bg-yellow-900/50 transition-colors"
-                            disabled={submitting}
-                          >
-                            <RotateCcw className="w-3 h-3 inline mr-1" />Fila
-                          </button>
+                            <option value="">-</option>
+                            <option value="OK">OK</option>
+                            <option value="Verificar">Verificar</option>
+                          </select>
                         ) : (
-                          <span className="text-xs text-gray-500">Travado</span>
+                          <span className={`text-xs ${record.conferencia ? STATUS_COLORS[record.conferencia] || "" : "text-gray-600"} px-2 py-0.5 rounded-full`}>
+                            {record.conferencia || "-"}
+                          </span>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div className="px-3 w-[12%] min-w-[80px]">
+                        <div className="flex items-center justify-center gap-1">
+                          {!record.atendente ? (
+                            <button
+                              onClick={() => handleIniciarAtendimento(record)}
+                              className="px-2 py-1 text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-700/50 rounded-lg hover:bg-emerald-900/50 transition-colors"
+                              disabled={submitting}
+                            >
+                              <Play className="w-3 h-3 inline mr-1" />Iniciar
+                            </button>
+                          ) : record.atendente === user?.nome ? (
+                            <button
+                              onClick={() => handleLiberarFila(record)}
+                              className="px-2 py-1 text-xs bg-yellow-900/30 text-yellow-400 border border-yellow-700/50 rounded-lg hover:bg-yellow-900/50 transition-colors"
+                              disabled={submitting}
+                            >
+                              <RotateCcw className="w-3 h-3 inline mr-1" />Fila
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-500">Travado</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }}
+              </List>
+            </div>
           </div>
         </div>
       )}
