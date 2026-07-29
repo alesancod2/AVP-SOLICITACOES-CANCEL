@@ -212,9 +212,13 @@ export default function SuspensosPage() {
     setSyncResult(null);
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ckdmsbfwgkhagraamsyj.supabase.co";
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
       const res = await fetch(`${supabaseUrl}/functions/v1/sync-aeasy`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${anonKey}`,
+        },
       });
       const data = await res.json();
       if (data.success) {
