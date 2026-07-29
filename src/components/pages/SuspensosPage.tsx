@@ -211,7 +211,7 @@ export default function SuspensosPage() {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ckdmsbfwgkhagraamsyj.supabase.co";
       const res = await fetch(`${supabaseUrl}/functions/v1/sync-aeasy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -223,8 +223,9 @@ export default function SuspensosPage() {
       } else {
         setSyncResult({ success: false, message: data.error || "Erro na sincronizacao" });
       }
-    } catch (e) {
-      setSyncResult({ success: false, message: "Erro de conexao com Edge Function" });
+    } catch (e: any) {
+      setSyncResult({ success: false, message: `Erro de conexao: ${e.message || "verifique o console"}` });
+      console.error("Sync AEasy error:", e);
     } finally {
       setSyncing(false);
       setTimeout(() => setSyncResult(null), 8000);
