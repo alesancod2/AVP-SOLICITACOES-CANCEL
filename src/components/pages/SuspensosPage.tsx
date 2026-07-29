@@ -14,6 +14,7 @@ import {
   AlertCircle,
   X,
   FileSpreadsheet,
+  RefreshCw,
 } from "lucide-react";
 
 export default function SuspensosPage() {
@@ -24,6 +25,8 @@ export default function SuspensosPage() {
   const [showAtendimento, setShowAtendimento] = useState<Suspenso | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
 
 
   const [filters, setFilters] = useState<SuspensoFilters>({
@@ -203,6 +206,31 @@ export default function SuspensosPage() {
   const formatCurrency = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  // Sincronizar com AEasy (Admin only)
+  const handleSyncAeasy = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+      const res = await fetch(`${supabaseUrl}/functions/v1/sync-aeasy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSyncResult({ success: true, message: `${data.synced} registros sincronizados da AEasy` });
+        fetchSuspensos();
+      } else {
+        setSyncResult({ success: false, message: data.error || "Erro na sincronizacao" });
+      }
+    } catch (e) {
+      setSyncResult({ success: false, message: "Erro de conexao com Edge Function" });
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncResult(null), 8000);
+    }
+  };
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -213,6 +241,17 @@ export default function SuspensosPage() {
           <p className="text-sm text-gray-500 mt-1">Gestao de pagamentos suspensos</p>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={handleSyncAeasy}
+              disabled={syncing}
+              className="px-3 py-2 text-xs bg-orange-900/30 text-orange-400 border border-orange-700/50 rounded-lg hover:bg-orange-900/50 transition-colors disabled:opacity-50 flex items-center gap-1"
+              title="Sincronizar dados da AEasy (suspensos)"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Sincronizando..." : "Sync AEasy"}
+            </button>
+          )}
           <button onClick={handleExport} className="btn-ghost text-sm">
             <Download className="w-4 h-4 mr-1" /> Exportar
           </button>
@@ -221,6 +260,18 @@ export default function SuspensosPage() {
           </button>
         </div>
       </div>
+
+      {/* Sync Result Notification */}
+      {syncResult && (
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm ${
+          syncResult.success
+            ? "bg-emerald-900/30 text-emerald-400 border border-emerald-700/50"
+            : "bg-red-900/30 text-red-400 border border-red-700/50"
+        }`}>
+          {syncResult.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {syncResult.message}
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
