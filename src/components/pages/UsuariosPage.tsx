@@ -17,6 +17,7 @@ export default function UsuariosPage() {
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
+    senha: "",
     perfil: "User" as "Admin" | "User",
     permissoes: { cancelamentos: true, suspensos: true, dashboard: true } as UserPermissions,
   });
@@ -37,13 +38,13 @@ export default function UsuariosPage() {
 
   const handleCreate = () => {
     setEditingUser(null);
-    setFormData({ nome: "", email: "", perfil: "User", permissoes: { cancelamentos: true, suspensos: true, dashboard: true } });
+    setFormData({ nome: "", email: "", senha: "", perfil: "User", permissoes: { cancelamentos: true, suspensos: true, dashboard: true } });
     setShowForm(true);
   };
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
-    setFormData({ nome: user.nome, email: user.email, perfil: user.perfil, permissoes: { ...user.permissoes } });
+    setFormData({ nome: user.nome, email: user.email, senha: "", perfil: user.perfil, permissoes: { ...user.permissoes } });
     setShowForm(true);
   };
 
@@ -58,11 +59,17 @@ export default function UsuariosPage() {
           body: JSON.stringify({ id: editingUser.id, perfil: formData.perfil, permissoes: formData.permissoes }),
         });
       } else {
-        await fetch("/api/users", {
+        const res = await fetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({ nome: formData.nome, email: formData.email, senha: formData.senha, perfil: formData.perfil, permissoes: formData.permissoes }),
         });
+        const data = await res.json();
+        if (!data.success) {
+          alert(data.error || "Erro ao criar usuario");
+          setSubmitting(false);
+          return;
+        }
       }
       setShowForm(false);
       fetchUsers();
@@ -181,6 +188,11 @@ export default function UsuariosPage() {
                   <div>
                     <label className="block text-sm text-gray-400 mb-1">Email</label>
                     <input type="email" value={formData.email} onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))} className="input-field" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Senha de acesso</label>
+                    <input type="password" value={formData.senha} onChange={(e) => setFormData((f) => ({ ...f, senha: e.target.value }))} className="input-field" placeholder="Minimo 6 caracteres" required minLength={6} />
+                    <p className="text-xs text-gray-600 mt-1">O usuario usara este email e senha para entrar no sistema.</p>
                   </div>
                 </>
               )}

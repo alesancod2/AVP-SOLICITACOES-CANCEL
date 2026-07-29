@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/users - Create user
+// POST /api/users - Create user (Supabase Auth + tabela usuarios)
 export async function POST(request: NextRequest) {
   const adminUser = await validateAdmin(request);
   if (!adminUser) {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { nome, email, perfil, permissoes } = await request.json();
+    const { nome, email, senha, perfil, permissoes } = await request.json();
 
     if (!nome || !email) {
       return NextResponse.json(
@@ -82,9 +82,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!senha || senha.length < 6) {
+      return NextResponse.json(
+        { success: false, error: "Senha obrigatoria (minimo 6 caracteres)" },
+        { status: 400 }
+      );
+    }
+
     const admin = createAdminClient();
 
-    // Check if email already exists
+    // Check if email already exists in usuarios table
     const { data: existing } = await admin
       .from("usuarios")
       .select("id")
@@ -98,6 +105,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 1. Criar usuario no Supabase Auth
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email: email.toLowerCase().trim(),
+      password: senha,
+      email_confirm: true, // Auto-confirma o email
+    });
+
+    if (authError) {
+      // Se o usuario ja existe no Auth mas nao na tabela
+      if (authError.message.includes("already been registered")) {
+        // Continuar para criar na tabela usuarios
+      } else {
+        return NextResponse.json(
+          { success: false, error: `Erro Auth: ${authError.message}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 2. Criar na tabela usuarios
     const perms: UserPermissions = permissoes || { cancelamentos: true, suspensos: true, dashboard: true };
 
     const { error } = await admin.from("usuarios").insert({
@@ -106,6 +133,7 @@ export async function POST(request: NextRequest) {
       perfil: perfil || "User",
       status: "Ativo",
       permissoes: perms,
+      auth_user_id: authData?.user?.id || null,
     });
 
     if (error) throw new Error(error.message);
@@ -121,7 +149,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { success: true, data: { message: "Usuario criado com sucesso" } },
+      { success: true, data: { message: "Usuario criado com sucesso (Auth + Sistema)" } },
       { status: 201 }
     );
   } catch (error: any) {
