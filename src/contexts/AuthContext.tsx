@@ -9,7 +9,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string) => Promise<{ success: boolean; error?: string; magicLink?: boolean }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   canAccess: (page: PageName) => boolean;
   isAdmin: boolean;
@@ -85,24 +85,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async (email: string): Promise<{ success: boolean; error?: string; magicLink?: boolean }> => {
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        password,
       });
 
       if (error) {
+        // Mensagens amigaveis em portugues
+        if (error.message.includes("Invalid login")) {
+          return { success: false, error: "Email ou senha incorretos" };
+        }
+        if (error.message.includes("Email not confirmed")) {
+          return { success: false, error: "Email nao confirmado. Verifique sua caixa de entrada." };
+        }
         return { success: false, error: error.message };
       }
 
-      return { success: true, magicLink: true };
+      if (data.session) {
+        await fetchUserProfile(data.session);
+      }
+
+      return { success: true };
     } catch {
       return { success: false, error: "Erro de conexao" };
     }
-  }, [supabase.auth]);
+  }, [supabase.auth, fetchUserProfile]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
