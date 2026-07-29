@@ -206,33 +206,27 @@ export default function SuspensosPage() {
   const formatCurrency = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  // Sincronizar com AEasy (Admin only)
+  // Sincronizar com AEasy (Admin only) - dispara GitHub Actions workflow
   const handleSyncAeasy = async () => {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ckdmsbfwgkhagraamsyj.supabase.co";
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-      const res = await fetch(`${supabaseUrl}/functions/v1/sync-aeasy`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${anonKey}`,
-        },
-      });
+      // Disparar workflow via GitHub Actions API
+      const res = await fetch("/api/sync-aeasy", { method: "POST" });
       const data = await res.json();
       if (data.success) {
-        setSyncResult({ success: true, message: `${data.synced} registros sincronizados da AEasy` });
-        fetchSuspensos();
+        setSyncResult({ success: true, message: data.message || "Sincronizacao disparada! Aguarde 1-2 min e recarregue." });
+        // Recarregar dados apos 30 segundos (tempo para o workflow executar)
+        setTimeout(() => fetchSuspensos(), 30000);
       } else {
-        setSyncResult({ success: false, message: data.error || "Erro na sincronizacao" });
+        setSyncResult({ success: false, message: data.error || "Erro ao disparar sincronizacao" });
       }
     } catch (e: any) {
-      setSyncResult({ success: false, message: `Erro de conexao: ${e.message || "verifique o console"}` });
+      setSyncResult({ success: false, message: `Erro: ${e.message || "verifique o console"}` });
       console.error("Sync AEasy error:", e);
     } finally {
       setSyncing(false);
-      setTimeout(() => setSyncResult(null), 8000);
+      setTimeout(() => setSyncResult(null), 10000);
     }
   };
 
