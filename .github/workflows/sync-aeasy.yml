@@ -1,9 +1,9 @@
 name: Sync AEasy Suspensos
 
 on:
-  # Executa a cada 6 horas
+  # Executa a cada 1 hora
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 * * * *'
   # Permite executar manualmente
   workflow_dispatch:
 
@@ -148,7 +148,7 @@ jobs:
               sede: v.ConsultoresCentroCustoNome || "",
               plano: v.VendasCarrosCategoriasPlanosNome || "",
               forma_pagamento: v.VendasFormaPagamentoEnum === "1" ? "Boleto" : v.VendasFormaPagamentoEnum === "2" ? "Cartao" : "",
-              situacao: "",
+              situacao: v.VendasSituacao || "Suspenso",
               atendente: "",
               observacoes: "",
               conferencia: "",
