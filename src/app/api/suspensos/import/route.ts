@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { importSuspensos, addLog } from "@/lib/google-sheets";
-import { verifyToken } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 // POST /api/suspensos/import - Import Excel/CSV data
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-  }
-  const user = await verifyToken(authHeader.substring(7));
-  if (!user) {
-    return NextResponse.json({ success: false, error: "Token invalido" }, { status: 401 });
-  }
-
   try {
+    const supabase = createServerSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
+    }
+
     const { data } = await request.json();
 
     if (!data || !Array.isArray(data) || data.length === 0) {
@@ -35,22 +32,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const count = await importSuspensos(validData);
+    const admin = createAdminClient();
 
-    await addLog(
-      user.nome,
-      user.email,
-      user.perfil,
-      "Importar Suspensos",
-      "",
-      "quantidade",
-      "",
-      String(count)
-    );
+    // Map to database format
+    const insertData = validData.map((row: any) => ({
+      associado: row.associado,
+      placa: row.placa,
+      dt_vencimento: row.dtVencimento,
+      valor_original: row.valorOriginal,
+      dt_recebimento: "",
+      situacao: "",
+      forma_pagamento: "",
+      valor_recebido: "",
+      atendente: "",
+      observacoes: "",
+      conferencia: "",
+    }));
+
+    const { error } = await admin.from("suspensos").insert(insertData);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Log the import
+    const { data: usuario } = await admin
+      .from("usuarios")
+      .select("nome, email, perfil")
+      .eq("email", session.user.email)
+      .single();
+
+    if (usuario) {
+      await admin.from("logs").insert({
+        usuario: usuario.nome,
+        email: usuario.email,
+        perfil: usuario.perfil,
+        acao: "Importar Suspensos",
+        campo: "quantidade",
+        depois: String(validData.length),
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      data: { imported: count, total: data.length, invalid: data.length - validData.length },
+      data: { imported: validData.length, total: data.length, invalid: data.length - validData.length },
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

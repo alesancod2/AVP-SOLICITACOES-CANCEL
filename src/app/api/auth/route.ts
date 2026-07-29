@@ -1,25 +1,78 @@
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
-import { createToken } from "@/lib/auth";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { User, UserPermissions } from "@/lib/types";
 
-const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID!;
+// GET /api/auth - Get current user profile from usuarios table
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
 
-function getAuth() {
-  return new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Nao autenticado" },
+        { status: 401 }
+      );
+    }
+
+    const admin = createAdminClient();
+    const { data: usuario, error } = await admin
+      .from("usuarios")
+      .select("*")
+      .eq("email", session.user.email)
+      .single();
+
+    if (error || !usuario) {
+      return NextResponse.json(
+        { success: false, error: "Usuario nao cadastrado no sistema" },
+        { status: 403 }
+      );
+    }
+
+    if (usuario.status === "Inativo") {
+      return NextResponse.json(
+        { success: false, error: "Usuario inativo. Contate o administrador." },
+        { status: 403 }
+      );
+    }
+
+    // Update ultimo_acesso
+    await admin
+      .from("usuarios")
+      .update({ ultimo_acesso: new Date().toISOString() })
+      .eq("id", usuario.id);
+
+    // Link auth_user_id if not set
+    if (!usuario.auth_user_id) {
+      await admin
+        .from("usuarios")
+        .update({ auth_user_id: session.user.id })
+        .eq("id", usuario.id);
+    }
+
+    const userProfile: User = {
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      perfil: usuario.perfil,
+      status: usuario.status,
+      permissoes: usuario.permissoes || { cancelamentos: true, suspensos: true, dashboard: true },
+      dataCriacao: usuario.data_criacao,
+      ultimoAcesso: new Date().toISOString(),
+    };
+
+    return NextResponse.json({ success: true, data: userProfile });
+  } catch (error: any) {
+    console.error("Auth GET Error:", error);
+    return NextResponse.json(
+      { success: false, error: "Erro interno de autenticacao" },
+      { status: 500 }
+    );
+  }
 }
 
-function getSheetsClient() {
-  return google.sheets({ version: "v4", auth: getAuth() });
-}
-
-// POST /api/auth - Login
+// POST /api/auth - Send magic link (OTP)
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
@@ -31,76 +84,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sheets = getSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "'Usuarios'!A2:G",
-    });
+    // Check if user exists in our system first
+    const admin = createAdminClient();
+    const { data: usuario, error: dbError } = await admin
+      .from("usuarios")
+      .select("id, status")
+      .eq("email", email.toLowerCase().trim())
+      .single();
 
-    const rows = response.data.values || [];
-    const userRow = rows.find(
-      (row) => row[1]?.toLowerCase().trim() === email.toLowerCase().trim()
-    );
-
-    if (!userRow) {
+    if (dbError || !usuario) {
       return NextResponse.json(
         { success: false, error: "Email nao cadastrado no sistema" },
         { status: 401 }
       );
     }
 
-    const status = userRow[3] || "Ativo";
-    if (status === "Inativo") {
+    if (usuario.status === "Inativo") {
       return NextResponse.json(
         { success: false, error: "Usuario inativo. Contate o administrador." },
         { status: 403 }
       );
     }
 
-    // Parse permissions from column E (JSON or comma-separated)
-    let permissoes: UserPermissions = { cancelamentos: true, suspensos: true, dashboard: true };
-    const permStr = userRow[4] || "";
-    if (permStr) {
-      try {
-        permissoes = JSON.parse(permStr);
-      } catch {
-        // Fallback: parse comma-separated
-        permissoes = {
-          cancelamentos: permStr.includes("cancelamentos"),
-          suspensos: permStr.includes("suspensos"),
-          dashboard: permStr.includes("dashboard"),
-        };
-      }
-    }
-
-    const user: User = {
-      id: String(rows.indexOf(userRow) + 2),
-      nome: userRow[0] || "",
-      email: userRow[1] || "",
-      perfil: (userRow[2] as any) || "User",
-      status: status as any,
-      permissoes,
-      dataCriacao: userRow[5] || "",
-      ultimoAcesso: new Date().toLocaleDateString("pt-BR"),
-    };
-
-    // Update last access
-    const rowIndex = rows.indexOf(userRow) + 2;
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `'Usuarios'!G${rowIndex}`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: [[new Date().toLocaleDateString("pt-BR")]] },
+    // Send OTP via Supabase Auth
+    const { error } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email: email.toLowerCase().trim(),
     });
 
-    const token = await createToken(user);
+    if (error) {
+      console.error("OTP Error:", error);
+      return NextResponse.json(
+        { success: false, error: "Erro ao enviar link de acesso" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      data: { user, token },
+      data: { message: "Link de acesso enviado para o email" },
     });
   } catch (error: any) {
-    console.error("Auth Error:", error);
+    console.error("Auth POST Error:", error);
     return NextResponse.json(
       { success: false, error: "Erro interno de autenticacao" },
       { status: 500 }

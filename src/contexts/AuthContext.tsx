@@ -1,13 +1,15 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { User, PageName } from "@/lib/types";
+import type { Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string) => Promise<{ success: boolean; error?: string; magicLink?: boolean }>;
   logout: () => void;
   canAccess: (page: PageName) => boolean;
   isAdmin: boolean;
@@ -20,52 +22,93 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session from localStorage
-  useEffect(() => {
-    const savedToken = localStorage.getItem("avp_token");
-    const savedUser = localStorage.getItem("avp_user");
-    if (savedToken && savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        setToken(savedToken);
-      } catch {
-        localStorage.removeItem("avp_token");
-        localStorage.removeItem("avp_user");
-      }
-    }
-    setLoading(false);
-  }, []);
+  const supabase = createClient();
 
-  const login = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
+  // Fetch user profile from the usuarios table
+  const fetchUserProfile = useCallback(async (session: Session) => {
     try {
       const response = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
       const data = await response.json();
-
       if (data.success && data.data) {
-        const { user: userData, token: tokenData } = data.data;
-        setUser(userData);
-        setToken(tokenData);
-        localStorage.setItem("avp_token", tokenData);
-        localStorage.setItem("avp_user", JSON.stringify(userData));
-        return { success: true };
+        setUser(data.data);
+        setToken(session.access_token);
+      } else {
+        // User is authenticated but not registered in our system
+        setUser(null);
+        setToken(null);
       }
-      return { success: false, error: data.error || "Erro ao fazer login" };
+    } catch {
+      setUser(null);
+      setToken(null);
+    }
+  }, []);
+
+  // Initialize: check for existing session
+  useEffect(() => {
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await fetchUserProfile(session);
+        }
+      } catch {
+        // No session
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initSession();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          await fetchUserProfile(session);
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          setToken(null);
+        } else if (event === "TOKEN_REFRESHED" && session) {
+          setToken(session.access_token);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const login = useCallback(async (email: string): Promise<{ success: boolean; error?: string; magicLink?: boolean }> => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, magicLink: true };
     } catch {
       return { success: false, error: "Erro de conexao" };
     }
-  }, []);
+  }, [supabase.auth]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setToken(null);
-    localStorage.removeItem("avp_token");
-    localStorage.removeItem("avp_user");
-  }, []);
+  }, [supabase.auth]);
 
   const isAdmin = user?.perfil === "Admin";
 
