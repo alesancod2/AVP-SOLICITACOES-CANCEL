@@ -1,41 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
-import { verifyToken, isAdmin } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { User, UserPermissions } from "@/lib/types";
 
-const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID!;
-
-function getAuth() {
-  return new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-}
-
-function getSheetsClient() {
-  return google.sheets({ version: "v4", auth: getAuth() });
-}
-
 async function validateAdmin(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return null;
-  }
-  const token = authHeader.substring(7);
-  const payload = await verifyToken(token);
-  if (!payload || !isAdmin(payload.perfil)) {
-    return null;
-  }
-  return payload;
+  const supabase = createServerSupabaseClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
+
+  const admin = createAdminClient();
+  const { data: usuario } = await admin
+    .from("usuarios")
+    .select("*")
+    .eq("email", session.user.email)
+    .single();
+
+  if (!usuario || usuario.perfil !== "Admin") return null;
+  return usuario;
 }
 
 // GET /api/users - List all users
 export async function GET(request: NextRequest) {
-  const admin = await validateAdmin(request);
-  if (!admin) {
+  const adminUser = await validateAdmin(request);
+  if (!adminUser) {
     return NextResponse.json(
       { success: false, error: "Acesso negado" },
       { status: 403 }
@@ -43,37 +30,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const sheets = getSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "'Usuarios'!A2:G",
-    });
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("usuarios")
+      .select("*")
+      .order("data_criacao", { ascending: false });
 
-    const rows = response.data.values || [];
-    const users: User[] = rows.map((row, index) => {
-      let permissoes: UserPermissions = { cancelamentos: true, suspensos: true, dashboard: true };
-      if (row[4]) {
-        try {
-          permissoes = JSON.parse(row[4]);
-        } catch {
-          permissoes = {
-            cancelamentos: (row[4] || "").includes("cancelamentos"),
-            suspensos: (row[4] || "").includes("suspensos"),
-            dashboard: (row[4] || "").includes("dashboard"),
-          };
-        }
-      }
-      return {
-        id: String(index + 2),
-        nome: row[0] || "",
-        email: row[1] || "",
-        perfil: (row[2] as any) || "User",
-        status: (row[3] as any) || "Ativo",
-        permissoes,
-        dataCriacao: row[5] || "",
-        ultimoAcesso: row[6] || "",
-      };
-    });
+    if (error) throw new Error(error.message);
+
+    const users: User[] = (data || []).map((row) => ({
+      id: row.id,
+      nome: row.nome || "",
+      email: row.email || "",
+      perfil: row.perfil || "User",
+      status: row.status || "Ativo",
+      permissoes: row.permissoes || { cancelamentos: true, suspensos: true, dashboard: true },
+      dataCriacao: row.data_criacao
+        ? new Date(row.data_criacao).toLocaleDateString("pt-BR")
+        : "",
+      ultimoAcesso: row.ultimo_acesso
+        ? new Date(row.ultimo_acesso).toLocaleDateString("pt-BR")
+        : "",
+    }));
 
     return NextResponse.json({ success: true, data: users });
   } catch (error: any) {
@@ -86,8 +64,8 @@ export async function GET(request: NextRequest) {
 
 // POST /api/users - Create user
 export async function POST(request: NextRequest) {
-  const admin = await validateAdmin(request);
-  if (!admin) {
+  const adminUser = await validateAdmin(request);
+  if (!adminUser) {
     return NextResponse.json(
       { success: false, error: "Acesso negado" },
       { status: 403 }
@@ -104,56 +82,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sheets = getSheetsClient();
+    const admin = createAdminClient();
 
     // Check if email already exists
-    const existing = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "'Usuarios'!B2:B",
-    });
-    const emails = (existing.data.values || []).flat();
-    if (emails.some((e) => e.toLowerCase() === email.toLowerCase())) {
+    const { data: existing } = await admin
+      .from("usuarios")
+      .select("id")
+      .eq("email", email.toLowerCase().trim())
+      .single();
+
+    if (existing) {
       return NextResponse.json(
         { success: false, error: "Email ja cadastrado" },
         { status: 400 }
       );
     }
 
-    const perms = permissoes || { cancelamentos: true, suspensos: true, dashboard: true };
-    const dataCriacao = new Date().toLocaleDateString("pt-BR");
+    const perms: UserPermissions = permissoes || { cancelamentos: true, suspensos: true, dashboard: true };
 
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "'Usuarios'!A:G",
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: {
-        values: [[nome, email, perfil || "User", "Ativo", JSON.stringify(perms), dataCriacao, ""]],
-      },
+    const { error } = await admin.from("usuarios").insert({
+      nome,
+      email: email.toLowerCase().trim(),
+      perfil: perfil || "User",
+      status: "Ativo",
+      permissoes: perms,
     });
+
+    if (error) throw new Error(error.message);
 
     // Log action
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "'Logs'!A:I",
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: {
-        values: [[
-          new Date().toLocaleString("pt-BR"),
-          admin.nome,
-          admin.email,
-          admin.perfil,
-          "Criar Usuario",
-          "",
-          "email",
-          "",
-          email,
-        ]],
-      },
+    await admin.from("logs").insert({
+      usuario: adminUser.nome,
+      email: adminUser.email,
+      perfil: adminUser.perfil,
+      acao: "Criar Usuario",
+      campo: "email",
+      depois: email,
     });
 
-    return NextResponse.json({ success: true, data: { message: "Usuario criado com sucesso" } }, { status: 201 });
+    return NextResponse.json(
+      { success: true, data: { message: "Usuario criado com sucesso" } },
+      { status: 201 }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message },
@@ -164,8 +134,8 @@ export async function POST(request: NextRequest) {
 
 // PUT /api/users - Update user
 export async function PUT(request: NextRequest) {
-  const admin = await validateAdmin(request);
-  if (!admin) {
+  const adminUser = await validateAdmin(request);
+  if (!adminUser) {
     return NextResponse.json(
       { success: false, error: "Acesso negado" },
       { status: 403 }
@@ -182,64 +152,58 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const sheets = getSheetsClient();
-    const rowId = parseInt(id);
+    const admin = createAdminClient();
 
-    // Get current data
-    const current = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `'Usuarios'!A${rowId}:G${rowId}`,
-    });
-    const currentRow = current.data.values?.[0];
-    if (!currentRow) {
+    // Get current user data
+    const { data: current, error: fetchError } = await admin
+      .from("usuarios")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !current) {
       return NextResponse.json(
         { success: false, error: "Usuario nao encontrado" },
         { status: 404 }
       );
     }
 
-    const updatedRow = [
-      currentRow[0],
-      currentRow[1],
-      perfil || currentRow[2],
-      status || currentRow[3],
-      permissoes ? JSON.stringify(permissoes) : currentRow[4],
-      currentRow[5],
-      currentRow[6],
-    ];
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `'Usuarios'!A${rowId}:G${rowId}`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: [updatedRow] },
-    });
-
-    // Log
+    const updateData: Record<string, any> = {};
     const changes: string[] = [];
-    if (status && status !== currentRow[3]) changes.push(`Status: ${currentRow[3]} -> ${status}`);
-    if (perfil && perfil !== currentRow[2]) changes.push(`Perfil: ${currentRow[2]} -> ${perfil}`);
-    if (permissoes) changes.push(`Permissoes atualizadas`);
 
+    if (status && status !== current.status) {
+      updateData.status = status;
+      changes.push(`Status: ${current.status} -> ${status}`);
+    }
+    if (perfil && perfil !== current.perfil) {
+      updateData.perfil = perfil;
+      changes.push(`Perfil: ${current.perfil} -> ${perfil}`);
+    }
+    if (permissoes) {
+      updateData.permissoes = permissoes;
+      changes.push("Permissoes atualizadas");
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ success: true, data: { message: "Nenhuma alteracao" } });
+    }
+
+    const { error } = await admin
+      .from("usuarios")
+      .update(updateData)
+      .eq("id", id);
+
+    if (error) throw new Error(error.message);
+
+    // Log changes
     if (changes.length > 0) {
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_ID,
-        range: "'Logs'!A:I",
-        valueInputOption: "USER_ENTERED",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: {
-          values: [[
-            new Date().toLocaleString("pt-BR"),
-            admin.nome,
-            admin.email,
-            admin.perfil,
-            "Alterar Usuario",
-            currentRow[1],
-            changes.join("; "),
-            "",
-            "",
-          ]],
-        },
+      await admin.from("logs").insert({
+        usuario: adminUser.nome,
+        email: adminUser.email,
+        perfil: adminUser.perfil,
+        acao: "Alterar Usuario",
+        registro_id: id,
+        campo: changes.join("; "),
       });
     }
 

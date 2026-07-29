@@ -107,13 +107,6 @@ export interface LogEntry {
   depois: string;
 }
 
-// ---- PLANILHA ----
-
-export interface SheetTab {
-  name: string;
-  id: number;
-}
-
 // ---- API ----
 
 export interface ApiResponse<T> {

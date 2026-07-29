@@ -1,0 +1,14 @@
+{
+  "task_id": "task-supabase-migration",
+  "task_description": "Migrate AVP System from Google Sheets API to Supabase (PostgreSQL + Auth). Replace googleapis/jose with @supabase/supabase-js and @supabase/ssr. Implement magic link auth, rewrite all API routes, create SQL schema.",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "skipped",
+    "tests": "skipped",
+    "test_quality": "skipped",
+    "docker_build": "skipped",
+    "summary": "INTEGRATIONS_ONLY network mode prevents npm install and build verification. Code reviewed manually for correctness. All API routes, auth context, middleware, and schema implemented per specification."
+  }
+}

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Cancelamento,
-  SheetTab,
   CancelamentoFilters,
   CANCELAMENTO_STATUS_OPTIONS,
   KPIData,
@@ -20,10 +19,6 @@ import {
   Trash2,
   X,
   FileText,
-  Users as UsersIcon,
-  TrendingDown,
-  Shield,
-  Clock,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
@@ -35,7 +30,6 @@ export default function CancelamentosPage() {
   // Data
   const [records, setRecords] = useState<Cancelamento[]>([]);
   const [allRecords, setAllRecords] = useState<Cancelamento[]>([]);
-  const [tabs, setTabs] = useState<SheetTab[]>([]);
   const [activeTab, setActiveTab] = useState("");
 
   // UI States
@@ -60,31 +54,17 @@ export default function CancelamentosPage() {
     busca: "",
   });
 
-  // Fetch tabs
+  // No longer need to fetch tabs from Google Sheets - use fixed reference
   useEffect(() => {
-    async function fetchTabs() {
-      try {
-        const res = await fetch("/api/sheets");
-        const data = await res.json();
-        if (data.success && data.data) {
-          setTabs(data.data);
-          if (data.data.length > 0) {
-            setActiveTab(data.data[0].name);
-          }
-        }
-      } catch (e) {
-        console.error("Erro ao carregar abas:", e);
-      }
-    }
-    fetchTabs();
+    setActiveTab("cancelamentos");
   }, []);
 
-  // Fetch records when tab changes
+  // Fetch records from Supabase
   const fetchRecords = useCallback(async () => {
     if (!activeTab) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/sheets?tab=${encodeURIComponent(activeTab)}&page=1&pageSize=5000`);
+      const res = await fetch(`/api/cancelamentos?page=1&pageSize=5000`);
       const data = await res.json();
       if (data.success && data.data) {
         setAllRecords(data.data);
@@ -211,10 +191,10 @@ export default function CancelamentosPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        const res = await fetch(`/api/sheets/${editingRecord.id}`, {
+        const res = await fetch(`/api/cancelamentos/${editingRecord.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tab: activeTab, data: formData }),
+          body: JSON.stringify({ data: formData }),
         });
         const data = await res.json();
         if (data.success) {
@@ -222,10 +202,10 @@ export default function CancelamentosPage() {
           fetchRecords();
         }
       } else {
-        const res = await fetch("/api/sheets", {
+        const res = await fetch("/api/cancelamentos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tab: activeTab, data: { ...formData, atendente: user?.nome || formData.atendente } }),
+          body: JSON.stringify({ data: { ...formData, atendente: user?.nome || formData.atendente } }),
         });
         const data = await res.json();
         if (data.success) {
@@ -245,7 +225,7 @@ export default function CancelamentosPage() {
     setSubmitting(true);
     try {
       const res = await fetch(
-        `/api/sheets/${deletingRecord.id}?tab=${encodeURIComponent(activeTab)}`,
+        `/api/cancelamentos/${deletingRecord.id}`,
         { method: "DELETE" }
       );
       const data = await res.json();
@@ -263,14 +243,14 @@ export default function CancelamentosPage() {
   const handleExport = async () => {
     try {
       const res = await fetch(
-        `/api/export?type=cancelamentos&tab=${encodeURIComponent(activeTab)}&format=csv`,
+        `/api/export?type=cancelamentos&format=csv`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `cancelamentos_${activeTab}_${new Date().toISOString().split("T")[0]}.csv`;
+      a.download = `cancelamentos_${new Date().toISOString().split("T")[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -319,25 +299,6 @@ export default function CancelamentosPage() {
           <span className="text-2xl font-bold text-purple-400">{kpi.retidos}</span>
         </div>
       </div>
-
-      {/* Tab Selector */}
-      {tabs.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.name)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                activeTab === tab.name
-                  ? "bg-emerald-600/20 text-emerald-400 border border-emerald-700/50"
-                  : "bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700 hover:text-gray-200"
-              }`}
-            >
-              {tab.name}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-3">

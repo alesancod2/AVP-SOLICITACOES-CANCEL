@@ -1,30 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllRecords, getSuspensos } from "@/lib/google-sheets";
-import { verifyToken } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-// GET /api/export?type=cancelamentos|suspensos&tab=TAB_NAME&format=csv|json
+// GET /api/export?type=cancelamentos|suspensos&format=csv|json
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-  }
-  const user = await verifyToken(authHeader.substring(7));
-  if (!user) {
-    return NextResponse.json({ success: false, error: "Token invalido" }, { status: 401 });
-  }
-
   try {
+    const supabase = createServerSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "cancelamentos";
-    const tab = searchParams.get("tab") || "DB_Cancelamentos";
     const format = searchParams.get("format") || "csv";
 
+    const admin = createAdminClient();
     let data: any[] = [];
 
     if (type === "suspensos") {
-      data = await getSuspensos();
+      const { data: rows, error } = await admin
+        .from("suspensos")
+        .select("*")
+        .order("data_criacao", { ascending: false });
+
+      if (error) throw new Error(error.message);
+
+      data = (rows || []).map((row) => ({
+        associado: row.associado || "",
+        dtRecebimento: row.dt_recebimento || "",
+        dtVencimento: row.dt_vencimento || "",
+        placa: row.placa || "",
+        situacao: row.situacao || "",
+        formaPagamento: row.forma_pagamento || "",
+        valorRecebido: row.valor_recebido || "",
+        valorOriginal: row.valor_original || "",
+        atendente: row.atendente || "",
+        observacoes: row.observacoes || "",
+        conferencia: row.conferencia || "",
+      }));
     } else {
-      data = await getAllRecords(tab);
+      const { data: rows, error } = await admin
+        .from("cancelamentos")
+        .select("*")
+        .order("data_criacao", { ascending: false });
+
+      if (error) throw new Error(error.message);
+
+      data = (rows || []).map((row) => ({
+        nomeDoAssociado: row.nome_associado || "",
+        placa: row.placa || "",
+        valorDaParcela: row.valor_parcela || "",
+        valorPago: row.valor_pago || "",
+        consultor: row.consultor || "",
+        motivoDoCancelamento: row.motivo_cancelamento || "",
+        statusAtual: row.status_atual || "",
+        observacao: row.observacao || "",
+        atendente: row.atendente || "",
+        dataCriacao: row.data_criacao
+          ? new Date(row.data_criacao).toLocaleDateString("pt-BR")
+          : "",
+      }));
     }
 
     if (format === "json") {
@@ -36,7 +72,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse("Sem dados para exportar", { status: 200 });
     }
 
-    const headers = Object.keys(data[0]).filter((k) => k !== "id");
+    const headers = Object.keys(data[0]);
     const csvRows = [
       headers.join(";"),
       ...data.map((row) =>

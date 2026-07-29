@@ -1,6 +1,6 @@
 {
   "name": "avp-system",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,14 +12,14 @@
     "next": "^14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "googleapis": "^140.0.0",
+    "@supabase/supabase-js": "^2.43.0",
+    "@supabase/ssr": "^0.3.0",
     "lucide-react": "^0.400.0",
     "chart.js": "^4.4.0",
     "react-chartjs-2": "^5.2.0",
     "xlsx": "^0.18.5",
     "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.2",
-    "jose": "^5.2.0"
+    "jspdf-autotable": "^3.8.2"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
