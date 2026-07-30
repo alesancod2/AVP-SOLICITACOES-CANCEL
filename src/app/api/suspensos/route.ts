@@ -26,8 +26,8 @@ function setCachedData(data: any[]): void {
   suspensosCache = { data, timestamp: Date.now() };
 }
 
-// Invalida cache (chamado em PUT/atendimento)
-export function invalidateSuspensosCache(): void {
+// Invalida cache (chamado internamente)
+function invalidateSuspensosCache(): void {
   suspensosCache = null;
 }
 
