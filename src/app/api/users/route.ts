@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { User, UserPermissions } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 async function validateAdmin(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();

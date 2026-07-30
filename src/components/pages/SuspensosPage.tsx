@@ -21,6 +21,7 @@ import {
 export default function SuspensosPage() {
   const { user, token, isAdmin } = useAuth();
   const [records, setRecords] = useState<Suspenso[]>([]);
+  const [totalReal, setTotalReal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [showImport, setShowImport] = useState(false);
   const [showAtendimento, setShowAtendimento] = useState<Suspenso | null>(null);
@@ -57,7 +58,10 @@ export default function SuspensosPage() {
         cache: "no-store",
       });
       const data = await res.json();
-      if (data.success) setRecords(data.data || []);
+      if (data.success) {
+        setRecords(data.data || []);
+        if (data.totalReal) setTotalReal(data.totalReal);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -109,7 +113,7 @@ export default function SuspensosPage() {
 
   // KPI cards for suspensos
   const kpis = useMemo(() => {
-    const totalPlacas = records.length;
+    const totalPlacas = totalReal || records.length;
     const valorReceber = records.reduce((sum, r) => {
       const val = parseFloat(r.valorOriginal.replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
       return sum + val;
@@ -121,7 +125,7 @@ export default function SuspensosPage() {
         return sum + val;
       }, 0);
     return { totalPlacas, valorReceber, valorRecebidoOk };
-  }, [records]);
+  }, [records, totalReal]);
 
   // Unique atendentes for filter
   const atendentes = useMemo(() => {
@@ -201,6 +205,20 @@ export default function SuspensosPage() {
         cache: "no-store",
       });
       fetchSuspensos(true); // silent refresh
+    } catch (e) { console.error(e); fetchSuspensos(true); }
+  };
+
+  const handleUndoConferencia = async (record: Suspenso) => {
+    // Optimistic UI: revert to empty
+    setRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, conferencia: "" as any } : r));
+    try {
+      await fetch("/api/suspensos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: record.id, conferencia: "" }),
+        cache: "no-store",
+      });
+      fetchSuspensos(true);
     } catch (e) { console.error(e); fetchSuspensos(true); }
   };
 
@@ -485,6 +503,7 @@ export default function SuspensosPage() {
                       <SwipeConfirm
                         isConfirmed={record.conferencia === "OK"}
                         onConfirm={() => handleConferencia(record, "OK")}
+                        onUndo={() => handleUndoConferencia(record)}
                         disabled={!isAdmin}
                       />
                     </div>
@@ -550,21 +569,47 @@ export default function SuspensosPage() {
 }
 
 
-// Swipe to Confirm Component
-function SwipeConfirm({ isConfirmed, onConfirm, disabled }: { isConfirmed: boolean; onConfirm: () => void; disabled: boolean }) {
+// Swipe to Confirm Component with Undo support
+function SwipeConfirm({ isConfirmed, onConfirm, onUndo, disabled }: { isConfirmed: boolean; onConfirm: () => void; onUndo: () => void; disabled: boolean }) {
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const trackWidth = 110; // width of the slider track
-  const thumbWidth = 28; // width of the thumb
+  const [showUndoPopup, setShowUndoPopup] = useState(false);
+  const trackWidth = 110;
+  const thumbWidth = 28;
   const maxDrag = trackWidth - thumbWidth;
 
   if (isConfirmed || confirmed) {
     return (
-      <div className="flex items-center justify-center">
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-400 border border-emerald-700/50">
+      <div className="flex items-center justify-center relative">
+        <span
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-400 border border-emerald-700/50 cursor-pointer hover:bg-emerald-900/60 transition-colors"
+          onClick={() => !disabled && setShowUndoPopup(true)}
+          title={disabled ? "" : "Clique para desfazer"}
+        >
           <CheckCircle className="w-3 h-3" /> OK
+          {!disabled && <X className="w-3 h-3 ml-0.5 opacity-50 hover:opacity-100" />}
         </span>
+        {/* Undo Confirmation Popup */}
+        {showUndoPopup && (
+          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-3 w-48 animate-fade-in">
+            <p className="text-xs text-gray-300 mb-2 text-center">Remover conferencia?</p>
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={() => { setShowUndoPopup(false); setConfirmed(false); onUndo(); }}
+                className="px-3 py-1 text-xs bg-red-900/40 text-red-400 border border-red-700/50 rounded-md hover:bg-red-900/60 transition-colors"
+              >
+                Sim
+              </button>
+              <button
+                onClick={() => setShowUndoPopup(false)}
+                className="px-3 py-1 text-xs bg-gray-800 text-gray-400 border border-gray-700 rounded-md hover:bg-gray-700 transition-colors"
+              >
+                Nao
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

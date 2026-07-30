@@ -3,6 +3,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { User } from "@/lib/types";
 
+// Force dynamic rendering - this route uses cookies() at runtime
+export const dynamic = "force-dynamic";
+
 // GET /api/auth - Get current user profile from usuarios table
 export async function GET(request: NextRequest) {
   try {

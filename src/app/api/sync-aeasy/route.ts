@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+
 // POST /api/sync-aeasy - Dispara GitHub Actions workflow manualmente
 export async function POST(request: NextRequest) {
   try {

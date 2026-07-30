@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/cancelamentos
 // Query params: page, pageSize, search, status, mes_referencia
 export async function GET(request: NextRequest) {
