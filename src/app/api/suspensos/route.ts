@@ -31,7 +31,7 @@ function setCachedData(data: any[], totalReal: number): void {
 }
 
 // Invalida cache
-export function invalidateSuspensosCache(): void {
+function invalidateSuspensosCache(): void {
   suspensosCache = null;
 }
 
