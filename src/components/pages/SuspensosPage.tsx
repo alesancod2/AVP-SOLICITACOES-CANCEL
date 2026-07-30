@@ -132,24 +132,27 @@ export default function SuspensosPage() {
     return counts;
   }, [records]);
 
-  // KPI cards for suspensos
+  // KPI cards for suspensos - responsivos ao filtro de vencimento
   const kpis = useMemo(() => {
     const totalPlacas = totalReal || records.length;
-    const valorReceber = records.reduce((sum, r) => {
-      const val = parseFloat(r.valorOriginal.replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
+    // Valores calculados sobre os registros FILTRADOS (respondem ao vencimento selecionado)
+    const baseRecords = filteredRecords;
+    const valorReceber = baseRecords.reduce((sum, r) => {
+      const val = parseFloat((r.valorOriginal ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
       return sum + val;
     }, 0);
-    const valorRecebidoOk = records
+    const valorRecebidoOk = baseRecords
       .filter((r) => r.conferencia === "OK")
       .reduce((sum, r) => {
-        const val = parseFloat(r.valorRecebido.replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
+        const val = parseFloat((r.valorRecebido ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
         return sum + val;
       }, 0);
-    const filaDisponivel = records.filter((r) => !r.atendente).length;
-    const emAtendimento = records.filter((r) => !!r.atendente).length;
-    const convertidosHoje = records.filter((r) => r.conferencia === "OK").length;
-    return { totalPlacas, valorReceber, valorRecebidoOk, filaDisponivel, emAtendimento, convertidosHoje };
-  }, [records, totalReal]);
+    const filaDisponivel = baseRecords.filter((r) => !r.atendente).length;
+    const emAtendimento = baseRecords.filter((r) => !!r.atendente).length;
+    const convertidosHoje = baseRecords.filter((r) => r.conferencia === "OK").length;
+    const meusAtendimentos = records.filter((r) => r.atendente === user?.nome).length;
+    return { totalPlacas, valorReceber, valorRecebidoOk, filaDisponivel, emAtendimento, convertidosHoje, meusAtendimentos };
+  }, [records, totalReal, filteredRecords, user?.nome]);
 
   // Unique atendentes for filter
   const atendentes = useMemo(() => {
@@ -383,13 +386,21 @@ export default function SuspensosPage() {
           <span className="text-xs text-gray-500 uppercase">Total Suspensos</span>
           <span className="text-2xl font-bold text-cyan-400">{(totalReal || records.length).toLocaleString("pt-BR")}</span>
         </div>
-        <div className="kpi-card border-l-2 border-l-blue-500">
+        <div
+          className="kpi-card border-l-2 border-l-blue-500 cursor-pointer hover:bg-gray-800/50 transition-colors"
+          onClick={() => setFilters((f) => ({ ...f, atendente: "" }))}
+          title="Clique para ver fila disponivel"
+        >
           <span className="text-xs text-gray-500 uppercase">Fila Disponivel</span>
           <span className="text-2xl font-bold text-blue-400">{kpis.filaDisponivel.toLocaleString("pt-BR")}</span>
         </div>
-        <div className="kpi-card border-l-2 border-l-purple-500">
-          <span className="text-xs text-gray-500 uppercase">Em Atendimento</span>
-          <span className="text-2xl font-bold text-purple-400">{kpis.emAtendimento.toLocaleString("pt-BR")}</span>
+        <div
+          className="kpi-card border-l-2 border-l-purple-500 cursor-pointer hover:bg-gray-800/50 transition-colors"
+          onClick={() => setFilters((f) => ({ ...f, atendente: user?.nome || "" }))}
+          title="Clique para ver meus atendimentos"
+        >
+          <span className="text-xs text-gray-500 uppercase">Meus Atendimentos</span>
+          <span className="text-2xl font-bold text-purple-400">{kpis.meusAtendimentos.toLocaleString("pt-BR")}</span>
         </div>
         {/* Row 2 */}
         <div className="kpi-card border-l-2 border-l-yellow-500">
