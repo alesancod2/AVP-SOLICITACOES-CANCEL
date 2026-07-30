@@ -82,6 +82,7 @@ export interface Suspenso {
   associado: string;
   dtRecebimento: string;
   dtVencimento: string;
+  diaVencimento: string;
   placa: string;
   situacao: SituacaoSuspenso;
   formaPagamento: FormaPagamento;
