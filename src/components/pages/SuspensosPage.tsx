@@ -15,6 +15,7 @@ import {
   X,
   FileSpreadsheet,
   RefreshCw,
+  ChevronRight,
 } from "lucide-react";
 
 export default function SuspensosPage() {
@@ -407,10 +408,10 @@ export default function SuspensosPage() {
                 <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px]">Placa</div>
                 <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[90px] hidden md:block">Vencimento</div>
                 <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[90px] hidden lg:block">Valor Orig.</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px]">Situacao</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px] hidden md:block">Atendente</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px] hidden lg:block">Conferencia</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px]">Situacao</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px] hidden md:block">Atendente</div>
                 <div className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px]">Acoes</div>
+                <div className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase w-[16%] min-w-[130px]">Conferencia</div>
               </div>
               {/* Virtualized rows */}
               {/* Scrollable virtualized rows (CSS-based, no external deps) */}
@@ -424,29 +425,12 @@ export default function SuspensosPage() {
                     <div className="px-3 text-gray-400 font-mono text-xs w-[10%] min-w-[80px]">{record.placa}</div>
                     <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden md:block">{record.dtVencimento}</div>
                     <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden lg:block">{record.valorOriginal}</div>
-                    <div className="px-3 w-[12%] min-w-[80px]">
+                    <div className="px-3 w-[10%] min-w-[80px]">
                       {record.situacaoAeasy ? (
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[record.situacaoAeasy] || "bg-gray-800 text-gray-400"}`}>{record.situacaoAeasy}</span>
                       ) : <span className="text-gray-600 text-xs">-</span>}
                     </div>
-                    <div className="px-3 text-gray-400 w-[12%] min-w-[80px] hidden md:block truncate">{record.atendente || "-"}</div>
-                    <div className="px-3 w-[12%] min-w-[80px] hidden lg:block">
-                      {isAdmin ? (
-                        <select
-                          value={record.conferencia}
-                          onChange={(e) => handleConferencia(record, e.target.value)}
-                          className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300"
-                        >
-                          <option value="">-</option>
-                          <option value="OK">OK</option>
-                          <option value="Verificar">Verificar</option>
-                        </select>
-                      ) : (
-                        <span className={`text-xs ${record.conferencia ? STATUS_COLORS[record.conferencia] || "" : "text-gray-600"} px-2 py-0.5 rounded-full`}>
-                          {record.conferencia || "-"}
-                        </span>
-                      )}
-                    </div>
+                    <div className="px-3 text-gray-400 w-[10%] min-w-[80px] hidden md:block truncate">{record.atendente || "-"}</div>
                     <div className="px-3 w-[12%] min-w-[80px]">
                       <div className="flex items-center justify-center gap-1">
                         {!record.atendente ? (
@@ -469,6 +453,13 @@ export default function SuspensosPage() {
                           <span className="text-xs text-gray-500">Travado</span>
                         )}
                       </div>
+                    </div>
+                    <div className="px-3 w-[16%] min-w-[130px]">
+                      <SwipeConfirm
+                        isConfirmed={record.conferencia === "OK"}
+                        onConfirm={() => handleConferencia(record, "OK")}
+                        disabled={!isAdmin}
+                      />
                     </div>
                   </div>
                 ))}
@@ -527,6 +518,99 @@ export default function SuspensosPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+
+// Swipe to Confirm Component
+function SwipeConfirm({ isConfirmed, onConfirm, disabled }: { isConfirmed: boolean; onConfirm: () => void; disabled: boolean }) {
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const trackWidth = 110; // width of the slider track
+  const thumbWidth = 28; // width of the thumb
+  const maxDrag = trackWidth - thumbWidth;
+
+  if (isConfirmed || confirmed) {
+    return (
+      <div className="flex items-center justify-center">
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-400 border border-emerald-700/50">
+          <CheckCircle className="w-3 h-3" /> OK
+        </span>
+      </div>
+    );
+  }
+
+  if (disabled) {
+    return (
+      <div className="flex items-center justify-center">
+        <span className="text-xs text-gray-600">-</span>
+      </div>
+    );
+  }
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const rect = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left - thumbWidth / 2;
+    setDragX(Math.max(0, Math.min(x, maxDrag)));
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    if (dragX >= maxDrag * 0.9) {
+      setConfirmed(true);
+      onConfirm();
+    } else {
+      setDragX(0);
+    }
+  };
+
+  const progress = dragX / maxDrag;
+
+  return (
+    <div className="flex items-center justify-center">
+      <div
+        className="relative h-7 rounded-full overflow-hidden select-none"
+        style={{ width: trackWidth }}
+      >
+        {/* Track background */}
+        <div
+          className="absolute inset-0 rounded-full border transition-colors"
+          style={{
+            backgroundColor: progress > 0.5 ? `rgba(16, 185, 129, ${0.1 + progress * 0.3})` : "rgba(55, 65, 81, 0.5)",
+            borderColor: progress > 0.5 ? `rgba(16, 185, 129, ${0.3 + progress * 0.4})` : "rgba(75, 85, 99, 0.5)",
+          }}
+        />
+        {/* Label text */}
+        <span
+          className="absolute inset-0 flex items-center justify-center text-[10px] font-medium pointer-events-none transition-opacity"
+          style={{ opacity: 1 - progress, color: "rgba(156, 163, 175, 0.8)" }}
+        >
+          Deslize p/ OK
+        </span>
+        {/* Thumb */}
+        <div
+          className="absolute top-0.5 h-6 w-7 rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing transition-shadow"
+          style={{
+            left: dragX,
+            backgroundColor: progress > 0.7 ? "#10b981" : "#4b5563",
+            boxShadow: isDragging ? "0 0 8px rgba(16, 185, 129, 0.5)" : "none",
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
+          <ChevronRight className="w-3.5 h-3.5 text-white" />
+        </div>
+      </div>
     </div>
   );
 }
