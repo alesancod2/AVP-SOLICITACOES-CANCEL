@@ -34,6 +34,7 @@ function invalidateSuspensosCache(): void {
 // =============================================
 // GET /api/suspensos - Busca TODOS os suspensos
 // Usa cache em memoria (60s TTL) + paginacao interna Supabase
+// Retorna apenas registros com situacao_aeasy = 'Suspenso'
 // =============================================
 export async function GET(request: NextRequest) {
   try {
@@ -63,6 +64,7 @@ export async function GET(request: NextRequest) {
       const { data, error } = await admin
         .from("suspensos")
         .select("*")
+        .not("aeasy_venda_id", "is", null)
         .order("dia_vencimento", { ascending: true })
         .order("associado", { ascending: true })
         .range(from, from + pageSize - 1);
@@ -79,14 +81,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Mapear para formato frontend
-    // Campos: associado, placa, dtVencimento, valorOriginal, situacao
-    // seguem exatamente o mesmo padrao de mapeamento
     const suspensos = allData.map((row) => ({
       id: row.id,
       associado: row.associado || "",
       placa: row.placa || "",
       dtVencimento: row.dt_vencimento || "",
       valorOriginal: row.valor_original || "",
+      // situacao_aeasy vem direto da AEasy (read-only no frontend)
+      situacaoAeasy: row.situacao_aeasy || "Suspenso",
+      // situacao do atendimento (campo do operador)
       situacao: row.situacao || "",
       // Campos operador
       dtRecebimento: row.dt_recebimento || "",
@@ -106,6 +109,8 @@ export async function GET(request: NextRequest) {
       documento: row.documento || "",
       telefone: row.telefone || "",
       modelo: row.modelo || "",
+      aeasyVendaId: row.aeasy_venda_id || "",
+      sincronizadoEm: row.sincronizado_em || "",
     }));
 
     // Salvar no cache
@@ -123,6 +128,7 @@ export async function GET(request: NextRequest) {
 // =============================================
 // PUT /api/suspensos - Atualiza registro (campos do operador)
 // Invalida cache apos update
+// NOTA: situacao_aeasy NAO pode ser alterada pelo frontend
 // =============================================
 export async function PUT(request: NextRequest) {
   try {
@@ -140,13 +146,18 @@ export async function PUT(request: NextRequest) {
 
     const admin = createAdminClient();
     const updateData: Record<string, any> = {};
+
+    // Campos permitidos para edicao pelo operador
     if (data.dtRecebimento !== undefined) updateData.dt_recebimento = data.dtRecebimento;
-    if (data.situacao !== undefined) updateData.situacao = data.situacao;
     if (data.formaPagamento !== undefined) updateData.forma_pagamento = data.formaPagamento;
     if (data.valorRecebido !== undefined) updateData.valor_recebido = data.valorRecebido;
     if (data.atendente !== undefined) updateData.atendente = data.atendente;
     if (data.observacoes !== undefined) updateData.observacoes = data.observacoes;
     if (data.conferencia !== undefined) updateData.conferencia = data.conferencia;
+
+    // situacao_aeasy NAO eh editavel - vem somente da AEasy via sync
+    // situacao do atendimento tambem removida - nao editavel pelo frontend
+
     updateData.atualizado_em = new Date().toISOString();
 
     const { data: row, error } = await admin

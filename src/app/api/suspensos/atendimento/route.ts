@@ -70,7 +70,9 @@ export async function POST(request: NextRequest) {
       const updateData: Record<string, any> = {
         atualizado_em: new Date().toISOString(),
       };
-      if (dados.situacao !== undefined) updateData.situacao = dados.situacao;
+
+      // Campos editaveis pelo operador no atendimento
+      // NOTA: situacao NAO eh editavel - vem da AEasy (situacao_aeasy)
       if (dados.formaPagamento !== undefined) updateData.forma_pagamento = dados.formaPagamento;
       if (dados.valorRecebido !== undefined) updateData.valor_recebido = dados.valorRecebido;
       if (dados.observacoes !== undefined) updateData.observacoes = dados.observacoes;
@@ -95,8 +97,8 @@ export async function POST(request: NextRequest) {
         perfil: usuario.perfil,
         acao: "Salvar Atendimento Suspenso",
         registro_id: id,
-        campo: "situacao",
-        depois: dados.situacao || "",
+        campo: "atendimento",
+        depois: `Pgto: ${dados.formaPagamento || "-"}, Valor: ${dados.valorRecebido || "-"}`,
       });
 
       return NextResponse.json({ success: true, data: mapSuspenso(row) });
@@ -108,7 +110,6 @@ export async function POST(request: NextRequest) {
         .update({
           atendente: "",
           dt_recebimento: "",
-          situacao: "",
           forma_pagamento: "",
           valor_recebido: "",
           observacoes: "",
@@ -148,6 +149,7 @@ function mapSuspenso(row: any) {
     dtRecebimento: row.dt_recebimento || "",
     dtVencimento: row.dt_vencimento || "",
     placa: row.placa || "",
+    situacaoAeasy: row.situacao_aeasy || "Suspenso",
     situacao: row.situacao || "",
     formaPagamento: row.forma_pagamento || "",
     valorRecebido: row.valor_recebido || "",
@@ -155,5 +157,6 @@ function mapSuspenso(row: any) {
     atendente: row.atendente || "",
     observacoes: row.observacoes || "",
     conferencia: row.conferencia || "",
+    diaVencimento: row.dia_vencimento || "",
   };
 }
