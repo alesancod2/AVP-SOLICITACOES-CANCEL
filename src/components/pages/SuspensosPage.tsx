@@ -650,6 +650,24 @@ export default function SuspensosPage() {
               <button onClick={() => setShowAtendimento(null)} className="p-1 text-gray-500 hover:text-gray-300"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-4">
+              {/* Contato WhatsApp */}
+              {showAtendimento.telefone && (
+                <div className="flex items-center gap-3 p-3 bg-emerald-900/20 border border-emerald-700/30 rounded-lg">
+                  <MessageCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <span className="text-xs text-gray-500 block">Telefone do Associado</span>
+                    <span className="text-sm text-gray-200 font-medium">{showAtendimento.telefone}</span>
+                  </div>
+                  <a
+                    href={`https://wa.me/55${(showAtendimento.telefone ?? "").replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-colors flex items-center gap-1"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                  </a>
+                </div>
+              )}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Forma de Pagamento</label>
                 <select value={atendForm.formaPagamento} onChange={(e) => setAtendForm((f) => ({ ...f, formaPagamento: e.target.value }))} className="input-field">
@@ -673,7 +691,16 @@ export default function SuspensosPage() {
                 <button onClick={handleSalvarAtendimento} disabled={submitting} className="btn-primary">
                   {submitting ? "Salvando..." : "Salvar Atendimento"}
                 </button>
-                <button onClick={() => setShowAtendimento(null)} className="btn-secondary">Cancelar</button>
+                <button
+                  onClick={() => {
+                    if (showAtendimento) handleLiberarFila(showAtendimento);
+                    setShowAtendimento(null);
+                    setAtendForm({ formaPagamento: "", valorRecebido: "", observacoes: "", dtRecebimento: new Date().toLocaleDateString("pt-BR") });
+                  }}
+                  className="btn-secondary"
+                >
+                  Cancelar
+                </button>
               </div>
             </div>
           </div>
