@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Suspenso, SuspensoFilters, STATUS_COLORS } from "@/lib/types";
+import { Suspenso, SuspensoFilters, STATUS_COLORS, SituacaoAeasy } from "@/lib/types";
 import {
   Upload,
   Play,
@@ -42,7 +42,6 @@ export default function SuspensosPage() {
 
   // Atendimento form
   const [atendForm, setAtendForm] = useState({
-    situacao: "",
     formaPagamento: "",
     valorRecebido: "",
     observacoes: "",
@@ -80,7 +79,7 @@ export default function SuspensosPage() {
         (r) => r.associado.toLowerCase().includes(q) || r.placa.toLowerCase().includes(q)
       );
     }
-    if (filters.situacao) result = result.filter((r) => r.situacao === filters.situacao);
+    if (filters.situacao) result = result.filter((r) => r.situacaoAeasy === filters.situacao);
     if (filters.formaPagamento) result = result.filter((r) => r.formaPagamento === filters.formaPagamento);
     if (filters.atendente) result = result.filter((r) => r.atendente === filters.atendente);
     if (filters.conferencia) result = result.filter((r) => r.conferencia === filters.conferencia);
@@ -154,7 +153,7 @@ export default function SuspensosPage() {
       const data = await res.json();
       if (data.success) {
         setShowAtendimento(null);
-        setAtendForm({ situacao: "", formaPagamento: "", valorRecebido: "", observacoes: "", dtRecebimento: new Date().toLocaleDateString("pt-BR") });
+        setAtendForm({ formaPagamento: "", valorRecebido: "", observacoes: "", dtRecebimento: new Date().toLocaleDateString("pt-BR") });
         fetchSuspensos();
       }
     } catch (e) { console.error(e); }
@@ -350,11 +349,9 @@ export default function SuspensosPage() {
             <label className="block text-xs text-gray-500 mb-1">Situacao</label>
             <select value={filters.situacao} onChange={(e) => setFilters((f) => ({ ...f, situacao: e.target.value }))} className="input-field text-sm">
               <option value="">Todas</option>
-              <option value="Pago">Pago</option>
-              <option value="Parcial">Parcial</option>
-              <option value="Pendente">Pendente</option>
-              <option value="Nao localizado">Nao localizado</option>
-              <option value="Recusa">Recusa</option>
+              <option value="Suspenso">Suspenso</option>
+              <option value="Inadimplente">Inadimplente</option>
+              <option value="Cancelado">Cancelado</option>
             </select>
           </div>
           <div>
@@ -428,8 +425,8 @@ export default function SuspensosPage() {
                     <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden md:block">{record.dtVencimento}</div>
                     <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden lg:block">{record.valorOriginal}</div>
                     <div className="px-3 w-[12%] min-w-[80px]">
-                      {record.situacao ? (
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[record.situacao] || "bg-gray-800 text-gray-400"}`}>{record.situacao}</span>
+                      {record.situacaoAeasy ? (
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[record.situacaoAeasy] || "bg-gray-800 text-gray-400"}`}>{record.situacaoAeasy}</span>
                       ) : <span className="text-gray-600 text-xs">-</span>}
                     </div>
                     <div className="px-3 text-gray-400 w-[12%] min-w-[80px] hidden md:block truncate">{record.atendente || "-"}</div>
@@ -502,17 +499,6 @@ export default function SuspensosPage() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Situacao</label>
-                <select value={atendForm.situacao} onChange={(e) => setAtendForm((f) => ({ ...f, situacao: e.target.value }))} className="input-field">
-                  <option value="">Selecione...</option>
-                  <option value="Pago">Pago</option>
-                  <option value="Parcial">Parcial</option>
-                  <option value="Pendente">Pendente</option>
-                  <option value="Nao localizado">Nao localizado</option>
-                  <option value="Recusa">Recusa</option>
-                </select>
-              </div>
-              <div>
                 <label className="block text-sm text-gray-400 mb-1">Forma de Pagamento</label>
                 <select value={atendForm.formaPagamento} onChange={(e) => setAtendForm((f) => ({ ...f, formaPagamento: e.target.value }))} className="input-field">
                   <option value="">Selecione...</option>
@@ -532,7 +518,7 @@ export default function SuspensosPage() {
                 <textarea value={atendForm.observacoes} onChange={(e) => setAtendForm((f) => ({ ...f, observacoes: e.target.value }))} className="input-field resize-none" rows={3} />
               </div>
               <div className="flex gap-3 pt-4 border-t border-gray-800">
-                <button onClick={handleSalvarAtendimento} disabled={submitting || !atendForm.situacao} className="btn-primary">
+                <button onClick={handleSalvarAtendimento} disabled={submitting} className="btn-primary">
                   {submitting ? "Salvando..." : "Salvar Atendimento"}
                 </button>
                 <button onClick={() => setShowAtendimento(null)} className="btn-secondary">Cancelar</button>

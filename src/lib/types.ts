@@ -59,12 +59,11 @@ export type Associado = Cancelamento;
 
 // ---- SUSPENSOS ----
 
-export type SituacaoSuspenso =
-  | "Pendente"
-  | "Pago"
-  | "Parcial"
-  | "Nao localizado"
-  | "Recusa"
+export type SituacaoAeasy =
+  | "Suspenso"
+  | "Ativo"
+  | "Cancelado"
+  | "Inadimplente"
   | "";
 
 export type FormaPagamento =
@@ -84,7 +83,10 @@ export interface Suspenso {
   dtVencimento: string;
   diaVencimento: string;
   placa: string;
-  situacao: SituacaoSuspenso;
+  // Situacao vinda da AEasy (read-only, nao editavel)
+  situacaoAeasy: SituacaoAeasy;
+  // Situacao legada (campo antigo, nao mais utilizado no frontend)
+  situacao: string;
   formaPagamento: FormaPagamento;
   valorRecebido: string;
   valorOriginal: string;
@@ -210,6 +212,7 @@ export const FORM_FIELDS: FormField[] = [
 // Status cores para badges
 export const STATUS_COLORS: Record<string, string> = {
   Ativo: "bg-green-900/30 text-green-400 border border-green-700/50",
+  Suspenso: "bg-orange-900/30 text-orange-400 border border-orange-700/50",
   Inadimplente: "bg-red-900/30 text-red-400 border border-red-700/50",
   Cancelado: "bg-gray-700/30 text-gray-400 border border-gray-600/50",
   Retido: "bg-purple-900/30 text-purple-400 border border-purple-700/50",
