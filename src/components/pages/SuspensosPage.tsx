@@ -194,10 +194,6 @@ export default function SuspensosPage() {
       if (data.success) {
         setShowAtendimento({ ...record, atendente: user?.nome || "" });
         fetchSuspensos(true);
-        // Open WhatsApp with associado phone number
-        if (record.telefone) {
-          openWhatsApp(record.telefone);
-        }
       } else {
         fetchSuspensos(true);
       }
