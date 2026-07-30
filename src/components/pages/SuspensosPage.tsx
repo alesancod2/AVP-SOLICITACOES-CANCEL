@@ -16,6 +16,9 @@ import {
   FileSpreadsheet,
   RefreshCw,
   ChevronRight,
+  MessageCircle,
+  ArrowUpDown,
+  Zap,
 } from "lucide-react";
 
 export default function SuspensosPage() {
@@ -30,6 +33,7 @@ export default function SuspensosPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
   const [activeVencimento, setActiveVencimento] = useState<string>("todos");
+  const [sortAsc, setSortAsc] = useState(false); // false = desc (most overdue first)
 
 
   const [filters, setFilters] = useState<SuspensoFilters>({
@@ -40,6 +44,7 @@ export default function SuspensosPage() {
     formaPagamento: "",
     atendente: "",
     conferencia: "",
+    valorSegmento: "",
   });
 
   // Atendimento form
@@ -98,8 +103,24 @@ export default function SuspensosPage() {
     if (filters.formaPagamento) result = result.filter((r) => r.formaPagamento === filters.formaPagamento);
     if (filters.atendente) result = result.filter((r) => r.atendente === filters.atendente);
     if (filters.conferencia) result = result.filter((r) => r.conferencia === filters.conferencia);
+    // Value segmentation filter
+    if (filters.valorSegmento) {
+      result = result.filter((r) => {
+        const val = parseFloat(r.valorOriginal.replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
+        if (filters.valorSegmento === "alto") return val > 200;
+        if (filters.valorSegmento === "medio") return val >= 100 && val <= 200;
+        if (filters.valorSegmento === "baixo") return val < 100;
+        return true;
+      });
+    }
+    // Priority queue: sort by diasAtraso
+    result.sort((a, b) => {
+      const atrA = a.diasAtraso || 0;
+      const atrB = b.diasAtraso || 0;
+      return sortAsc ? atrA - atrB : atrB - atrA;
+    });
     return result;
-  }, [records, filters, activeVencimento]);
+  }, [records, filters, activeVencimento, sortAsc]);
 
   // Contadores por vencimento (para badges nas abas)
   const vencimentoCounts = useMemo(() => {
@@ -124,7 +145,10 @@ export default function SuspensosPage() {
         const val = parseFloat(r.valorRecebido.replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
         return sum + val;
       }, 0);
-    return { totalPlacas, valorReceber, valorRecebidoOk };
+    const filaDisponivel = records.filter((r) => !r.atendente).length;
+    const emAtendimento = records.filter((r) => !!r.atendente).length;
+    const convertidosHoje = records.filter((r) => r.conferencia === "OK").length;
+    return { totalPlacas, valorReceber, valorRecebidoOk, filaDisponivel, emAtendimento, convertidosHoje };
   }, [records, totalReal]);
 
   // Unique atendentes for filter
@@ -135,6 +159,14 @@ export default function SuspensosPage() {
 
 
   // Handlers
+  const openWhatsApp = (telefone: string) => {
+    if (!telefone) return;
+    const cleanPhone = telefone.replace(/[^\d]/g, "");
+    if (cleanPhone.length >= 10) {
+      window.open(`https://wa.me/55${cleanPhone}`, "_blank");
+    }
+  };
+
   const handleIniciarAtendimento = async (record: Suspenso) => {
     if (record.atendente && record.atendente !== user?.nome) {
       alert(`Registro travado por: ${record.atendente}`);
@@ -162,6 +194,10 @@ export default function SuspensosPage() {
       if (data.success) {
         setShowAtendimento({ ...record, atendente: user?.nome || "" });
         fetchSuspensos(true);
+        // Open WhatsApp with associado phone number
+        if (record.telefone) {
+          openWhatsApp(record.telefone);
+        }
       } else {
         fetchSuspensos(true);
       }
@@ -227,6 +263,19 @@ export default function SuspensosPage() {
       });
       fetchSuspensos(true);
     } catch (e) { console.error(e); fetchSuspensos(true); }
+  };
+
+  // Auto-distribution: pick highest priority (most overdue) record without atendente
+  const handleProximoDaFila = async () => {
+    const disponivel = [...records]
+      .filter((r) => !r.atendente)
+      .sort((a, b) => (b.diasAtraso || 0) - (a.diasAtraso || 0));
+    if (disponivel.length === 0) {
+      alert("Nenhum registro disponivel na fila.");
+      return;
+    }
+    const proximo = disponivel[0];
+    await handleIniciarAtendimento(proximo);
   };
 
 
@@ -331,16 +380,22 @@ export default function SuspensosPage() {
         </div>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      {/* KPI Cards - 6 mini-cards in 2 rows */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {/* Row 1 */}
         <div className="kpi-card border-l-2 border-l-cyan-500">
-          <span className="text-xs text-gray-500 uppercase">Total de Suspensos</span>
-          <span className="text-2xl font-bold text-cyan-400">{totalReal.toLocaleString("pt-BR")}</span>
+          <span className="text-xs text-gray-500 uppercase">Total Suspensos</span>
+          <span className="text-2xl font-bold text-cyan-400">{(totalReal || records.length).toLocaleString("pt-BR")}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-blue-500">
-          <span className="text-xs text-gray-500 uppercase">Qtd. Placas</span>
-          <span className="text-2xl font-bold text-blue-400">{kpis.totalPlacas.toLocaleString("pt-BR")}</span>
+          <span className="text-xs text-gray-500 uppercase">Fila Disponivel</span>
+          <span className="text-2xl font-bold text-blue-400">{kpis.filaDisponivel.toLocaleString("pt-BR")}</span>
         </div>
+        <div className="kpi-card border-l-2 border-l-purple-500">
+          <span className="text-xs text-gray-500 uppercase">Em Atendimento</span>
+          <span className="text-2xl font-bold text-purple-400">{kpis.emAtendimento.toLocaleString("pt-BR")}</span>
+        </div>
+        {/* Row 2 */}
         <div className="kpi-card border-l-2 border-l-yellow-500">
           <span className="text-xs text-gray-500 uppercase">Valores a Receber</span>
           <span className="text-2xl font-bold text-yellow-400">{formatCurrency(kpis.valorReceber)}</span>
@@ -348,6 +403,10 @@ export default function SuspensosPage() {
         <div className="kpi-card border-l-2 border-l-green-500">
           <span className="text-xs text-gray-500 uppercase">Valor Recebido (OK)</span>
           <span className="text-2xl font-bold text-green-400">{formatCurrency(kpis.valorRecebidoOk)}</span>
+        </div>
+        <div className="kpi-card border-l-2 border-l-emerald-500">
+          <span className="text-xs text-gray-500 uppercase">Convertidos Hoje</span>
+          <span className="text-2xl font-bold text-emerald-400">{kpis.convertidosHoje.toLocaleString("pt-BR")}</span>
         </div>
       </div>
 
@@ -385,6 +444,23 @@ export default function SuspensosPage() {
             className="input-field pl-10"
           />
         </div>
+        <button
+          onClick={handleProximoDaFila}
+          disabled={submitting}
+          className="px-3 py-2 text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-700/50 rounded-lg hover:bg-emerald-900/50 transition-colors disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+          title="Atribuir automaticamente o proximo registro mais atrasado"
+        >
+          <Zap className="w-3.5 h-3.5" />
+          Proximo da Fila
+        </button>
+        <button
+          onClick={() => setSortAsc(!sortAsc)}
+          className="px-3 py-2 text-xs bg-gray-800 text-gray-300 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-1 whitespace-nowrap"
+          title={sortAsc ? "Ordenar: menos atrasado primeiro" : "Ordenar: mais atrasado primeiro"}
+        >
+          <ArrowUpDown className="w-3.5 h-3.5" />
+          {sortAsc ? "Menor Atraso" : "Maior Atraso"}
+        </button>
         <button onClick={() => setShowFilters(!showFilters)} className={`btn-secondary text-sm ${showFilters ? "bg-gray-700" : ""}`}>
           <Filter className="w-4 h-4 mr-1" /> Filtros
         </button>
@@ -393,7 +469,7 @@ export default function SuspensosPage() {
 
       {/* Advanced Filters */}
       {showFilters && (
-        <div className="card p-4 grid grid-cols-1 sm:grid-cols-4 gap-3 animate-fade-in">
+        <div className="card p-4 grid grid-cols-1 sm:grid-cols-5 gap-3 animate-fade-in">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Situacao</label>
             <select value={filters.situacao} onChange={(e) => setFilters((f) => ({ ...f, situacao: e.target.value }))} className="input-field text-sm">
@@ -429,6 +505,15 @@ export default function SuspensosPage() {
               <option value="Verificar">Verificar</option>
             </select>
           </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Valor (Segmento)</label>
+            <select value={filters.valorSegmento} onChange={(e) => setFilters((f) => ({ ...f, valorSegmento: e.target.value }))} className="input-field text-sm">
+              <option value="">Todos</option>
+              <option value="alto">Alto Valor (&gt;R$200)</option>
+              <option value="medio">Medio (R$100-200)</option>
+              <option value="baixo">Baixo (&lt;R$100)</option>
+            </select>
+          </div>
         </div>
       )}
 
@@ -452,15 +537,16 @@ export default function SuspensosPage() {
             {/* Sticky header */}
             <div className="w-full text-sm">
               <div className="border-b border-gray-800 bg-gray-800/50 flex">
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[18%] min-w-[120px]">Associado</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px]">Placa</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[90px] hidden md:block">Vencimento</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[90px] hidden lg:block">Valor Orig.</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px] hidden lg:block">Valor Pago</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px]">Situacao</div>
-                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px] hidden md:block">Atendente</div>
-                <div className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px]">Acoes</div>
-                <div className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase w-[16%] min-w-[130px]">Conferencia</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[16%] min-w-[120px]">Associado</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[8%] min-w-[70px]">Placa</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[6%] min-w-[50px]">Atraso</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px] hidden md:block">Vencimento</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px] hidden lg:block">Valor Orig.</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[8%] min-w-[70px] hidden lg:block">Valor Pago</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[9%] min-w-[70px]">Situacao</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[9%] min-w-[70px] hidden md:block">Atendente</div>
+                <div className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[100px]">Acoes</div>
+                <div className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[100px]">Conferencia</div>
               </div>
               {/* Virtualized rows */}
               {/* Scrollable virtualized rows (CSS-based, no external deps) */}
@@ -470,24 +556,33 @@ export default function SuspensosPage() {
                     key={record.id}
                     className={`flex items-center h-12 border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${index % 2 === 0 ? "" : "bg-gray-800/10"}`}
                   >
-                    <div className="px-3 text-gray-200 font-medium w-[18%] min-w-[120px] truncate">{record.associado}</div>
-                    <div className="px-3 text-gray-400 font-mono text-xs w-[10%] min-w-[80px]">{record.placa}</div>
-                    <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden md:block">{record.dtVencimento}</div>
-                    <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden lg:block">{record.valorOriginal}</div>
-                    <div className="px-3 text-gray-400 w-[10%] min-w-[80px] hidden lg:block">
+                    <div className="px-3 text-gray-200 font-medium w-[16%] min-w-[120px] truncate">{record.associado}</div>
+                    <div className="px-3 text-gray-400 font-mono text-xs w-[8%] min-w-[70px]">{record.placa}</div>
+                    <div className="px-3 w-[6%] min-w-[50px]">
+                      <span className={`text-xs font-semibold ${
+                        (record.diasAtraso || 0) > 30 ? "text-red-400" :
+                        (record.diasAtraso || 0) > 15 ? "text-orange-400" :
+                        "text-yellow-400"
+                      }`}>
+                        {record.diasAtraso || 0}d
+                      </span>
+                    </div>
+                    <div className="px-3 text-gray-400 w-[10%] min-w-[80px] hidden md:block">{record.dtVencimento}</div>
+                    <div className="px-3 text-gray-400 w-[10%] min-w-[80px] hidden lg:block">{record.valorOriginal}</div>
+                    <div className="px-3 text-gray-400 w-[8%] min-w-[70px] hidden lg:block">
                       {record.valorRecebido ? (
                         <span className="text-emerald-400">{record.valorRecebido.startsWith("R$") ? record.valorRecebido : `R$ ${record.valorRecebido}`}</span>
                       ) : (
                         <span className="text-gray-600">-</span>
                       )}
                     </div>
-                    <div className="px-3 w-[10%] min-w-[80px]">
+                    <div className="px-3 w-[9%] min-w-[70px]">
                       {record.situacaoAeasy ? (
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[record.situacaoAeasy] || "bg-gray-800 text-gray-400"}`}>{record.situacaoAeasy}</span>
                       ) : <span className="text-gray-600 text-xs">-</span>}
                     </div>
-                    <div className="px-3 text-gray-400 w-[10%] min-w-[80px] hidden md:block truncate">{record.atendente || "-"}</div>
-                    <div className="px-3 w-[12%] min-w-[80px]">
+                    <div className="px-3 text-gray-400 w-[9%] min-w-[70px] hidden md:block truncate">{record.atendente || "-"}</div>
+                    <div className="px-3 w-[12%] min-w-[100px]">
                       <div className="flex items-center justify-center gap-1">
                         {!record.atendente ? (
                           <button
@@ -508,9 +603,18 @@ export default function SuspensosPage() {
                         ) : (
                           <span className="text-xs text-gray-500">Travado</span>
                         )}
+                        {record.telefone && (
+                          <button
+                            onClick={() => openWhatsApp(record.telefone)}
+                            className="p-1 text-xs text-green-400 hover:bg-green-900/30 rounded transition-colors"
+                            title={`WhatsApp: ${record.telefone}`}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="px-3 w-[16%] min-w-[130px]">
+                    <div className="px-3 w-[12%] min-w-[100px]">
                       <SwipeConfirm
                         isConfirmed={record.conferencia === "OK"}
                         onConfirm={() => handleConferencia(record, "OK")}

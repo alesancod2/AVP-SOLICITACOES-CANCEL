@@ -93,6 +93,8 @@ export interface Suspenso {
   atendente: string;
   observacoes: string;
   conferencia: ConferenciaStatus;
+  telefone: string;
+  diasAtraso: number;
 }
 
 // ---- AUDITORIA ----
@@ -245,6 +247,7 @@ export interface SuspensoFilters {
   formaPagamento: string;
   atendente: string;
   conferencia: string;
+  valorSegmento: string;
 }
 
 // ---- DASHBOARD ----
