@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Force dynamic rendering - bypass Vercel edge cache
+export const dynamic = "force-dynamic";
+
 // POST /api/suspensos/atendimento - Iniciar/Salvar/Liberar atendimento
 export async function POST(request: NextRequest) {
   try {

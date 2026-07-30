@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
+// Force dynamic rendering - bypass Vercel Data Cache
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // =============================================
-// CACHE EM MEMORIA (TTL 60s)
-// Evita queries repetidas ao Supabase em alta frequencia
+// CACHE EM MEMORIA (TTL 5s - operadores precisam de dados frescos)
 // =============================================
 interface CacheEntry {
   data: any[];
@@ -12,7 +15,7 @@ interface CacheEntry {
 }
 
 let suspensosCache: CacheEntry | null = null;
-const CACHE_TTL_MS = 60_000; // 60 segundos
+const CACHE_TTL_MS = 5_000; // 5 segundos - critico para operadores verem mudancas
 
 function getCachedData(): any[] | null {
   if (suspensosCache && Date.now() - suspensosCache.timestamp < CACHE_TTL_MS) {
@@ -48,7 +51,7 @@ export async function GET(request: NextRequest) {
     const cached = getCachedData();
     if (cached) {
       const response = NextResponse.json({ success: true, data: cached, total: cached.length, cached: true });
-      response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
       response.headers.set("X-Cache", "HIT");
       return response;
     }
@@ -117,7 +120,7 @@ export async function GET(request: NextRequest) {
     setCachedData(suspensos);
 
     const response = NextResponse.json({ success: true, data: suspensos, total: suspensos.length, cached: false });
-    response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
     response.headers.set("X-Cache", "MISS");
     return response;
   } catch (error: any) {
