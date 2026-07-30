@@ -613,7 +613,7 @@ function SwipeConfirm({ isConfirmed, onConfirm, onUndo, disabled }: { isConfirme
               </div>
             </div>
           </>
-        )}}
+        )}
       </div>
     );
   }
