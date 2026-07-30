@@ -10,7 +10,7 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Sync Suspensos from AEasy to Supabase
@@ -50,11 +50,8 @@ jobs:
             const sessionId = match[1];
             console.log("[sync] 2. Login OK:", sessionId.substring(0, 10) + "...");
 
-            // BUILD BODY - usar pageSize maior para reduzir requests
+            // BUILD BODY - sem limite de data, busca TODOS os suspensos
             function buildBody(start, length) {
-              const now = new Date();
-              const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-              const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
               const parts = [
                 `draw=1`, `start=${start}`, `length=${length}`,
                 `columns[0][data]=ClientesIndividuosNome`,
@@ -63,9 +60,6 @@ jobs:
                 `columns[0][search][value]=`, `columns[0][search][regex]=false`,
                 `order[0][column]=0`, `order[0][dir]=asc`,
                 `formPesquisa[VendasSituacao][]=2`,
-                `formPesquisa[TipoData]=VendasDataSuspensao`,
-                `formPesquisa[DataInicial]=${firstDay}`,
-                `formPesquisa[DataFinal]=${today}`,
                 `formPesquisa[submitFilter]=true`,
                 `formPesquisa[DepartNivel]=1`,
                 `formPesquisa[VendasVencimento][]=5`,
@@ -78,10 +72,11 @@ jobs:
               return parts.join("&");
             }
 
-            // FETCH SUSPENSOS - pagina com 500 registros por vez para pegar TODOS
-            console.log("[sync] 3. Buscando suspensos...");
+            // FETCH SUSPENSOS - busca TODOS sem limite de paginacao
+            // Usa pageSize 1000 para reduzir roundtrips
+            console.log("[sync] 3. Buscando TODOS os suspensos...");
             const allVendas = [];
-            const pageSize = 500;
+            const pageSize = 1000;
 
             const firstRes = await fetch(`${AEASY_URL}/vendas/listagem/`, {
               method: "POST",
@@ -98,9 +93,10 @@ jobs:
             allVendas.push(...(firstData.data || []));
             console.log(`[sync] Total registros na AEasy: ${total}. Pagina 1: ${firstData.data?.length || 0}`);
 
+            // Buscar TODAS as paginas restantes sem limite
             let start = pageSize;
             while (start < total) {
-              await new Promise(r => setTimeout(r, 400));
+              await new Promise(r => setTimeout(r, 300));
               const res = await fetch(`${AEASY_URL}/vendas/listagem/`, {
                 method: "POST",
                 headers: {
@@ -113,34 +109,22 @@ jobs:
               const page = await res.json();
               allVendas.push(...(page.data || []));
               start += pageSize;
-              console.log(`[sync]   ... pagina ${Math.ceil(start / pageSize)}: ${allVendas.length}/${total} registros`);
+              console.log(`[sync]   pagina ${Math.ceil(start / pageSize)}: ${allVendas.length}/${total}`);
             }
 
-            console.log(`[sync] 4. Total coletado da AEasy: ${allVendas.length}`);
+            console.log(`[sync] 4. Total coletado da AEasy: ${allVendas.length} (esperado: ${total})`);
 
             if (allVendas.length === 0) {
-              console.log("[sync] Nenhum suspenso encontrado. Limpando tabela...");
-              // Se AEasy nao retornou nenhum suspenso, todos voltaram a Ativo
-              await fetch(`${SUPABASE_URL}/rest/v1/suspensos?aeasy_venda_id=not.is.null`, {
-                method: "DELETE",
-                headers: {
-                  "apikey": SUPABASE_KEY,
-                  "Authorization": `Bearer ${SUPABASE_KEY}`,
-                },
-              });
+              console.log("[sync] Nenhum suspenso encontrado.");
+              // NAO limpar a tabela inteira se resultado vazio (pode ser erro de API)
+              // Apenas loga e sai
               return;
             }
 
             // MAPEAR + DEDUPLICAR
             const now = new Date();
             const mapped = allVendas.map(v => {
-              // Mapear situacao numerica da AEasy para texto legivel
-              const situacaoMap = {
-                "1": "Ativo",
-                "2": "Suspenso",
-                "3": "Cancelado",
-                "4": "Inadimplente",
-              };
+              const situacaoMap = { "1": "Ativo", "2": "Suspenso", "3": "Cancelado", "4": "Inadimplente" };
               const situacaoRaw = String(v.VendasSituacao || "2");
               const situacaoTexto = situacaoMap[situacaoRaw] || "Suspenso";
 
@@ -170,7 +154,7 @@ jobs:
               };
             });
 
-            // DEDUPLICAR por aeasy_venda_id (manter ultimo)
+            // DEDUPLICAR por aeasy_venda_id
             const dedupMap = new Map();
             for (const r of mapped) {
               dedupMap.set(r.aeasy_venda_id, r);
@@ -178,11 +162,10 @@ jobs:
             const records = Array.from(dedupMap.values());
             console.log(`[sync] 5. Apos dedup: ${records.length} unicos (de ${mapped.length})`);
 
-            // Coletar todos os aeasy_venda_ids atualmente suspensos
             const currentIds = records.map(r => r.aeasy_venda_id);
 
             // GRAVAR NO SUPABASE em lotes (upsert por aeasy_venda_id)
-            const batchSize = 200;
+            const batchSize = 500;
             let inserted = 0;
             let errors = 0;
 
@@ -202,7 +185,6 @@ jobs:
               if (!res.ok) {
                 const err = await res.text();
                 console.error(`[sync] Erro batch ${Math.floor(i / batchSize) + 1}: ${res.status} - ${err.substring(0, 200)}`);
-                // Tentar um por um
                 for (const rec of batch) {
                   const singleRes = await fetch(`${SUPABASE_URL}/rest/v1/suspensos`, {
                     method: "POST",
@@ -214,43 +196,36 @@ jobs:
                     },
                     body: JSON.stringify([rec]),
                   });
-                  if (singleRes.ok) {
-                    inserted++;
-                  } else {
-                    errors++;
-                    if (errors <= 3) {
-                      const e = await singleRes.text();
-                      console.error(`[sync]   Erro individual (${rec.aeasy_venda_id}): ${e.substring(0, 100)}`);
-                    }
-                  }
+                  if (singleRes.ok) inserted++;
+                  else errors++;
                 }
               } else {
                 inserted += batch.length;
               }
 
-              if ((i + batchSize) % 1000 === 0 || i + batchSize >= records.length) {
-                console.log(`[sync]   ... ${inserted} inseridos/atualizados, ${errors} erros`);
+              if ((i + batchSize) % 2000 === 0 || i + batchSize >= records.length) {
+                console.log(`[sync]   ... ${inserted} upserted, ${errors} erros`);
               }
             }
 
             console.log(`[sync] 6. Upsert completo: ${inserted} OK, ${errors} erros`);
 
             // =============================================
-            // REMOVER ASSOCIADOS QUE VOLTARAM A "ATIVO"
-            // Deleta registros no Supabase que NAO estao mais na lista da AEasy
-            // (apenas os que foram sincronizados previamente via aeasy_venda_id)
+            // AUTO-CLEANUP: Remover associados que voltaram a "Ativo"
+            // REGRA: So remove se NAO tem atendente designado
+            // Se tem atendente, mantem ate conclusao do fluxo humano
             // =============================================
-            console.log("[sync] 7. Removendo associados que voltaram a Ativo...");
+            console.log("[sync] 7. Auto-cleanup: removendo associados que voltaram a Ativo...");
 
-            // Buscar todos os aeasy_venda_ids existentes no DB
-            let existingIds = [];
+            // Buscar todos os registros existentes no DB (id, aeasy_venda_id, atendente)
+            let existingRecords = [];
             let dbFrom = 0;
-            const dbPageSize = 1000;
+            const dbPageSize = 5000;
             let dbHasMore = true;
 
             while (dbHasMore) {
               const dbRes = await fetch(
-                `${SUPABASE_URL}/rest/v1/suspensos?select=aeasy_venda_id&aeasy_venda_id=not.is.null&offset=${dbFrom}&limit=${dbPageSize}`,
+                `${SUPABASE_URL}/rest/v1/suspensos?select=aeasy_venda_id,atendente&aeasy_venda_id=not.is.null&offset=${dbFrom}&limit=${dbPageSize}`,
                 {
                   headers: {
                     "apikey": SUPABASE_KEY,
@@ -260,7 +235,7 @@ jobs:
               );
               const dbData = await dbRes.json();
               if (dbData && dbData.length > 0) {
-                existingIds.push(...dbData.map(r => r.aeasy_venda_id));
+                existingRecords.push(...dbData);
                 dbFrom += dbPageSize;
                 dbHasMore = dbData.length === dbPageSize;
               } else {
@@ -268,13 +243,28 @@ jobs:
               }
             }
 
-            // IDs que estao no DB mas NAO vieram da AEasy = voltaram a Ativo
+            // IDs no DB que NAO vieram da AEasy = voltaram a Ativo
             const currentIdSet = new Set(currentIds);
-            const idsToRemove = existingIds.filter(id => !currentIdSet.has(id));
+            const toRemove = existingRecords.filter(r => {
+              const notInAeasy = !currentIdSet.has(r.aeasy_venda_id);
+              const noAtendente = !r.atendente || r.atendente.trim() === "";
+              // So remove se: nao esta mais na AEasy E nao tem atendente
+              return notInAeasy && noAtendente;
+            });
+
+            const idsToRemove = toRemove.map(r => r.aeasy_venda_id);
+
+            // Registros que voltaram a Ativo MAS tem atendente (manter)
+            const kept = existingRecords.filter(r => {
+              return !currentIdSet.has(r.aeasy_venda_id) && r.atendente && r.atendente.trim() !== "";
+            });
+
+            if (kept.length > 0) {
+              console.log(`[sync]   ${kept.length} registro(s) voltaram a Ativo mas TEM atendente - MANTIDOS na fila`);
+            }
 
             if (idsToRemove.length > 0) {
-              console.log(`[sync]   Removendo ${idsToRemove.length} registros que voltaram a Ativo...`);
-              // Deletar em lotes de 100 (limitacao URL do PostgREST)
+              console.log(`[sync]   Removendo ${idsToRemove.length} registros sem atendente que voltaram a Ativo...`);
               for (let i = 0; i < idsToRemove.length; i += 50) {
                 const batch = idsToRemove.slice(i, i + 50);
                 const idsParam = batch.map(id => `"${id}"`).join(",");
@@ -293,12 +283,12 @@ jobs:
                   console.error(`[sync]   Erro ao remover batch: ${err.substring(0, 100)}`);
                 }
               }
-              console.log(`[sync]   ${idsToRemove.length} registros removidos (voltaram a Ativo)`);
+              console.log(`[sync]   ${idsToRemove.length} removidos`);
             } else {
               console.log("[sync]   Nenhum registro para remover.");
             }
 
-            console.log(`[sync] 8. CONCLUIDO! ${inserted} sincronizados, ${idsToRemove.length} removidos (ativos)`);
+            console.log(`[sync] 8. CONCLUIDO! ${inserted} sync, ${idsToRemove.length} removidos, ${kept.length} mantidos (em atendimento)`);
 
             // LOG
             await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
@@ -314,7 +304,7 @@ jobs:
                 perfil: "System",
                 acao: "Sync AEasy Suspensos",
                 campo: "quantidade",
-                depois: `${inserted} sincronizados, ${idsToRemove.length} removidos`,
+                depois: `${inserted} sync, ${idsToRemove.length} removidos, ${kept.length} mantidos`,
               }),
             });
           }
