@@ -50,17 +50,25 @@ export async function GET(request: NextRequest) {
     // Tentar cache primeiro
     const cached = getCachedData();
     if (cached) {
-      const response = NextResponse.json({ success: true, data: cached, total: cached.length, cached: true });
+      const response = NextResponse.json({ success: true, data: cached, total: cached.length, totalReal: cached.length, cached: true });
       response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
       response.headers.set("X-Cache", "HIT");
       return response;
     }
 
-    // Cache miss: buscar do Supabase (paginado, sem limite de 1000)
+    // Cache miss: buscar do Supabase - TODOS os registros sem limite
     const admin = createAdminClient();
+
+    // Primeiro, buscar a contagem total real do banco (para KPI)
+    const { count: totalCount } = await admin
+      .from("suspensos")
+      .select("*", { count: "exact", head: true })
+      .not("aeasy_venda_id", "is", null);
+
+    // Buscar todos os registros (paginacao interna sem limite)
     let allData: any[] = [];
     let from = 0;
-    const pageSize = 1000;
+    const pageSize = 5000; // Buscar em lotes maiores para performance
     let hasMore = true;
 
     while (hasMore) {
@@ -119,7 +127,13 @@ export async function GET(request: NextRequest) {
     // Salvar no cache
     setCachedData(suspensos);
 
-    const response = NextResponse.json({ success: true, data: suspensos, total: suspensos.length, cached: false });
+    const response = NextResponse.json({
+      success: true,
+      data: suspensos,
+      total: suspensos.length,
+      totalReal: totalCount || suspensos.length,
+      cached: false,
+    });
     response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
     response.headers.set("X-Cache", "MISS");
     return response;
