@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Suspenso, SuspensoFilters, STATUS_COLORS, SituacaoAeasy } from "@/lib/types";
 import {
@@ -49,22 +49,32 @@ export default function SuspensosPage() {
     dtRecebimento: new Date().toLocaleDateString("pt-BR"),
   });
 
-  const fetchSuspensos = useCallback(async () => {
-    setLoading(true);
+  const fetchSuspensos = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch("/api/suspensos", {
         headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
       });
       const data = await res.json();
       if (data.success) setRecords(data.data || []);
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [token]);
 
+  // Initial fetch
   useEffect(() => { fetchSuspensos(); }, [fetchSuspensos]);
+
+  // Polling every 5 seconds for real-time sync between operators
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchSuspensos(true); // silent refresh (no loading spinner)
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchSuspensos]);
 
 
   // Client-side filtering
@@ -126,19 +136,25 @@ export default function SuspensosPage() {
       alert(`Registro travado por: ${record.atendente}`);
       return;
     }
+    // Optimistic UI: update state immediately
+    setRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, atendente: user?.nome || "" } : r));
     setSubmitting(true);
     try {
       const res = await fetch("/api/suspensos/atendimento", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id: record.id, action: "iniciar" }),
+        cache: "no-store",
       });
       const data = await res.json();
       if (data.success) {
         setShowAtendimento({ ...record, atendente: user?.nome || "" });
-        fetchSuspensos();
+        fetchSuspensos(true); // silent refresh to sync
+      } else {
+        // Revert optimistic update on failure
+        fetchSuspensos(true);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); fetchSuspensos(true); }
     finally { setSubmitting(false); }
   };
 
@@ -175,14 +191,17 @@ export default function SuspensosPage() {
   };
 
   const handleConferencia = async (record: Suspenso, value: string) => {
+    // Optimistic UI: update immediately
+    setRecords((prev) => prev.map((r) => r.id === record.id ? { ...r, conferencia: value as any } : r));
     try {
       await fetch("/api/suspensos", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id: record.id, conferencia: value }),
+        cache: "no-store",
       });
-      fetchSuspensos();
-    } catch (e) { console.error(e); }
+      fetchSuspensos(true); // silent refresh
+    } catch (e) { console.error(e); fetchSuspensos(true); }
   };
 
 
@@ -408,6 +427,7 @@ export default function SuspensosPage() {
                 <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px]">Placa</div>
                 <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[90px] hidden md:block">Vencimento</div>
                 <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[90px] hidden lg:block">Valor Orig.</div>
+                <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px] hidden lg:block">Valor Pago</div>
                 <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px]">Situacao</div>
                 <div className="px-3 py-3 text-left text-xs font-medium text-gray-400 uppercase w-[10%] min-w-[80px] hidden md:block">Atendente</div>
                 <div className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase w-[12%] min-w-[80px]">Acoes</div>
@@ -425,6 +445,13 @@ export default function SuspensosPage() {
                     <div className="px-3 text-gray-400 font-mono text-xs w-[10%] min-w-[80px]">{record.placa}</div>
                     <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden md:block">{record.dtVencimento}</div>
                     <div className="px-3 text-gray-400 w-[12%] min-w-[90px] hidden lg:block">{record.valorOriginal}</div>
+                    <div className="px-3 text-gray-400 w-[10%] min-w-[80px] hidden lg:block">
+                      {record.valorRecebido ? (
+                        <span className="text-emerald-400">{record.valorRecebido.startsWith("R$") ? record.valorRecebido : `R$ ${record.valorRecebido}`}</span>
+                      ) : (
+                        <span className="text-gray-600">-</span>
+                      )}
+                    </div>
                     <div className="px-3 w-[10%] min-w-[80px]">
                       {record.situacaoAeasy ? (
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[record.situacaoAeasy] || "bg-gray-800 text-gray-400"}`}>{record.situacaoAeasy}</span>
