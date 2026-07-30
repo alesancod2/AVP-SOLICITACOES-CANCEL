@@ -592,24 +592,28 @@ function SwipeConfirm({ isConfirmed, onConfirm, onUndo, disabled }: { isConfirme
         </span>
         {/* Undo Confirmation Popup */}
         {showUndoPopup && (
-          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-3 w-48 animate-fade-in">
-            <p className="text-xs text-gray-300 mb-2 text-center">Remover conferencia?</p>
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => { setShowUndoPopup(false); setConfirmed(false); onUndo(); }}
-                className="px-3 py-1 text-xs bg-red-900/40 text-red-400 border border-red-700/50 rounded-md hover:bg-red-900/60 transition-colors"
-              >
-                Sim
-              </button>
-              <button
-                onClick={() => setShowUndoPopup(false)}
-                className="px-3 py-1 text-xs bg-gray-800 text-gray-400 border border-gray-700 rounded-md hover:bg-gray-700 transition-colors"
-              >
-                Nao
-              </button>
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setShowUndoPopup(false)} />
+            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-4 w-56 animate-fade-in">
+              <p className="text-sm text-gray-200 mb-3 text-center font-medium">Remover conferencia?</p>
+              <p className="text-xs text-gray-500 mb-3 text-center">O status voltara para pendente.</p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={() => { setShowUndoPopup(false); setConfirmed(false); onUndo(); }}
+                  className="px-4 py-1.5 text-xs font-medium bg-red-900/40 text-red-400 border border-red-700/50 rounded-md hover:bg-red-900/60 transition-colors"
+                >
+                  Sim, remover
+                </button>
+                <button
+                  onClick={() => setShowUndoPopup(false)}
+                  className="px-4 py-1.5 text-xs font-medium bg-gray-800 text-gray-400 border border-gray-700 rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          </>
+        )}}
       </div>
     );
   }
