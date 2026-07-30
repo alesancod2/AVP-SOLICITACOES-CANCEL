@@ -27,6 +27,7 @@ export default function SuspensosPage() {
   const [submitting, setSubmitting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [activeVencimento, setActiveVencimento] = useState<string>("todos");
 
 
   const [filters, setFilters] = useState<SuspensoFilters>({
@@ -69,6 +70,10 @@ export default function SuspensosPage() {
   // Client-side filtering
   const filteredRecords = useMemo(() => {
     let result = [...records];
+    // Filtro por aba de vencimento
+    if (activeVencimento !== "todos") {
+      result = result.filter((r) => r.diaVencimento === activeVencimento);
+    }
     if (filters.busca) {
       const q = filters.busca.toLowerCase();
       result = result.filter(
@@ -80,7 +85,17 @@ export default function SuspensosPage() {
     if (filters.atendente) result = result.filter((r) => r.atendente === filters.atendente);
     if (filters.conferencia) result = result.filter((r) => r.conferencia === filters.conferencia);
     return result;
-  }, [records, filters]);
+  }, [records, filters, activeVencimento]);
+
+  // Contadores por vencimento (para badges nas abas)
+  const vencimentoCounts = useMemo(() => {
+    const counts: Record<string, number> = { todos: records.length };
+    for (const r of records) {
+      const v = r.diaVencimento || "?";
+      counts[v] = (counts[v] || 0) + 1;
+    }
+    return counts;
+  }, [records]);
 
   // KPI cards for suspensos
   const kpis = useMemo(() => {
@@ -288,6 +303,28 @@ export default function SuspensosPage() {
         </div>
       </div>
 
+      {/* Vencimento Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {["todos", "5", "10", "15", "20", "25", "30"].map((v) => (
+          <button
+            key={v}
+            onClick={() => setActiveVencimento(v)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
+              activeVencimento === v
+                ? "bg-emerald-600/20 text-emerald-400 border border-emerald-700/50"
+                : "bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700 hover:text-gray-200"
+            }`}
+          >
+            {v === "todos" ? "Todos" : `Dia ${v}`}
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              activeVencimento === v ? "bg-emerald-700/50 text-emerald-300" : "bg-gray-700 text-gray-500"
+            }`}>
+              {vencimentoCounts[v] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">
@@ -348,6 +385,11 @@ export default function SuspensosPage() {
           </div>
         </div>
       )}
+
+      {/* Results count */}
+      <div className="text-xs text-gray-500">
+        {filteredRecords.length} registro(s) {activeVencimento !== "todos" ? `(vencimento dia ${activeVencimento})` : "(todos)"}
+      </div>
 
       {/* Table */}
       {loading ? (
