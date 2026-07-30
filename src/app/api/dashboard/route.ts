@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { KPIData, ProdutividadeAtendente, DailyEvolution } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/dashboard
 export async function GET(request: NextRequest) {
   try {
