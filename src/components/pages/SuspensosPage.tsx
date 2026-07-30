@@ -72,11 +72,11 @@ export default function SuspensosPage() {
   // Initial fetch
   useEffect(() => { fetchSuspensos(); }, [fetchSuspensos]);
 
-  // Polling every 5 seconds for real-time sync between operators
+  // Polling every 3 seconds for real-time sync between operators
   useEffect(() => {
     const interval = setInterval(() => {
       fetchSuspensos(true); // silent refresh (no loading spinner)
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [fetchSuspensos]);
 
@@ -151,11 +151,18 @@ export default function SuspensosPage() {
         cache: "no-store",
       });
       const data = await res.json();
+
+      if (res.status === 409) {
+        // CONFLICT: outro operador pegou este registro
+        alert(`Conflito: ${data.error || "Registro ja em atendimento por outro operador."}`);
+        fetchSuspensos(true); // refresh para mostrar estado real
+        return;
+      }
+
       if (data.success) {
         setShowAtendimento({ ...record, atendente: user?.nome || "" });
-        fetchSuspensos(true); // silent refresh to sync
+        fetchSuspensos(true);
       } else {
-        // Revert optimistic update on failure
         fetchSuspensos(true);
       }
     } catch (e) { console.error(e); fetchSuspensos(true); }
@@ -325,10 +332,14 @@ export default function SuspensosPage() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div className="kpi-card border-l-2 border-l-cyan-500">
+          <span className="text-xs text-gray-500 uppercase">Total de Suspensos</span>
+          <span className="text-2xl font-bold text-cyan-400">{totalReal.toLocaleString("pt-BR")}</span>
+        </div>
         <div className="kpi-card border-l-2 border-l-blue-500">
           <span className="text-xs text-gray-500 uppercase">Qtd. Placas</span>
-          <span className="text-2xl font-bold text-blue-400">{kpis.totalPlacas}</span>
+          <span className="text-2xl font-bold text-blue-400">{kpis.totalPlacas.toLocaleString("pt-BR")}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-yellow-500">
           <span className="text-xs text-gray-500 uppercase">Valores a Receber</span>
