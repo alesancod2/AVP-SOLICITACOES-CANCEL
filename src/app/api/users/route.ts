@@ -245,3 +245,84 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+// DELETE /api/users - Excluir usuario (Supabase Auth + tabela usuarios)
+export async function DELETE(request: NextRequest) {
+  const adminUser = await validateAdmin(request);
+  if (!adminUser) {
+    return NextResponse.json(
+      { success: false, error: "Acesso negado" },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "ID do usuario e obrigatorio" },
+        { status: 400 }
+      );
+    }
+
+    const admin = createAdminClient();
+
+    // Buscar usuario para obter dados antes de excluir
+    const { data: usuario, error: fetchError } = await admin
+      .from("usuarios")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !usuario) {
+      return NextResponse.json(
+        { success: false, error: "Usuario nao encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Impedir exclusao do proprio admin logado
+    if (usuario.email === adminUser.email) {
+      return NextResponse.json(
+        { success: false, error: "Voce nao pode excluir sua propria conta" },
+        { status: 400 }
+      );
+    }
+
+    // 1. Excluir do Supabase Auth (se auth_user_id existir)
+    if (usuario.auth_user_id) {
+      const { error: authError } = await admin.auth.admin.deleteUser(usuario.auth_user_id);
+      if (authError) {
+        console.error("Erro ao excluir do Auth:", authError.message);
+        // Continua para excluir da tabela mesmo se Auth falhar
+      }
+    }
+
+    // 2. Excluir da tabela usuarios
+    const { error: deleteError } = await admin
+      .from("usuarios")
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) throw new Error(deleteError.message);
+
+    // Log
+    await admin.from("logs").insert({
+      usuario: adminUser.nome,
+      email: adminUser.email,
+      perfil: adminUser.perfil,
+      acao: "Excluir Usuario",
+      campo: "email",
+      antes: `${usuario.nome} (${usuario.email})`,
+    });
+
+    return NextResponse.json({ success: true, data: { message: "Usuario excluido com sucesso" } });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}

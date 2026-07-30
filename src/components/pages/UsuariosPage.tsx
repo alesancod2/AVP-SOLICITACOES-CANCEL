@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, UserPermissions } from "@/lib/types";
-import { Plus, Edit3, X, Shield, UserCheck, UserX } from "lucide-react";
+import { Plus, Edit3, X, Shield, UserCheck, UserX, Trash2 } from "lucide-react";
 
 export default function UsuariosPage() {
   const { token, isAdmin } = useAuth();
@@ -89,6 +89,29 @@ export default function UsuariosPage() {
     } catch (e) { console.error(e); }
   };
 
+  const handleDelete = async (user: User) => {
+    const confirmed = window.confirm(
+      `Tem certeza que deseja EXCLUIR permanentemente o usuario "${user.nome}" (${user.email})?\n\nEsta acao nao pode ser desfeita. O usuario sera removido do sistema e do Supabase Auth.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/users?id=${user.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchUsers();
+      } else {
+        alert(data.error || "Erro ao excluir usuario");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao excluir usuario");
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="card p-12 text-center">
@@ -157,6 +180,9 @@ export default function UsuariosPage() {
                         </button>
                         <button onClick={() => handleToggleStatus(u)} className={`p-1.5 rounded-lg ${u.status === "Ativo" ? "text-red-400 hover:bg-red-900/30" : "text-green-400 hover:bg-green-900/30"}`} title={u.status === "Ativo" ? "Desativar" : "Ativar"}>
                           {u.status === "Ativo" ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                        </button>
+                        <button onClick={() => handleDelete(u)} className="p-1.5 text-red-500 hover:bg-red-900/30 rounded-lg" title="Excluir permanentemente">
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
