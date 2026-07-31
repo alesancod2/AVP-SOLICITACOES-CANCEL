@@ -135,24 +135,31 @@ export default function SuspensosPage() {
   // KPI cards for suspensos - responsivos ao filtro de vencimento
   const kpis = useMemo(() => {
     const totalPlacas = totalReal || records.length;
-    // Valores calculados sobre os registros FILTRADOS (respondem ao vencimento selecionado)
-    const baseRecords = filteredRecords;
-    const valorReceber = baseRecords.reduce((sum, r) => {
+
+    // Fila e Meus calculam sobre TODOS os records (nao afetados por filtro de atendente)
+    // Aplicar apenas filtro de vencimento para estes contadores
+    const recordsPorVencimento = activeVencimento !== "todos"
+      ? records.filter((r) => r.diaVencimento === activeVencimento)
+      : records;
+
+    const filaDisponivel = recordsPorVencimento.filter((r) => !r.atendente).length;
+    const meusAtendimentos = records.filter((r) => r.atendente === user?.nome).length;
+    const convertidosHoje = recordsPorVencimento.filter((r) => r.conferencia === "OK").length;
+
+    // Valores monetarios calculam sobre registros FILTRADOS (respondem a todos os filtros ativos)
+    const valorReceber = filteredRecords.reduce((sum, r) => {
       const val = parseFloat((r.valorOriginal ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
       return sum + val;
     }, 0);
-    const valorRecebidoOk = baseRecords
+    const valorRecebidoOk = filteredRecords
       .filter((r) => r.conferencia === "OK")
       .reduce((sum, r) => {
         const val = parseFloat((r.valorRecebido ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || 0;
         return sum + val;
       }, 0);
-    const filaDisponivel = baseRecords.filter((r) => !r.atendente).length;
-    const emAtendimento = baseRecords.filter((r) => !!r.atendente).length;
-    const convertidosHoje = baseRecords.filter((r) => r.conferencia === "OK").length;
-    const meusAtendimentos = records.filter((r) => r.atendente === user?.nome).length;
-    return { totalPlacas, valorReceber, valorRecebidoOk, filaDisponivel, emAtendimento, convertidosHoje, meusAtendimentos };
-  }, [records, totalReal, filteredRecords, user?.nome]);
+
+    return { totalPlacas, valorReceber, valorRecebidoOk, filaDisponivel, meusAtendimentos, convertidosHoje };
+  }, [records, totalReal, filteredRecords, activeVencimento, user?.nome]);
 
   // Unique atendentes for filter
   const atendentes = useMemo(() => {
