@@ -19,7 +19,7 @@ export default function UsuariosPage() {
     email: "",
     senha: "",
     perfil: "User" as "Admin" | "User",
-    permissoes: { cancelamentos: true, suspensos: true, dashboard: true } as UserPermissions,
+    permissoes: { cancelamentos: true, suspensos: true, recuperacao: true, dashboard: true } as UserPermissions,
   });
 
   const fetchUsers = useCallback(async () => {
@@ -38,7 +38,7 @@ export default function UsuariosPage() {
 
   const handleCreate = () => {
     setEditingUser(null);
-    setFormData({ nome: "", email: "", senha: "", perfil: "User", permissoes: { cancelamentos: true, suspensos: true, dashboard: true } });
+    setFormData({ nome: "", email: "", senha: "", perfil: "User", permissoes: { cancelamentos: true, suspensos: true, recuperacao: true, dashboard: true } });
     setShowForm(true);
   };
 
