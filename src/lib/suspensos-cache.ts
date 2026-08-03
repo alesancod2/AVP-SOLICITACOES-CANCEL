@@ -1,8 +1,4 @@
-// =============================================
-// CACHE EM MEMORIA PARA SUSPENSOS (TTL 3s)
-// Compartilhado entre /api/suspensos e /api/suspensos/atendimento
-// para garantir invalidacao apos mutacoes
-// =============================================
+// Cache em memoria para suspensos (TTL 3s)
 
 interface CacheEntry {
   data: any[];
@@ -11,7 +7,7 @@ interface CacheEntry {
 }
 
 let suspensosCache: CacheEntry | null = null;
-const CACHE_TTL_MS = 3_000; // 3 segundos
+const CACHE_TTL_MS = 3_000;
 
 export function getCachedSuspensos(): CacheEntry | null {
   if (suspensosCache && Date.now() - suspensosCache.timestamp < CACHE_TTL_MS) {
