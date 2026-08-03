@@ -125,6 +125,7 @@ export async function GET(request: NextRequest) {
       modelo: row.modelo ?? "",
       aeasyVendaId: row.aeasy_venda_id ?? "",
       sincronizadoEm: row.sincronizado_em ?? "",
+      atualizadoEm: row.atualizado_em ?? "",
     }));
 
     // Cache
@@ -165,6 +166,22 @@ export async function PUT(request: NextRequest) {
     }
 
     const admin = createAdminClient();
+
+    // Verificar perfil do usuario para operacoes restritas
+    const { data: usuario } = await admin
+      .from("usuarios")
+      .select("nome, email, perfil")
+      .eq("email", session.user.email)
+      .single();
+
+    // Campo 'conferencia' so pode ser alterado por Admin
+    if (data.conferencia !== undefined && (!usuario || usuario.perfil !== "Admin")) {
+      return NextResponse.json(
+        { success: false, error: "Apenas administradores podem alterar a conferencia" },
+        { status: 403 }
+      );
+    }
+
     const updateData: Record<string, any> = {};
 
     if (data.dtRecebimento !== undefined) updateData.dt_recebimento = data.dtRecebimento;
@@ -187,12 +204,6 @@ export async function PUT(request: NextRequest) {
 
     invalidateSuspensosCache();
 
-    const { data: usuario } = await admin
-      .from("usuarios")
-      .select("nome, email, perfil")
-      .eq("email", session.user.email)
-      .single();
-
     if (usuario) {
       await admin.from("logs").insert({
         usuario: usuario.nome,
@@ -201,6 +212,23 @@ export async function PUT(request: NextRequest) {
         acao: "Atualizar Suspenso",
         registro_id: id,
       });
+    } else {
+      // Buscar usuario para log se nao foi carregado antes (caso sem campo conferencia)
+      const { data: usuarioLog } = await admin
+        .from("usuarios")
+        .select("nome, email, perfil")
+        .eq("email", session.user.email)
+        .single();
+
+      if (usuarioLog) {
+        await admin.from("logs").insert({
+          usuario: usuarioLog.nome,
+          email: usuarioLog.email,
+          perfil: usuarioLog.perfil,
+          acao: "Atualizar Suspenso",
+          registro_id: id,
+        });
+      }
     }
 
     return NextResponse.json({ success: true, data: { id: row.id } });
