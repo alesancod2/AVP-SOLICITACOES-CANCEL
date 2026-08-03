@@ -1,39 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getCachedSuspensos, setCachedSuspensos, invalidateSuspensosCache } from "@/lib/suspensos-cache";
 
 // Force dynamic rendering - bypass Vercel Data Cache
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// =============================================
-// CACHE EM MEMORIA (TTL 3s - real-time para operadores)
-// =============================================
-interface CacheEntry {
-  data: any[];
-  totalReal: number;
-  timestamp: number;
-}
-
-let suspensosCache: CacheEntry | null = null;
-const CACHE_TTL_MS = 3_000; // 3 segundos
-
-function getCachedData(): CacheEntry | null {
-  if (suspensosCache && Date.now() - suspensosCache.timestamp < CACHE_TTL_MS) {
-    return suspensosCache;
-  }
-  suspensosCache = null;
-  return null;
-}
-
-function setCachedData(data: any[], totalReal: number): void {
-  suspensosCache = { data, totalReal, timestamp: Date.now() };
-}
-
-// Invalida cache
-function invalidateSuspensosCache(): void {
-  suspensosCache = null;
-}
+// Cache functions imported from @/lib/suspensos-cache
 
 // =============================================
 // GET /api/suspensos - Busca TODOS os suspensos (sem limite)
@@ -49,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Tentar cache primeiro
-    const cached = getCachedData();
+    const cached = getCachedSuspensos();
     if (cached) {
       const response = NextResponse.json({
         success: true,
@@ -125,11 +99,12 @@ export async function GET(request: NextRequest) {
       modelo: row.modelo ?? "",
       aeasyVendaId: row.aeasy_venda_id ?? "",
       sincronizadoEm: row.sincronizado_em ?? "",
+      atualizadoEm: row.atualizado_em ?? "",
     }));
 
     // Cache
     const totalReal = totalCount ?? suspensos.length;
-    setCachedData(suspensos, totalReal);
+    setCachedSuspensos(suspensos, totalReal);
 
     const response = NextResponse.json({
       success: true,
@@ -165,6 +140,22 @@ export async function PUT(request: NextRequest) {
     }
 
     const admin = createAdminClient();
+
+    // Verificar perfil do usuario para operacoes restritas
+    const { data: usuario } = await admin
+      .from("usuarios")
+      .select("nome, email, perfil")
+      .eq("email", session.user.email)
+      .single();
+
+    // Campo 'conferencia' so pode ser alterado por Admin
+    if (data.conferencia !== undefined && (!usuario || usuario.perfil !== "Admin")) {
+      return NextResponse.json(
+        { success: false, error: "Apenas administradores podem alterar a conferencia" },
+        { status: 403 }
+      );
+    }
+
     const updateData: Record<string, any> = {};
 
     if (data.dtRecebimento !== undefined) updateData.dt_recebimento = data.dtRecebimento;
@@ -187,12 +178,6 @@ export async function PUT(request: NextRequest) {
 
     invalidateSuspensosCache();
 
-    const { data: usuario } = await admin
-      .from("usuarios")
-      .select("nome, email, perfil")
-      .eq("email", session.user.email)
-      .single();
-
     if (usuario) {
       await admin.from("logs").insert({
         usuario: usuario.nome,
@@ -201,6 +186,23 @@ export async function PUT(request: NextRequest) {
         acao: "Atualizar Suspenso",
         registro_id: id,
       });
+    } else {
+      // Buscar usuario para log se nao foi carregado antes (caso sem campo conferencia)
+      const { data: usuarioLog } = await admin
+        .from("usuarios")
+        .select("nome, email, perfil")
+        .eq("email", session.user.email)
+        .single();
+
+      if (usuarioLog) {
+        await admin.from("logs").insert({
+          usuario: usuarioLog.nome,
+          email: usuarioLog.email,
+          perfil: usuarioLog.perfil,
+          acao: "Atualizar Suspenso",
+          registro_id: id,
+        });
+      }
     }
 
     return NextResponse.json({ success: true, data: { id: row.id } });

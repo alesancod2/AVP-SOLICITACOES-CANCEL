@@ -44,6 +44,7 @@ export default function SuspensosPage() {
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
   const [activeVencimento, setActiveVencimento] = useState<string>("todos");
   const [sortAsc, setSortAsc] = useState(false); // false = desc (most overdue first)
+  const [visibleCount, setVisibleCount] = useState(100); // Progressive rendering: start with 100 rows
 
 
   const [filters, setFilters] = useState<SuspensoFilters>({
@@ -164,6 +165,16 @@ export default function SuspensosPage() {
     return result;
   }, [records, filters, activeVencimento, sortAsc]);
 
+  // Reset visible count when filters change (show first 100 again)
+  useEffect(() => {
+    setVisibleCount(100);
+  }, [filters, activeVencimento, sortAsc]);
+
+  // Records actually rendered in DOM (progressive load)
+  const visibleRecords = useMemo(() => {
+    return filteredRecords.slice(0, visibleCount);
+  }, [filteredRecords, visibleCount]);
+
   // Contadores por vencimento (para badges nas abas)
   const vencimentoCounts = useMemo(() => {
     const counts: Record<string, number> = { todos: records.length };
@@ -186,7 +197,22 @@ export default function SuspensosPage() {
 
     const filaDisponivel = recordsPorVencimento.filter((r) => !r.atendente).length;
     const meusAtendimentos = records.filter((r) => r.atendente === user?.nome).length;
-    const convertidosHoje = recordsPorVencimento.filter((r) => r.conferencia === "OK").length;
+
+    // Convertidos Hoje: filtra registros com conferencia OK que foram atualizados HOJE
+    const hoje = new Date().toLocaleDateString("pt-BR"); // dd/mm/yyyy
+    const hojeISO = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
+    const convertidosHoje = recordsPorVencimento.filter((r) => {
+      if (r.conferencia !== "OK") return false;
+      // Verifica se atualizado_em eh de hoje (formato ISO)
+      if (r.atualizadoEm) {
+        return r.atualizadoEm.startsWith(hojeISO);
+      }
+      // Fallback: verifica dt_recebimento (formato dd/mm/yyyy)
+      if (r.dtRecebimento) {
+        return r.dtRecebimento === hoje;
+      }
+      return false;
+    }).length;
 
     // Valores monetarios calculam sobre registros FILTRADOS (respondem a todos os filtros ativos)
     const valorReceber = filteredRecords.reduce((sum, r) => {
@@ -272,17 +298,20 @@ export default function SuspensosPage() {
     finally { setSubmitting(false); }
   };
 
-  const handleLiberarFila = async (record: Suspenso) => {
+  const [confirmLiberar, setConfirmLiberar] = useState<Suspenso | null>(null);
+
+  const handleLiberarFila = async (record: Suspenso, manterDados = false) => {
     setSubmitting(true);
     try {
+      const action = manterDados ? "liberar_manter" : "liberar";
       const res = await fetch("/api/suspensos/atendimento", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id: record.id, action: "liberar" }),
+        body: JSON.stringify({ id: record.id, action }),
       });
       if ((await res.json()).success) fetchSuspensos();
     } catch (e) { console.error(e); }
-    finally { setSubmitting(false); }
+    finally { setSubmitting(false); setConfirmLiberar(null); }
   };
 
   const handleConferencia = async (record: Suspenso, value: string) => {
@@ -567,6 +596,7 @@ export default function SuspensosPage() {
       {/* Results count */}
       <div className="text-xs text-gray-500">
         {filteredRecords.length} registro(s) {activeVencimento !== "todos" ? `(vencimento dia ${activeVencimento})` : "(todos)"}
+        {visibleCount < filteredRecords.length && <span className="text-gray-600"> — exibindo {visibleCount}</span>}
       </div>
 
       {/* Table */}
@@ -598,7 +628,7 @@ export default function SuspensosPage() {
               {/* Virtualized rows */}
               {/* Scrollable virtualized rows (CSS-based, no external deps) */}
               <div className="overflow-y-auto" style={{ maxHeight: "600px" }}>
-                {filteredRecords.map((record, index) => (
+                {visibleRecords.map((record, index) => (
                   <div
                     key={record.id}
                     className={`flex items-center h-12 border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${index % 2 === 0 ? "" : "bg-gray-800/10"}`}
@@ -641,7 +671,7 @@ export default function SuspensosPage() {
                           </button>
                         ) : record.atendente === user?.nome ? (
                           <button
-                            onClick={() => handleLiberarFila(record)}
+                            onClick={() => setConfirmLiberar(record)}
                             className="px-2 py-1 text-xs bg-yellow-900/30 text-yellow-400 border border-yellow-700/50 rounded-lg hover:bg-yellow-900/50 transition-colors"
                             disabled={submitting}
                           >
@@ -671,12 +701,75 @@ export default function SuspensosPage() {
                     </div>
                   </div>
                 ))}
+                {/* Show more button when there are hidden records */}
+                {visibleCount < filteredRecords.length && (
+                  <div className="flex items-center justify-center py-3 border-t border-gray-800/50">
+                    <button
+                      onClick={() => setVisibleCount((c) => c + 100)}
+                      className="px-4 py-2 text-xs font-medium bg-gray-800 text-gray-300 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Mostrar mais ({filteredRecords.length - visibleCount} restantes)
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       )}
 
+
+      {/* Confirm Liberar Modal */}
+      {confirmLiberar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmLiberar(null)} />
+          <div className="relative bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-md w-full animate-fade-in">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-yellow-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-100">Liberar para Fila</h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  Deseja liberar <strong className="text-gray-200">{confirmLiberar.associado}</strong> de volta para a fila?
+                </p>
+                {(confirmLiberar.formaPagamento || confirmLiberar.valorRecebido || confirmLiberar.observacoes) && (
+                  <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
+                    <p className="text-xs text-yellow-400 font-medium mb-1">Dados preenchidos:</p>
+                    {confirmLiberar.formaPagamento && <p className="text-xs text-gray-400">Pgto: {confirmLiberar.formaPagamento}</p>}
+                    {confirmLiberar.valorRecebido && <p className="text-xs text-gray-400">Valor: {confirmLiberar.valorRecebido}</p>}
+                    {confirmLiberar.observacoes && <p className="text-xs text-gray-400">Obs: {confirmLiberar.observacoes.substring(0, 50)}...</p>}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 mt-6">
+              {(confirmLiberar.formaPagamento || confirmLiberar.valorRecebido || confirmLiberar.observacoes) && (
+                <button
+                  onClick={() => handleLiberarFila(confirmLiberar, true)}
+                  disabled={submitting}
+                  className="w-full px-4 py-2 text-sm font-medium bg-blue-900/30 text-blue-400 border border-blue-700/50 rounded-lg hover:bg-blue-900/50 transition-colors"
+                >
+                  {submitting ? "Liberando..." : "Liberar mas MANTER dados preenchidos"}
+                </button>
+              )}
+              <button
+                onClick={() => handleLiberarFila(confirmLiberar, false)}
+                disabled={submitting}
+                className="w-full px-4 py-2 text-sm font-medium bg-red-900/30 text-red-400 border border-red-700/50 rounded-lg hover:bg-red-900/50 transition-colors"
+              >
+                {submitting ? "Liberando..." : "Liberar e LIMPAR todos os dados"}
+              </button>
+              <button
+                onClick={() => setConfirmLiberar(null)}
+                className="w-full px-4 py-2 text-sm font-medium bg-gray-800 text-gray-400 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Voltar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import Modal */}
       {showImport && (
@@ -736,7 +829,7 @@ export default function SuspensosPage() {
                 </button>
                 <button
                   onClick={() => {
-                    if (showAtendimento) handleLiberarFila(showAtendimento);
+                    if (showAtendimento) setConfirmLiberar(showAtendimento);
                     setShowAtendimento(null);
                     setAtendForm({ formaPagamento: "", valorRecebido: "", observacoes: "", dtRecebimento: new Date().toLocaleDateString("pt-BR") });
                   }}
@@ -888,11 +981,25 @@ function ImportModal({ onClose, onImport, loading }: { onClose: () => void; onIm
     if (!file) return;
     setFileName(file.name);
     setError("");
+    setImportData([]);
+
+    // Validar tamanho maximo (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Arquivo muito grande. Maximo permitido: 5MB.");
+      return;
+    }
 
     const reader = new FileReader();
+    reader.onerror = () => {
+      setError("Erro ao ler o arquivo. Tente novamente ou use outro arquivo.");
+    };
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
+        if (!text || text.trim().length === 0) {
+          setError("Arquivo vazio ou impossivel de ler.");
+          return;
+        }
         const lines = text.split("\n").filter((l) => l.trim());
         if (lines.length < 2) {
           setError("Arquivo deve ter pelo menos um cabecalho e uma linha de dados");
@@ -911,9 +1018,14 @@ function ImportModal({ onClose, onImport, loading }: { onClose: () => void; onIm
           };
         }).filter((r) => r.associado && r.placa);
 
+        if (rows.length === 0) {
+          setError("Nenhum registro valido encontrado. Verifique se o CSV tem colunas: Associado; Placa; Vencimento; Valor");
+          return;
+        }
+
         setImportData(rows);
       } catch (err) {
-        setError("Erro ao processar arquivo. Verifique o formato.");
+        setError("Erro ao processar arquivo. Verifique se o formato e CSV com separador ; ou ,");
       }
     };
     reader.readAsText(file);
@@ -932,10 +1044,11 @@ function ImportModal({ onClose, onImport, loading }: { onClose: () => void; onIm
             Formato esperado (CSV): <strong className="text-gray-200">Associado; Placa; Vencimento; Valor Original</strong>
           </p>
           <div className="border-2 border-dashed border-gray-700 rounded-xl p-6 text-center">
-            <input type="file" accept=".csv,.txt,.xlsx" onChange={handleFileChange} className="hidden" id="file-upload" />
+            <input type="file" accept=".csv,.txt" onChange={handleFileChange} className="hidden" id="file-upload" />
             <label htmlFor="file-upload" className="cursor-pointer">
               <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2" />
               <p className="text-sm text-gray-400">{fileName || "Clique para selecionar arquivo CSV"}</p>
+              <p className="text-xs text-gray-600 mt-1">Formatos aceitos: .csv, .txt (separado por ; ou ,)</p>
             </label>
           </div>
           {error && <p className="text-sm text-red-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{error}</p>}

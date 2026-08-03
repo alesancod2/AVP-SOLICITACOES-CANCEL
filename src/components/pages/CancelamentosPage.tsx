@@ -57,7 +57,9 @@ export default function CancelamentosPage() {
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/cancelamentos?page=1&pageSize=5000`);
+      const res = await fetch(`/api/cancelamentos?page=1&pageSize=5000`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       if (data.success && data.data) {
         setAllRecords(data.data);
@@ -97,20 +99,34 @@ export default function CancelamentosPage() {
     if (filters.dataInicio) {
       result = result.filter((r) => {
         if (!r.dataCriacao) return false;
-        const [d, m, y] = r.dataCriacao.split("/").map(Number);
-        const recordDate = new Date(y, m - 1, d);
-        const filterDate = new Date(filters.dataInicio);
-        return recordDate >= filterDate;
+        try {
+          const parts = r.dataCriacao.split("/").map(Number);
+          if (parts.length !== 3 || parts.some(isNaN)) return false;
+          const [d, m, y] = parts;
+          const recordDate = new Date(y, m - 1, d);
+          if (isNaN(recordDate.getTime())) return false;
+          const filterDate = new Date(filters.dataInicio);
+          return recordDate >= filterDate;
+        } catch {
+          return false;
+        }
       });
     }
 
     if (filters.dataFim) {
       result = result.filter((r) => {
         if (!r.dataCriacao) return false;
-        const [d, m, y] = r.dataCriacao.split("/").map(Number);
-        const recordDate = new Date(y, m - 1, d);
-        const filterDate = new Date(filters.dataFim);
-        return recordDate <= filterDate;
+        try {
+          const parts = r.dataCriacao.split("/").map(Number);
+          if (parts.length !== 3 || parts.some(isNaN)) return false;
+          const [d, m, y] = parts;
+          const recordDate = new Date(y, m - 1, d);
+          if (isNaN(recordDate.getTime())) return false;
+          const filterDate = new Date(filters.dataFim);
+          return recordDate <= filterDate;
+        } catch {
+          return false;
+        }
       });
     }
 
@@ -186,7 +202,7 @@ export default function CancelamentosPage() {
       if (editingRecord) {
         const res = await fetch(`/api/cancelamentos/${editingRecord.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ data: formData }),
         });
         const data = await res.json();
@@ -197,7 +213,7 @@ export default function CancelamentosPage() {
       } else {
         const res = await fetch("/api/cancelamentos", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ data: { ...formData, atendente: user?.nome || formData.atendente } }),
         });
         const data = await res.json();
@@ -219,7 +235,7 @@ export default function CancelamentosPage() {
     try {
       const res = await fetch(
         `/api/cancelamentos/${deletingRecord.id}`,
-        { method: "DELETE" }
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
       if (data.success) {

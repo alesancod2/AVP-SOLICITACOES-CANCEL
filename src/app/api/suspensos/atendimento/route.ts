@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { invalidateSuspensosCache } from "@/lib/suspensos-cache";
 
 // Force dynamic rendering - bypass Vercel edge cache
 export const dynamic = "force-dynamic";
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
         depois: usuario.nome,
       });
 
+      invalidateSuspensosCache();
       return NextResponse.json({ success: true, data: mapSuspenso(row) });
     }
 
@@ -156,6 +158,7 @@ export async function POST(request: NextRequest) {
         depois: `Pgto: ${dados.formaPagamento ?? "-"}, Valor: ${dados.valorRecebido ?? "-"}`,
       });
 
+      invalidateSuspensosCache();
       return NextResponse.json({ success: true, data: mapSuspenso(row) });
     }
 
@@ -185,11 +188,40 @@ export async function POST(request: NextRequest) {
         antes: usuario.nome,
       });
 
+      invalidateSuspensosCache();
+      return NextResponse.json({ success: true, data: mapSuspenso(row) });
+    }
+
+    if (action === "liberar_manter") {
+      // Libera o atendente mas MANTEM dados de pagamento preenchidos
+      const { data: row, error } = await admin
+        .from("suspensos")
+        .update({
+          atendente: "",
+          atualizado_em: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      await admin.from("logs").insert({
+        usuario: usuario.nome,
+        email: usuario.email,
+        perfil: usuario.perfil,
+        acao: "Liberar Suspenso (Manter Dados)",
+        registro_id: id,
+        antes: usuario.nome,
+        depois: "Dados de pagamento preservados",
+      });
+
+      invalidateSuspensosCache();
       return NextResponse.json({ success: true, data: mapSuspenso(row) });
     }
 
     return NextResponse.json(
-      { success: false, error: "Action invalida. Use: iniciar, salvar, liberar" },
+      { success: false, error: "Action invalida. Use: iniciar, salvar, liberar, liberar_manter" },
       { status: 400 }
     );
   } catch (error: any) {
