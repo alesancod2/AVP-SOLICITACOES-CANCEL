@@ -95,6 +95,7 @@ export interface Suspenso {
   conferencia: ConferenciaStatus;
   telefone: string;
   diasAtraso: number;
+  atualizadoEm: string;
 }
 
 // ---- AUDITORIA ----
