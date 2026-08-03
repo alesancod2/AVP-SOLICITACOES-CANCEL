@@ -1,14 +1,15 @@
 name: Sync AEasy Cancelados (Recuperacao)
 
 on:
+  # Executa diariamente as 7h BRT (10:00 UTC)
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 10 * * *'
   workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Sync Cancelados from AEasy to Supabase (tabela recuperacao)
@@ -45,14 +46,9 @@ jobs:
             const sessionId = match[1];
             console.log("[sync-cancelados] 2. Login OK");
 
-            // VendasSituacao=3 busca APENAS cancelados
-            // TipoData=VendasDataCancelamento filtra por DATA de cancelamento
-            // Busca cancelados dos ultimos 90 dias (periodo gerenciavel)
+            // Busca TODOS os cancelados - sem filtro de data, sem filtro de vencimento
+            // Cada contrato/placa tem VendasId unico na AEasy
             function buildBody(start, length) {
-              const now = new Date();
-              const dataFinal = now.toISOString().split("T")[0]; // hoje
-              const dataInicial = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]; // 90 dias atras
-
               const parts = [
                 `draw=1`, `start=${start}`, `length=${length}`,
                 `columns[0][data]=ClientesIndividuosNome`,
@@ -61,16 +57,13 @@ jobs:
                 `columns[0][search][value]=`, `columns[0][search][regex]=false`,
                 `order[0][column]=0`, `order[0][dir]=asc`,
                 `formPesquisa[VendasSituacao][]=3`,
-                `formPesquisa[TipoData]=VendasDataCancelamento`,
-                `formPesquisa[DataInicial]=${dataInicial}`,
-                `formPesquisa[DataFinal]=${dataFinal}`,
                 `formPesquisa[submitFilter]=true`,
                 `formPesquisa[DepartNivel]=1`,
               ];
               return parts.join("&");
             }
 
-            console.log("[sync-cancelados] 3. Buscando cancelados da AEasy...");
+            console.log("[sync-cancelados] 3. Buscando TODOS os cancelados da AEasy...");
             const allVendas = [];
             const pageSize = 1000;
 
@@ -87,7 +80,7 @@ jobs:
             const firstData = await firstRes.json();
             const total = parseInt(firstData.recordsFiltered || "0", 10);
             allVendas.push(...(firstData.data || []));
-            console.log(`[sync-cancelados] Total cancelados: ${total}. Pagina 1: ${firstData.data?.length || 0}`);
+            console.log(`[sync-cancelados] Total cancelados na AEasy: ${total}. Pagina 1: ${firstData.data?.length || 0}`);
 
             let start = pageSize;
             while (start < total) {
@@ -132,10 +125,12 @@ jobs:
               sincronizado_em: now.toISOString(),
             }));
 
+            // Dedup por aeasy_venda_id (cada contrato/placa tem ID unico)
             const dedupMap = new Map();
             for (const r of mapped) dedupMap.set(r.aeasy_venda_id, r);
             const records = Array.from(dedupMap.values());
-            console.log(`[sync-cancelados] 5. Dedup: ${records.length} unicos`);
+            const placasUnicas = new Set(records.map(r => r.placa)).size;
+            console.log(`[sync-cancelados] 5. Dedup: ${records.length} unicos | ${placasUnicas} placas distintas`);
 
             const batchSize = 500;
             let inserted = 0;
@@ -177,7 +172,8 @@ jobs:
 
             console.log(`[sync-cancelados] 6. Upsert: ${inserted} OK, ${errors} erros`);
 
-            // AUTO-CLEANUP: quem saiu de Cancelado E nao tem atendente
+            // Limpeza: remove quem saiu de Cancelado E nao tem atendente
+            console.log("[sync-cancelados] 7. Limpeza...");
             const currentIdSet = new Set(records.map(r => r.aeasy_venda_id));
             let existingRecords = [];
             let dbFrom = 0;
@@ -208,7 +204,7 @@ jobs:
               console.log(`[sync-cancelados]   ${toRemove.length} removidos`);
             }
 
-            console.log(`[sync-cancelados] 7. CONCLUIDO! ${inserted} sync, ${toRemove.length} removidos`);
+            console.log(`[sync-cancelados] 8. CONCLUIDO! ${inserted} inseridos, ${toRemove.length} removidos, ${placasUnicas} placas`);
 
             await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
               method: "POST",
@@ -219,7 +215,7 @@ jobs:
                 perfil: "System",
                 acao: "Sync AEasy Cancelados (Recuperacao)",
                 campo: "quantidade",
-                depois: `${inserted} sync, ${toRemove.length} removidos`,
+                depois: `${inserted} inseridos, ${toRemove.length} removidos, ${placasUnicas} placas`,
               }),
             });
           }
