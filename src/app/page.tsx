@@ -21,21 +21,25 @@ function AppContent() {
     const saved = localStorage.getItem("avp_sidebar_pinned");
     setSidebarPinned(saved === "true");
 
-    const handleStorage = () => {
-      const updated = localStorage.getItem("avp_sidebar_pinned");
-      setSidebarPinned(updated === "true");
+    // Listen for cross-tab changes via storage event
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "avp_sidebar_pinned") {
+        setSidebarPinned(e.newValue === "true");
+      }
+    };
+
+    // Listen for same-tab changes via custom event (dispatched by Sidebar)
+    const handlePinChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setSidebarPinned(detail?.pinned ?? false);
     };
 
     window.addEventListener("storage", handleStorage);
-    // Also poll for changes from same tab
-    const interval = setInterval(() => {
-      const updated = localStorage.getItem("avp_sidebar_pinned");
-      setSidebarPinned(updated === "true");
-    }, 500);
+    window.addEventListener("sidebar-pin-change", handlePinChange);
 
     return () => {
       window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
+      window.removeEventListener("sidebar-pin-change", handlePinChange);
     };
   }, []);
 

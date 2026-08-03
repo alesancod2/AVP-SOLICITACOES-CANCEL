@@ -139,7 +139,21 @@ jobs:
                 valor_original: v.VendasValor || "",
                 valor_contribuicao: v.VendasValor || "",
                 dia_vencimento: v.VendasVencimento || "",
-                dt_vencimento: `${(v.VendasVencimento || "10").padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`,
+                // Calcular proximo vencimento correto baseado no dia e dias de atraso
+                // Se tem atraso, o vencimento real eh no passado
+                dt_vencimento: (() => {
+                  const diaVenc = parseInt(v.VendasVencimento || "10", 10);
+                  const diasAtraso = parseInt(v.VendasDiasAtraso || "0", 10);
+                  if (diasAtraso > 0) {
+                    // Vencimento no passado: data atual - dias de atraso (aproximacao)
+                    const vencDate = new Date(now.getTime() - (diasAtraso * 24 * 60 * 60 * 1000));
+                    // Ajustar para o dia correto de vencimento naquele mes
+                    vencDate.setDate(diaVenc);
+                    return `${String(vencDate.getDate()).padStart(2, "0")}/${String(vencDate.getMonth() + 1).padStart(2, "0")}/${vencDate.getFullYear()}`;
+                  }
+                  // Sem atraso: vencimento no mes atual
+                  return `${String(diaVenc).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+                })(),
                 data_suspensao: v.VendasDataSuspensao || "",
                 dias_atraso: parseInt(v.VendasDiasAtraso || "0", 10),
                 faturas_pagas: parseInt(v.VendasQuantidadeFaturasPagas || "0", 10),
