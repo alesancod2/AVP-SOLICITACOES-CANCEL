@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { authenticateRequest } from "@/lib/api-auth";
+import { getCachedSuspensos, setCachedSuspensos, invalidateSuspensosCache } from "@/lib/suspensos-cache";
 
 // Force dynamic rendering - bypass Vercel Data Cache
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-// Cache functions imported from @/lib/suspensos-cache
 
 // =============================================
 // GET /api/suspensos - Busca TODOS os suspensos (sem limite)
