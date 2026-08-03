@@ -106,20 +106,34 @@ export default function CancelamentosPage() {
     if (filters.dataInicio) {
       result = result.filter((r) => {
         if (!r.dataCriacao) return false;
-        const [d, m, y] = r.dataCriacao.split("/").map(Number);
-        const recordDate = new Date(y, m - 1, d);
-        const filterDate = new Date(filters.dataInicio);
-        return recordDate >= filterDate;
+        try {
+          const parts = r.dataCriacao.split("/").map(Number);
+          if (parts.length !== 3 || parts.some(isNaN)) return false;
+          const [d, m, y] = parts;
+          const recordDate = new Date(y, m - 1, d);
+          if (isNaN(recordDate.getTime())) return false;
+          const filterDate = new Date(filters.dataInicio);
+          return recordDate >= filterDate;
+        } catch {
+          return false;
+        }
       });
     }
 
     if (filters.dataFim) {
       result = result.filter((r) => {
         if (!r.dataCriacao) return false;
-        const [d, m, y] = r.dataCriacao.split("/").map(Number);
-        const recordDate = new Date(y, m - 1, d);
-        const filterDate = new Date(filters.dataFim);
-        return recordDate <= filterDate;
+        try {
+          const parts = r.dataCriacao.split("/").map(Number);
+          if (parts.length !== 3 || parts.some(isNaN)) return false;
+          const [d, m, y] = parts;
+          const recordDate = new Date(y, m - 1, d);
+          if (isNaN(recordDate.getTime())) return false;
+          const filterDate = new Date(filters.dataFim);
+          return recordDate <= filterDate;
+        } catch {
+          return false;
+        }
       });
     }
 
