@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +10,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requiredPermission: "cancelamentos" });
+    if (authError) return authError;
 
     const admin = createAdminClient();
     const { data: row, error } = await admin
@@ -63,11 +60,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requiredPermission: "cancelamentos" });
+    if (authError) return authError;
 
     const body = await request.json();
     const { data } = body;
@@ -133,17 +127,14 @@ export async function PUT(
   }
 }
 
-// DELETE /api/cancelamentos/[id]
+// DELETE /api/cancelamentos/[id] - Admin only
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requireAdmin: true });
+    if (authError) return authError;
 
     const admin = createAdminClient();
     const { error } = await admin

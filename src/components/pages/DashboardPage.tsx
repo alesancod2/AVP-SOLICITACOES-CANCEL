@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { KPIData, ProdutividadeAtendente, DailyEvolution } from "@/lib/types";
 import {
   Chart as ChartJS,
@@ -29,7 +28,6 @@ ChartJS.register(
 );
 
 export default function DashboardPage() {
-  const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [kpi, setKpi] = useState<KPIData | null>(null);
   const [produtividade, setProdutividade] = useState<ProdutividadeAtendente[]>([]);
@@ -39,9 +37,7 @@ export default function DashboardPage() {
     async function fetchDashboard() {
       try {
         setLoading(true);
-        const res = await fetch("/api/dashboard", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch("/api/dashboard");
         const data = await res.json();
         if (data.success && data.data) {
           setKpi(data.data.kpi);
@@ -55,7 +51,7 @@ export default function DashboardPage() {
       }
     }
     fetchDashboard();
-  }, [token]);
+  }, []);
 
   if (loading) {
     return (

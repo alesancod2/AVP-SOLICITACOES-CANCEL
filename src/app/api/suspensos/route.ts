@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/api-auth";
 
 // Force dynamic rendering - bypass Vercel Data Cache
 export const dynamic = "force-dynamic";
@@ -37,16 +37,11 @@ function invalidateSuspensosCache(): void {
 
 // =============================================
 // GET /api/suspensos - Busca TODOS os suspensos (sem limite)
-// Retorna dataset completo para renderizacao virtualizada no frontend
-// Compressao via Content-Encoding habilitada pela Vercel automaticamente
 // =============================================
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requiredPermission: "suspensos" });
+    if (authError) return authError;
 
     // Tentar cache primeiro
     const cached = getCachedData();
@@ -152,11 +147,8 @@ export async function GET(request: NextRequest) {
 // =============================================
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requiredPermission: "suspensos" });
+    if (authError) return authError;
 
     const body = await request.json();
     const { id, ...data } = body;
@@ -165,6 +157,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const admin = createAdminClient();
+
+    // Campo 'conferencia' so pode ser alterado por Admin
+    if (data.conferencia !== undefined && user!.perfil !== "Admin") {
+      return NextResponse.json(
+        { success: false, error: "Apenas administradores podem alterar a conferencia" },
+        { status: 403 }
+      );
+    }
+
     const updateData: Record<string, any> = {};
 
     if (data.dtRecebimento !== undefined) updateData.dt_recebimento = data.dtRecebimento;
@@ -187,21 +188,13 @@ export async function PUT(request: NextRequest) {
 
     invalidateSuspensosCache();
 
-    const { data: usuario } = await admin
-      .from("usuarios")
-      .select("nome, email, perfil")
-      .eq("email", session.user.email)
-      .single();
-
-    if (usuario) {
-      await admin.from("logs").insert({
-        usuario: usuario.nome,
-        email: usuario.email,
-        perfil: usuario.perfil,
-        acao: "Atualizar Suspenso",
-        registro_id: id,
-      });
-    }
+    await admin.from("logs").insert({
+      usuario: user!.nome,
+      email: user!.email,
+      perfil: user!.perfil,
+      acao: "Atualizar Suspenso",
+      registro_id: id,
+    });
 
     return NextResponse.json({ success: true, data: { id: row.id } });
   } catch (error: any) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { authenticateRequest, sanitizeSearchInput, validatePagination } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,15 +8,14 @@ export const dynamic = "force-dynamic";
 // Query params: page, pageSize, search, status, mes_referencia
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requiredPermission: "cancelamentos" });
+    if (authError) return authError;
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
+    const { page, pageSize } = validatePagination({
+      page: searchParams.get("page"),
+      pageSize: searchParams.get("pageSize"),
+    });
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
     const mesReferencia = searchParams.get("mes_referencia") || "";
@@ -34,8 +33,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
+      const sanitized = sanitizeSearchInput(search);
       query = query.or(
-        `nome_associado.ilike.%${search}%,placa.ilike.%${search}%,consultor.ilike.%${search}%,atendente.ilike.%${search}%`
+        `nome_associado.ilike.%${sanitized}%,placa.ilike.%${sanitized}%,consultor.ilike.%${sanitized}%,atendente.ilike.%${sanitized}%`
       );
     }
 
@@ -91,11 +91,8 @@ export async function GET(request: NextRequest) {
 // POST /api/cancelamentos
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requiredPermission: "cancelamentos" });
+    if (authError) return authError;
 
     const body = await request.json();
     const { data } = body;
