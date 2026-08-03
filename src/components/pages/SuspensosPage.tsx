@@ -34,6 +34,7 @@ export default function SuspensosPage() {
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
   const [activeVencimento, setActiveVencimento] = useState<string>("todos");
   const [sortAsc, setSortAsc] = useState(false); // false = desc (most overdue first)
+  const [visibleCount, setVisibleCount] = useState(100); // Progressive rendering: start with 100 rows
 
 
   const [filters, setFilters] = useState<SuspensoFilters>({
@@ -121,6 +122,16 @@ export default function SuspensosPage() {
     });
     return result;
   }, [records, filters, activeVencimento, sortAsc]);
+
+  // Reset visible count when filters change (show first 100 again)
+  useEffect(() => {
+    setVisibleCount(100);
+  }, [filters, activeVencimento, sortAsc]);
+
+  // Records actually rendered in DOM (progressive load)
+  const visibleRecords = useMemo(() => {
+    return filteredRecords.slice(0, visibleCount);
+  }, [filteredRecords, visibleCount]);
 
   // Contadores por vencimento (para badges nas abas)
   const vencimentoCounts = useMemo(() => {
@@ -552,6 +563,7 @@ export default function SuspensosPage() {
       {/* Results count */}
       <div className="text-xs text-gray-500">
         {filteredRecords.length} registro(s) {activeVencimento !== "todos" ? `(vencimento dia ${activeVencimento})` : "(todos)"}
+        {visibleCount < filteredRecords.length && <span className="text-gray-600"> — exibindo {visibleCount}</span>}
       </div>
 
       {/* Table */}
@@ -583,7 +595,7 @@ export default function SuspensosPage() {
               {/* Virtualized rows */}
               {/* Scrollable virtualized rows (CSS-based, no external deps) */}
               <div className="overflow-y-auto" style={{ maxHeight: "600px" }}>
-                {filteredRecords.map((record, index) => (
+                {visibleRecords.map((record, index) => (
                   <div
                     key={record.id}
                     className={`flex items-center h-12 border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${index % 2 === 0 ? "" : "bg-gray-800/10"}`}
@@ -656,6 +668,17 @@ export default function SuspensosPage() {
                     </div>
                   </div>
                 ))}
+                {/* Show more button when there are hidden records */}
+                {visibleCount < filteredRecords.length && (
+                  <div className="flex items-center justify-center py-3 border-t border-gray-800/50">
+                    <button
+                      onClick={() => setVisibleCount((c) => c + 100)}
+                      className="px-4 py-2 text-xs font-medium bg-gray-800 text-gray-300 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Mostrar mais ({filteredRecords.length - visibleCount} restantes)
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
