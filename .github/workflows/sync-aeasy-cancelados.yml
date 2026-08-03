@@ -1,14 +1,15 @@
 name: Sync AEasy Cancelados (Recuperacao)
 
 on:
+  # Executa diariamente as 7h (10:00 UTC = 07:00 BRT)
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 10 * * *'
   workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Sync Cancelados from AEasy to Supabase (tabela recuperacao)
@@ -45,7 +46,9 @@ jobs:
             const sessionId = match[1];
             console.log("[sync-cancelados] 2. Login OK");
 
-            // VendasSituacao=3 busca APENAS cancelados
+            // VendasSituacao=3 busca TODOS os cancelados
+            // SEM filtro VendasVencimento (cancelados nao tem vencimento ativo)
+            // SEM filtro de data (busca base completa para contato)
             function buildBody(start, length) {
               const parts = [
                 `draw=1`, `start=${start}`, `length=${length}`,
@@ -57,12 +60,6 @@ jobs:
                 `formPesquisa[VendasSituacao][]=3`,
                 `formPesquisa[submitFilter]=true`,
                 `formPesquisa[DepartNivel]=1`,
-                `formPesquisa[VendasVencimento][]=5`,
-                `formPesquisa[VendasVencimento][]=10`,
-                `formPesquisa[VendasVencimento][]=15`,
-                `formPesquisa[VendasVencimento][]=20`,
-                `formPesquisa[VendasVencimento][]=25`,
-                `formPesquisa[VendasVencimento][]=30`,
               ];
               return parts.join("&");
             }
@@ -130,9 +127,14 @@ jobs:
             }));
 
             const dedupMap = new Map();
-            for (const r of mapped) dedupMap.set(r.aeasy_venda_id, r);
+            for (const r of mapped) {
+              // Chave unica: aeasy_venda_id (cada contrato/placa tem ID unico)
+              // Se houver duplicatas reais (mesmo ID em paginas diferentes), mantém o ultimo
+              dedupMap.set(r.aeasy_venda_id, r);
+            }
             const records = Array.from(dedupMap.values());
-            console.log(`[sync-cancelados] 5. Dedup: ${records.length} unicos`);
+            console.log(`[sync-cancelados] 5. Dedup por VendasId: ${records.length} unicos (de ${mapped.length} total)`);
+            console.log(`[sync-cancelados]    Placas unicas: ${new Set(records.map(r => r.placa)).size}`);
 
             const batchSize = 500;
             let inserted = 0;
