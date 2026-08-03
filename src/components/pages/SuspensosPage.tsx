@@ -4,6 +4,16 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Suspenso, SuspensoFilters, STATUS_COLORS, SituacaoAeasy } from "@/lib/types";
 import {
+  POLLING_INTERVAL_MS,
+  SYNC_AEASY_WAIT_MS,
+  NOTIFICATION_DISMISS_MS,
+  FORMA_PAGAMENTO_OPTIONS,
+  SITUACAO_AEASY_OPTIONS,
+  CONFERENCIA_OPTIONS,
+  VALOR_SEGMENTO_OPTIONS,
+  DIAS_VENCIMENTO,
+} from "@/lib/constants";
+import {
   Upload,
   Play,
   RotateCcw,
@@ -78,11 +88,43 @@ export default function SuspensosPage() {
   useEffect(() => { fetchSuspensos(); }, [fetchSuspensos]);
 
   // Polling every 3 seconds for real-time sync between operators
+  // Pauses when tab is hidden (saves bandwidth/battery)
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchSuspensos(true); // silent refresh (no loading spinner)
-    }, 3000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (!interval) {
+        interval = setInterval(() => {
+          fetchSuspensos(true);
+        }, POLLING_INTERVAL_MS);
+      }
+    };
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        // Refresh immediately when tab becomes visible again
+        fetchSuspensos(true);
+        startPolling();
+      }
+    };
+
+    // Start polling only if tab is visible
+    if (!document.hidden) startPolling();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [fetchSuspensos]);
 
 
@@ -331,7 +373,7 @@ export default function SuspensosPage() {
       if (data.success) {
         setSyncResult({ success: true, message: data.message || "Sincronizacao disparada! Aguarde 1-2 min e recarregue." });
         // Recarregar dados apos 30 segundos (tempo para o workflow executar)
-        setTimeout(() => fetchSuspensos(), 30000);
+        setTimeout(() => fetchSuspensos(), SYNC_AEASY_WAIT_MS);
       } else {
         setSyncResult({ success: false, message: data.error || "Erro ao disparar sincronizacao" });
       }
@@ -340,7 +382,7 @@ export default function SuspensosPage() {
       console.error("Sync AEasy error:", e);
     } finally {
       setSyncing(false);
-      setTimeout(() => setSyncResult(null), 10000);
+      setTimeout(() => setSyncResult(null), NOTIFICATION_DISMISS_MS);
     }
   };
 
@@ -426,7 +468,7 @@ export default function SuspensosPage() {
 
       {/* Vencimento Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {["todos", "5", "10", "15", "20", "25", "30"].map((v) => (
+        {["todos", ...DIAS_VENCIMENTO].map((v) => (
           <button
             key={v}
             onClick={() => setActiveVencimento(v)}
@@ -488,20 +530,14 @@ export default function SuspensosPage() {
             <label className="block text-xs text-gray-500 mb-1">Situacao</label>
             <select value={filters.situacao} onChange={(e) => setFilters((f) => ({ ...f, situacao: e.target.value }))} className="input-field text-sm">
               <option value="">Todas</option>
-              <option value="Suspenso">Suspenso</option>
-              <option value="Inadimplente">Inadimplente</option>
-              <option value="Cancelado">Cancelado</option>
+              {SITUACAO_AEASY_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Forma Pgto</label>
             <select value={filters.formaPagamento} onChange={(e) => setFilters((f) => ({ ...f, formaPagamento: e.target.value }))} className="input-field text-sm">
               <option value="">Todas</option>
-              <option value="PIX">PIX</option>
-              <option value="Boleto">Boleto</option>
-              <option value="Cartao">Cartao</option>
-              <option value="Transferencia">Transferencia</option>
-              <option value="Dinheiro">Dinheiro</option>
+              {FORMA_PAGAMENTO_OPTIONS.map((fp) => <option key={fp} value={fp}>{fp}</option>)}
             </select>
           </div>
           <div>
@@ -515,17 +551,14 @@ export default function SuspensosPage() {
             <label className="block text-xs text-gray-500 mb-1">Conferencia</label>
             <select value={filters.conferencia} onChange={(e) => setFilters((f) => ({ ...f, conferencia: e.target.value }))} className="input-field text-sm">
               <option value="">Todas</option>
-              <option value="OK">OK</option>
-              <option value="Verificar">Verificar</option>
+              {CONFERENCIA_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Valor (Segmento)</label>
             <select value={filters.valorSegmento} onChange={(e) => setFilters((f) => ({ ...f, valorSegmento: e.target.value }))} className="input-field text-sm">
               <option value="">Todos</option>
-              <option value="alto">Alto Valor (&gt;R$200)</option>
-              <option value="medio">Medio (R$100-200)</option>
-              <option value="baixo">Baixo (&lt;R$100)</option>
+              {VALOR_SEGMENTO_OPTIONS.map((vs) => <option key={vs.value} value={vs.value}>{vs.label}</option>)}
             </select>
           </div>
         </div>
@@ -686,11 +719,7 @@ export default function SuspensosPage() {
                 <label className="block text-sm text-gray-400 mb-1">Forma de Pagamento</label>
                 <select value={atendForm.formaPagamento} onChange={(e) => setAtendForm((f) => ({ ...f, formaPagamento: e.target.value }))} className="input-field">
                   <option value="">Selecione...</option>
-                  <option value="PIX">PIX</option>
-                  <option value="Boleto">Boleto</option>
-                  <option value="Cartao">Cartao</option>
-                  <option value="Transferencia">Transferencia</option>
-                  <option value="Dinheiro">Dinheiro</option>
+                  {FORMA_PAGAMENTO_OPTIONS.map((fp) => <option key={fp} value={fp}>{fp}</option>)}
                 </select>
               </div>
               <div>

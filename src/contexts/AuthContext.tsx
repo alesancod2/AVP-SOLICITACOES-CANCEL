@@ -17,12 +17,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Instancia unica do Supabase client (module-level, nunca recriada)
+const supabase = createClient();
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const supabase = createClient();
 
   // Fetch user profile from the usuarios table
   const fetchUserProfile = useCallback(async (session: Session) => {
@@ -93,7 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        // Mensagens amigaveis em portugues
         if (error.message.includes("Invalid login")) {
           return { success: false, error: "Email ou senha incorretos" };
         }
@@ -111,13 +111,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       return { success: false, error: "Erro de conexao" };
     }
-  }, [supabase.auth, fetchUserProfile]);
+  }, [fetchUserProfile]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     setToken(null);
-  }, [supabase.auth]);
+  }, []);
 
   const isAdmin = user?.perfil === "Admin";
 
