@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/api-auth";
 import { KPIData, ProdutividadeAtendente, DailyEvolution } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -8,11 +8,8 @@ export const dynamic = "force-dynamic";
 // GET /api/dashboard
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requiredPermission: "dashboard" });
+    if (authError) return authError;
 
     const admin = createAdminClient();
     const { searchParams } = new URL(request.url);

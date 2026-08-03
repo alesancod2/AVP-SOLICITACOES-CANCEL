@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 export default function CancelamentosPage() {
-  const { user, token, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   // Data
   const [records, setRecords] = useState<Cancelamento[]>([]);
@@ -259,8 +259,7 @@ export default function CancelamentosPage() {
   const handleExport = async () => {
     try {
       const res = await fetch(
-        `/api/export?type=cancelamentos&format=csv`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `/api/export?type=cancelamentos&format=csv`
       );
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

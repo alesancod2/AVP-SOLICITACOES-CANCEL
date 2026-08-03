@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/export?type=cancelamentos|suspensos&format=csv|json
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "cancelamentos";
+
+    // Verificar permissao do modulo que esta sendo exportado
+    const requiredPermission = type === "suspensos" ? "suspensos" : "cancelamentos";
+    const { user, error: authError } = await authenticateRequest({
+      requiredPermission: requiredPermission as any,
+    });
+    if (authError) return authError;
+
     const format = searchParams.get("format") || "csv";
 
     const admin = createAdminClient();

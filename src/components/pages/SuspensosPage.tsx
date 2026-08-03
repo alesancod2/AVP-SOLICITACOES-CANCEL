@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 export default function SuspensosPage() {
-  const { user, token, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [records, setRecords] = useState<Suspenso[]>([]);
   const [totalReal, setTotalReal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -60,7 +60,6 @@ export default function SuspensosPage() {
     if (!silent) setLoading(true);
     try {
       const res = await fetch("/api/suspensos", {
-        headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
       const data = await res.json();
@@ -73,7 +72,7 @@ export default function SuspensosPage() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   // Initial fetch
   useEffect(() => { fetchSuspensos(); }, [fetchSuspensos]);
@@ -214,7 +213,7 @@ export default function SuspensosPage() {
     try {
       const res = await fetch("/api/suspensos/atendimento", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: record.id, action: "iniciar" }),
         cache: "no-store",
       });
@@ -243,7 +242,7 @@ export default function SuspensosPage() {
     try {
       const res = await fetch("/api/suspensos/atendimento", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: showAtendimento.id, action: "salvar", dados: atendForm }),
       });
       const data = await res.json();
@@ -264,7 +263,7 @@ export default function SuspensosPage() {
       const action = manterDados ? "liberar_manter" : "liberar";
       const res = await fetch("/api/suspensos/atendimento", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: record.id, action }),
       });
       if ((await res.json()).success) fetchSuspensos();
@@ -278,7 +277,7 @@ export default function SuspensosPage() {
     try {
       await fetch("/api/suspensos", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: record.id, conferencia: value }),
         cache: "no-store",
       });
@@ -292,7 +291,7 @@ export default function SuspensosPage() {
     try {
       await fetch("/api/suspensos", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: record.id, conferencia: "" }),
         cache: "no-store",
       });
@@ -319,7 +318,7 @@ export default function SuspensosPage() {
     try {
       const res = await fetch("/api/suspensos/import", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ data: importData }),
       });
       const data = await res.json();
@@ -333,9 +332,7 @@ export default function SuspensosPage() {
 
   const handleExport = async () => {
     try {
-      const res = await fetch("/api/export?type=suspensos&format=csv", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch("/api/export?type=suspensos&format=csv");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

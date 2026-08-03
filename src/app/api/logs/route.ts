@@ -1,30 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { authenticateRequest } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/logs
+// GET /api/logs - Admin only
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
-    }
+    const { user, error: authError } = await authenticateRequest({ requireAdmin: true });
+    if (authError) return authError;
 
     const admin = createAdminClient();
-
-    // Verify admin
-    const { data: usuario } = await admin
-      .from("usuarios")
-      .select("perfil")
-      .eq("email", session.user.email)
-      .single();
-
-    if (!usuario || usuario.perfil !== "Admin") {
-      return NextResponse.json({ success: false, error: "Acesso negado" }, { status: 403 });
-    }
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "200", 10);
