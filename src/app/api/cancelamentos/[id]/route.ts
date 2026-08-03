@@ -137,21 +137,6 @@ export async function DELETE(
     if (authError) return authError;
 
     const admin = createAdminClient();
-
-    // Verificar se usuario eh Admin antes de permitir exclusao
-    const { data: usuario } = await admin
-      .from("usuarios")
-      .select("perfil")
-      .eq("email", session.user.email)
-      .single();
-
-    if (!usuario || usuario.perfil !== "Admin") {
-      return NextResponse.json(
-        { success: false, error: "Apenas administradores podem excluir registros" },
-        { status: 403 }
-      );
-    }
-
     const { error } = await admin
       .from("cancelamentos")
       .delete()
