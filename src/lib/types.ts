@@ -126,6 +126,7 @@ export interface Recuperacao {
 
 export type RecuperacaoStatus =
   | ""
+  | "Ativo"
   | "Contato Realizado"
   | "Interessado"
   | "Recusa"
