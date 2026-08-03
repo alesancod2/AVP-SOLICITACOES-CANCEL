@@ -7,12 +7,14 @@ import {
   Search,
   Filter,
   RefreshCw,
+  Download,
   MessageCircle,
   FileSpreadsheet,
   Phone,
   Play,
   X,
   AlertCircle,
+  CheckCircle,
   UserCheck,
 } from "lucide-react";
 
@@ -27,7 +29,7 @@ const STATUS_ATENDIMENTO_OPTIONS = [
 ] as const;
 
 export default function RecuperacaoPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [records, setRecords] = useState<Recuperacao[]>([]);
   const [totalReal, setTotalReal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -36,6 +38,8 @@ export default function RecuperacaoPage() {
   const [showAtendimento, setShowAtendimento] = useState<Recuperacao | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [visibleCount, setVisibleCount] = useState(100);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const [filters, setFilters] = useState<RecuperacaoFilters>({
     busca: "",
@@ -164,6 +168,41 @@ export default function RecuperacaoPage() {
     finally { setSubmitting(false); }
   };
 
+  // Sync AEasy Cancelados (Admin only)
+  const handleSyncAeasy = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/sync-aeasy-cancelados", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setSyncResult({ success: true, message: data.message || "Sincronizacao disparada! Aguarde 2-5 min." });
+        setTimeout(() => fetchRecuperacao(), 30000);
+      } else {
+        setSyncResult({ success: false, message: data.error || "Erro ao disparar sincronizacao" });
+      }
+    } catch (e: any) {
+      setSyncResult({ success: false, message: `Erro: ${e.message}` });
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncResult(null), 10000);
+    }
+  };
+
+  // Export CSV
+  const handleExport = async () => {
+    try {
+      const res = await fetch("/api/export?type=recuperacao&format=csv");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `recuperacao_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { console.error(e); }
+  };
+
   // =============================================
   // ERROR STATE
   // =============================================
@@ -192,10 +231,35 @@ export default function RecuperacaoPage() {
           <h2 className="text-2xl font-bold text-gray-100">Recuperacao</h2>
           <p className="text-sm text-gray-500 mt-1">Clientes cancelados - gestao de recuperacao e reativacao</p>
         </div>
-        <button onClick={() => fetchRecuperacao()} className="btn-ghost text-sm">
-          <RefreshCw className="w-4 h-4 mr-1" /> Atualizar
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={handleSyncAeasy}
+              disabled={syncing}
+              className="px-3 py-2 text-xs bg-orange-900/30 text-orange-400 border border-orange-700/50 rounded-lg hover:bg-orange-900/50 transition-colors disabled:opacity-50 flex items-center gap-1"
+              title="Sincronizar cancelados da AEasy"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Sincronizando..." : "Sync AEasy"}
+            </button>
+          )}
+          <button onClick={handleExport} className="btn-ghost text-sm">
+            <Download className="w-4 h-4 mr-1" /> Exportar
+          </button>
+        </div>
       </div>
+
+      {/* Sync Result Notification */}
+      {syncResult && (
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm ${
+          syncResult.success
+            ? "bg-emerald-900/30 text-emerald-400 border border-emerald-700/50"
+            : "bg-red-900/30 text-red-400 border border-red-700/50"
+        }`}>
+          {syncResult.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {syncResult.message}
+        </div>
+      )}
 
       {/* KPI Cards - Refletem as acoes do modal de atendimento */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
