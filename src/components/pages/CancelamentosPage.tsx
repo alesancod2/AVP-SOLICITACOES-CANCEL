@@ -30,7 +30,6 @@ export default function CancelamentosPage() {
   // Data
   const [records, setRecords] = useState<Cancelamento[]>([]);
   const [allRecords, setAllRecords] = useState<Cancelamento[]>([]);
-  const [activeTab, setActiveTab] = useState("");
 
   // UI States
   const [loading, setLoading] = useState(true);
@@ -54,14 +53,8 @@ export default function CancelamentosPage() {
     busca: "",
   });
 
-  // No longer need to fetch tabs from Google Sheets - use fixed reference
-  useEffect(() => {
-    setActiveTab("cancelamentos");
-  }, []);
-
   // Fetch records from Supabase
   const fetchRecords = useCallback(async () => {
-    if (!activeTab) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/cancelamentos?page=1&pageSize=5000`, {
@@ -78,7 +71,7 @@ export default function CancelamentosPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, token]);
+  }, []);
 
   useEffect(() => {
     fetchRecords();
@@ -150,7 +143,7 @@ export default function CancelamentosPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, activeTab]);
+  }, [filters]);
 
   // KPIs
   const kpi: KPIData = useMemo(() => ({
