@@ -5,8 +5,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 // =============================================
-// GET /api/recuperacao - Busca todos os cancelados (carteira de recuperacao)
-// Mesma arquitetura de /api/suspensos: cache curto + busca completa
+// GET /api/recuperacao - Busca associados com situacao "Cancelado" na tabela suspensos
+// Estes sao clientes efetivamente cancelados na AEasy, elegíveis para recuperacao
 // =============================================
 
 interface CacheEntry {
@@ -15,23 +15,13 @@ interface CacheEntry {
   timestamp: number;
 }
 
-let recuperacaoCache: CacheEntry | null = null;
-const CACHE_TTL_MS = 5_000; // 5 segundos (menos urgente que suspensos)
+let cache: CacheEntry | null = null;
+const CACHE_TTL_MS = 5_000;
 
-function getCachedData(): CacheEntry | null {
-  if (recuperacaoCache && Date.now() - recuperacaoCache.timestamp < CACHE_TTL_MS) {
-    return recuperacaoCache;
-  }
-  recuperacaoCache = null;
+function getCached(): CacheEntry | null {
+  if (cache && Date.now() - cache.timestamp < CACHE_TTL_MS) return cache;
+  cache = null;
   return null;
-}
-
-function setCachedData(data: any[], totalReal: number): void {
-  recuperacaoCache = { data, totalReal, timestamp: Date.now() };
-}
-
-function invalidateCache(): void {
-  recuperacaoCache = null;
 }
 
 export async function GET(request: NextRequest) {
@@ -42,28 +32,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Nao autorizado" }, { status: 401 });
     }
 
-    // Tentar cache
-    const cached = getCachedData();
+    const cached = getCached();
     if (cached) {
-      const response = NextResponse.json({
-        success: true,
-        data: cached.data,
-        total: cached.data.length,
-        totalReal: cached.totalReal,
-        cached: true,
-      });
-      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-      return response;
+      return NextResponse.json({
+        success: true, data: cached.data, total: cached.data.length, totalReal: cached.totalReal, cached: true,
+      }, { headers: { "Cache-Control": "no-store" } });
     }
 
     const admin = createAdminClient();
 
-    // Contagem total
+    // Contagem total de cancelados
     const { count: totalCount } = await admin
-      .from("recuperacao")
-      .select("*", { count: "exact", head: true });
+      .from("suspensos")
+      .select("*", { count: "exact", head: true })
+      .eq("situacao_aeasy", "Cancelado");
 
-    // Buscar todos os registros
+    // Buscar TODOS os registros cancelados da tabela suspensos
     let allData: any[] = [];
     let from = 0;
     const pageSize = 5000;
@@ -71,14 +55,14 @@ export async function GET(request: NextRequest) {
 
     while (hasMore) {
       const { data, error } = await admin
-        .from("recuperacao")
+        .from("suspensos")
         .select("*")
-        .order("dias_cancelado", { ascending: false })
+        .eq("situacao_aeasy", "Cancelado")
+        .order("dias_atraso", { ascending: false })
         .order("associado", { ascending: true })
         .range(from, from + pageSize - 1);
 
       if (error) throw new Error(error.message);
-
       if (data && data.length > 0) {
         allData.push(...data);
         from += pageSize;
@@ -88,7 +72,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Mapear para formato frontend
+    // Mapear para formato frontend (Recuperacao interface)
     const records = allData.map((row) => ({
       id: row.id,
       associado: row.associado ?? "",
@@ -100,8 +84,8 @@ export async function GET(request: NextRequest) {
       consultor: row.consultor ?? "",
       sede: row.sede ?? "",
       plano: row.plano ?? "",
-      diasCancelado: row.dias_cancelado ?? 0,
-      dataCancelamento: row.data_cancelamento ?? "",
+      diasCancelado: row.dias_atraso ?? 0,
+      dataCancelamento: row.data_suspensao ?? "",
       diaVencimento: row.dia_vencimento ?? "",
       atendente: row.atendente ?? "",
       observacoes: row.observacoes ?? "",
@@ -111,24 +95,19 @@ export async function GET(request: NextRequest) {
     }));
 
     const totalReal = totalCount ?? records.length;
-    setCachedData(records, totalReal);
+    cache = { data: records, totalReal, timestamp: Date.now() };
 
-    const response = NextResponse.json({
-      success: true,
-      data: records,
-      total: records.length,
-      totalReal,
-      cached: false,
-    });
-    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-    return response;
+    return NextResponse.json({
+      success: true, data: records, total: records.length, totalReal, cached: false,
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
 // =============================================
-// PUT /api/recuperacao - Atualiza registro (atendente, status, observacoes)
+// PUT /api/recuperacao - Atualiza campos de atendimento do registro cancelado
+// Escreve na tabela suspensos (mesmos registros, campo status_recuperacao)
 // =============================================
 export async function PUT(request: NextRequest) {
   try {
@@ -154,13 +133,13 @@ export async function PUT(request: NextRequest) {
     updateData.atualizado_em = new Date().toISOString();
 
     const { error } = await admin
-      .from("recuperacao")
+      .from("suspensos")
       .update(updateData)
       .eq("id", id);
 
     if (error) throw new Error(error.message);
 
-    invalidateCache();
+    cache = null; // Invalidar cache
 
     // Log
     const { data: usuario } = await admin
@@ -174,9 +153,9 @@ export async function PUT(request: NextRequest) {
         usuario: usuario.nome,
         email: usuario.email,
         perfil: usuario.perfil,
-        acao: "Atualizar Recuperacao",
+        acao: "Atendimento Recuperacao (Cancelado)",
         registro_id: id,
-        campo: data.statusRecuperacao ? "status_recuperacao" : "atendimento",
+        campo: "status_recuperacao",
         depois: data.statusRecuperacao || data.observacoes || "",
       });
     }
