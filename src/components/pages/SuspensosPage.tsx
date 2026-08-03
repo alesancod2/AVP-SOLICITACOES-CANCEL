@@ -929,11 +929,25 @@ function ImportModal({ onClose, onImport, loading }: { onClose: () => void; onIm
     if (!file) return;
     setFileName(file.name);
     setError("");
+    setImportData([]);
+
+    // Validar tamanho maximo (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Arquivo muito grande. Maximo permitido: 5MB.");
+      return;
+    }
 
     const reader = new FileReader();
+    reader.onerror = () => {
+      setError("Erro ao ler o arquivo. Tente novamente ou use outro arquivo.");
+    };
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
+        if (!text || text.trim().length === 0) {
+          setError("Arquivo vazio ou impossivel de ler.");
+          return;
+        }
         const lines = text.split("\n").filter((l) => l.trim());
         if (lines.length < 2) {
           setError("Arquivo deve ter pelo menos um cabecalho e uma linha de dados");
@@ -952,9 +966,14 @@ function ImportModal({ onClose, onImport, loading }: { onClose: () => void; onIm
           };
         }).filter((r) => r.associado && r.placa);
 
+        if (rows.length === 0) {
+          setError("Nenhum registro valido encontrado. Verifique se o CSV tem colunas: Associado; Placa; Vencimento; Valor");
+          return;
+        }
+
         setImportData(rows);
       } catch (err) {
-        setError("Erro ao processar arquivo. Verifique o formato.");
+        setError("Erro ao processar arquivo. Verifique se o formato e CSV com separador ; ou ,");
       }
     };
     reader.readAsText(file);

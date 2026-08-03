@@ -1,39 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getCachedSuspensos, setCachedSuspensos, invalidateSuspensosCache } from "@/lib/suspensos-cache";
 
 // Force dynamic rendering - bypass Vercel Data Cache
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// =============================================
-// CACHE EM MEMORIA (TTL 3s - real-time para operadores)
-// =============================================
-interface CacheEntry {
-  data: any[];
-  totalReal: number;
-  timestamp: number;
-}
-
-let suspensosCache: CacheEntry | null = null;
-const CACHE_TTL_MS = 3_000; // 3 segundos
-
-function getCachedData(): CacheEntry | null {
-  if (suspensosCache && Date.now() - suspensosCache.timestamp < CACHE_TTL_MS) {
-    return suspensosCache;
-  }
-  suspensosCache = null;
-  return null;
-}
-
-function setCachedData(data: any[], totalReal: number): void {
-  suspensosCache = { data, totalReal, timestamp: Date.now() };
-}
-
-// Invalida cache
-function invalidateSuspensosCache(): void {
-  suspensosCache = null;
-}
+// Cache functions imported from @/lib/suspensos-cache
 
 // =============================================
 // GET /api/suspensos - Busca TODOS os suspensos (sem limite)
@@ -49,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Tentar cache primeiro
-    const cached = getCachedData();
+    const cached = getCachedSuspensos();
     if (cached) {
       const response = NextResponse.json({
         success: true,
@@ -130,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     // Cache
     const totalReal = totalCount ?? suspensos.length;
-    setCachedData(suspensos, totalReal);
+    setCachedSuspensos(suspensos, totalReal);
 
     const response = NextResponse.json({
       success: true,

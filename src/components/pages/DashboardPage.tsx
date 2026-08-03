@@ -159,12 +159,14 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-gray-100">Dashboard</h2>
-        <p className="text-sm text-gray-500 mt-1">Visao geral do sistema de cancelamentos</p>
+        <p className="text-sm text-gray-500 mt-1">Visao geral do modulo de Cancelamentos</p>
       </div>
 
       {/* KPI Cards */}
       {kpi && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div>
+          <p className="text-xs text-gray-600 mb-2 uppercase tracking-wider">Solicitacoes de Cancelamento</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           <div className="kpi-card">
             <span className="text-xs text-gray-500">Total</span>
             <span className="text-xl font-bold text-gray-100">{kpi.total}</span>
@@ -193,6 +195,7 @@ export default function DashboardPage() {
             <span className="text-xs text-gray-500">Inadimpl.</span>
             <span className="text-xl font-bold text-red-400">{kpi.inadimplentes}</span>
           </div>
+          </div>
         </div>
       )}
 
@@ -211,10 +214,11 @@ export default function DashboardPage() {
 
         {/* Line Chart */}
         <div className="card p-6 lg:col-span-2">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-sm font-semibold text-gray-200">Evolucao Diaria</h3>
+            <h3 className="text-sm font-semibold text-gray-200">Registros por Data de Criacao</h3>
           </div>
+          <p className="text-xs text-gray-600 mb-4">Status atual dos registros agrupados por dia de entrada (ultimos 30 dias)</p>
           <div className="h-64">
             <Line data={lineData} options={chartOptions} />
           </div>

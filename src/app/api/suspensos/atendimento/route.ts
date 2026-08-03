@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { invalidateSuspensosCache } from "@/lib/suspensos-cache";
 
 // Force dynamic rendering - bypass Vercel edge cache
 export const dynamic = "force-dynamic";
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
         depois: usuario.nome,
       });
 
+      invalidateSuspensosCache();
       return NextResponse.json({ success: true, data: mapSuspenso(row) });
     }
 
@@ -156,6 +158,7 @@ export async function POST(request: NextRequest) {
         depois: `Pgto: ${dados.formaPagamento ?? "-"}, Valor: ${dados.valorRecebido ?? "-"}`,
       });
 
+      invalidateSuspensosCache();
       return NextResponse.json({ success: true, data: mapSuspenso(row) });
     }
 
@@ -185,6 +188,7 @@ export async function POST(request: NextRequest) {
         antes: usuario.nome,
       });
 
+      invalidateSuspensosCache();
       return NextResponse.json({ success: true, data: mapSuspenso(row) });
     }
 
@@ -212,6 +216,7 @@ export async function POST(request: NextRequest) {
         depois: "Dados de pagamento preservados",
       });
 
+      invalidateSuspensosCache();
       return NextResponse.json({ success: true, data: mapSuspenso(row) });
     }
 
