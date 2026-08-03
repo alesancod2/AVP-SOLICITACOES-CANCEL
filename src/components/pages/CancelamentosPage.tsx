@@ -30,7 +30,6 @@ export default function CancelamentosPage() {
   // Data
   const [records, setRecords] = useState<Cancelamento[]>([]);
   const [allRecords, setAllRecords] = useState<Cancelamento[]>([]);
-  const [activeTab, setActiveTab] = useState("");
 
   // UI States
   const [loading, setLoading] = useState(true);
@@ -54,19 +53,11 @@ export default function CancelamentosPage() {
     busca: "",
   });
 
-  // No longer need to fetch tabs from Google Sheets - use fixed reference
-  useEffect(() => {
-    setActiveTab("cancelamentos");
-  }, []);
-
   // Fetch records from Supabase
   const fetchRecords = useCallback(async () => {
-    if (!activeTab) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/cancelamentos?page=1&pageSize=5000`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`/api/cancelamentos?page=1&pageSize=5000`);
       const data = await res.json();
       if (data.success && data.data) {
         setAllRecords(data.data);
@@ -78,7 +69,7 @@ export default function CancelamentosPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, token]);
+  }, []);
 
   useEffect(() => {
     fetchRecords();
@@ -150,7 +141,7 @@ export default function CancelamentosPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, activeTab]);
+  }, [filters]);
 
   // KPIs
   const kpi: KPIData = useMemo(() => ({
@@ -209,7 +200,7 @@ export default function CancelamentosPage() {
       if (editingRecord) {
         const res = await fetch(`/api/cancelamentos/${editingRecord.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ data: formData }),
         });
         const data = await res.json();
@@ -220,7 +211,7 @@ export default function CancelamentosPage() {
       } else {
         const res = await fetch("/api/cancelamentos", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ data: { ...formData, atendente: user?.nome || formData.atendente } }),
         });
         const data = await res.json();
@@ -242,7 +233,7 @@ export default function CancelamentosPage() {
     try {
       const res = await fetch(
         `/api/cancelamentos/${deletingRecord.id}`,
-        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+        { method: "DELETE" }
       );
       const data = await res.json();
       if (data.success) {
