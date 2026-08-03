@@ -5,8 +5,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 // =============================================
-// GET /api/recuperacao - Busca associados com situacao "Cancelado" na tabela suspensos
-// Estes sao clientes efetivamente cancelados na AEasy, elegíveis para recuperacao
+// API /api/recuperacao
+// Consome tabela 'recuperacao' (populada pelo workflow sync-aeasy-cancelados.yml)
+// Dados vem da consulta VendasSituacao=3 (Cancelado) na AEasy
 // =============================================
 
 interface CacheEntry {
@@ -24,6 +25,7 @@ function getCached(): CacheEntry | null {
   return null;
 }
 
+// GET /api/recuperacao - Lista todos os cancelados para recuperacao
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient();
@@ -41,13 +43,10 @@ export async function GET(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Contagem total de cancelados
     const { count: totalCount } = await admin
-      .from("suspensos")
-      .select("*", { count: "exact", head: true })
-      .eq("situacao_aeasy", "Cancelado");
+      .from("recuperacao")
+      .select("*", { count: "exact", head: true });
 
-    // Buscar TODOS os registros cancelados da tabela suspensos
     let allData: any[] = [];
     let from = 0;
     const pageSize = 5000;
@@ -55,10 +54,9 @@ export async function GET(request: NextRequest) {
 
     while (hasMore) {
       const { data, error } = await admin
-        .from("suspensos")
+        .from("recuperacao")
         .select("*")
-        .eq("situacao_aeasy", "Cancelado")
-        .order("dias_atraso", { ascending: false })
+        .order("dias_cancelado", { ascending: false })
         .order("associado", { ascending: true })
         .range(from, from + pageSize - 1);
 
@@ -72,7 +70,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Mapear para formato frontend (Recuperacao interface)
     const records = allData.map((row) => ({
       id: row.id,
       associado: row.associado ?? "",
@@ -84,8 +81,8 @@ export async function GET(request: NextRequest) {
       consultor: row.consultor ?? "",
       sede: row.sede ?? "",
       plano: row.plano ?? "",
-      diasCancelado: row.dias_atraso ?? 0,
-      dataCancelamento: row.data_suspensao ?? "",
+      diasCancelado: row.dias_cancelado ?? 0,
+      dataCancelamento: row.data_cancelamento ?? "",
       diaVencimento: row.dia_vencimento ?? "",
       atendente: row.atendente ?? "",
       observacoes: row.observacoes ?? "",
@@ -105,10 +102,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// =============================================
-// PUT /api/recuperacao - Atualiza campos de atendimento do registro cancelado
-// Escreve na tabela suspensos (mesmos registros, campo status_recuperacao)
-// =============================================
+// PUT /api/recuperacao - Atualiza atendimento (atendente, status, observacoes)
 export async function PUT(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient();
@@ -133,15 +127,14 @@ export async function PUT(request: NextRequest) {
     updateData.atualizado_em = new Date().toISOString();
 
     const { error } = await admin
-      .from("suspensos")
+      .from("recuperacao")
       .update(updateData)
       .eq("id", id);
 
     if (error) throw new Error(error.message);
 
-    cache = null; // Invalidar cache
+    cache = null;
 
-    // Log
     const { data: usuario } = await admin
       .from("usuarios")
       .select("nome, email, perfil")
@@ -153,7 +146,7 @@ export async function PUT(request: NextRequest) {
         usuario: usuario.nome,
         email: usuario.email,
         perfil: usuario.perfil,
-        acao: "Atendimento Recuperacao (Cancelado)",
+        acao: "Atendimento Recuperacao",
         registro_id: id,
         campo: "status_recuperacao",
         depois: data.statusRecuperacao || data.observacoes || "",

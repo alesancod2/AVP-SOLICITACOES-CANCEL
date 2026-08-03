@@ -50,7 +50,7 @@ jobs:
             const sessionId = match[1];
             console.log("[sync] 2. Login OK:", sessionId.substring(0, 10) + "...");
 
-            // BUILD BODY - busca suspensos (2) e cancelados (3) da AEasy
+            // BUILD BODY - sem limite de data, busca TODOS os suspensos
             function buildBody(start, length) {
               const parts = [
                 `draw=1`, `start=${start}`, `length=${length}`,
@@ -60,7 +60,6 @@ jobs:
                 `columns[0][search][value]=`, `columns[0][search][regex]=false`,
                 `order[0][column]=0`, `order[0][dir]=asc`,
                 `formPesquisa[VendasSituacao][]=2`,
-                `formPesquisa[VendasSituacao][]=3`,
                 `formPesquisa[submitFilter]=true`,
                 `formPesquisa[DepartNivel]=1`,
                 `formPesquisa[VendasVencimento][]=5`,
