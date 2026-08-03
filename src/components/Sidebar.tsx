@@ -50,6 +50,8 @@ export default function Sidebar({ activePage, onPageChange }: SidebarProps) {
     setPinned(newPinned);
     setExpanded(newPinned);
     localStorage.setItem("avp_sidebar_pinned", String(newPinned));
+    // Dispatch custom event for same-tab listeners (page.tsx)
+    window.dispatchEvent(new CustomEvent("sidebar-pin-change", { detail: { pinned: newPinned } }));
   };
 
   const handleMouseEnter = () => {

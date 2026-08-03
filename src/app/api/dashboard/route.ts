@@ -63,15 +63,33 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // Daily evolution (by data_criacao)
+    // Daily evolution - usa atualizado_em para refletir quando o status MUDOU
+    // Se atualizado_em nao existe, fallback para data_criacao
     const dailyMap = new Map<string, { total: number; cancelados: number; retidos: number }>();
     records.forEach((r) => {
-      if (!r.data_criacao) return;
-      const date = new Date(r.data_criacao).toLocaleDateString("pt-BR");
-      if (!dailyMap.has(date)) {
-        dailyMap.set(date, { total: 0, cancelados: 0, retidos: 0 });
+      // Para status finais (Cancelado/Retido), usar data da ultima atualizacao
+      // Para outros, usar data de criacao (entrada no sistema)
+      let dateRef: string | null = null;
+      if ((r.status_atual === "Cancelado" || r.status_atual === "Retido") && r.atualizado_em) {
+        try {
+          dateRef = new Date(r.atualizado_em).toLocaleDateString("pt-BR");
+        } catch {
+          dateRef = null;
+        }
       }
-      const entry = dailyMap.get(date)!;
+      if (!dateRef && r.data_criacao) {
+        try {
+          dateRef = new Date(r.data_criacao).toLocaleDateString("pt-BR");
+        } catch {
+          dateRef = null;
+        }
+      }
+      if (!dateRef) return;
+
+      if (!dailyMap.has(dateRef)) {
+        dailyMap.set(dateRef, { total: 0, cancelados: 0, retidos: 0 });
+      }
+      const entry = dailyMap.get(dateRef)!;
       entry.total++;
       if (r.status_atual === "Cancelado") entry.cancelados++;
       if (r.status_atual === "Retido") entry.retidos++;
@@ -80,8 +98,13 @@ export async function GET(request: NextRequest) {
     const evolucao: DailyEvolution[] = Array.from(dailyMap.entries())
       .map(([data, values]) => ({ data, ...values }))
       .sort((a, b) => {
-        const [da, ma, ya] = a.data.split("/").map(Number);
-        const [db, mb, yb] = b.data.split("/").map(Number);
+        const partsA = a.data.split("/").map(Number);
+        const partsB = b.data.split("/").map(Number);
+        // Parsing defensivo: verifica se o split gerou 3 partes validas
+        if (partsA.length !== 3 || partsB.length !== 3) return 0;
+        const [da, ma, ya] = partsA;
+        const [db, mb, yb] = partsB;
+        if (isNaN(da) || isNaN(ma) || isNaN(ya) || isNaN(db) || isNaN(mb) || isNaN(yb)) return 0;
         return new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime();
       })
       .slice(-30); // Last 30 days

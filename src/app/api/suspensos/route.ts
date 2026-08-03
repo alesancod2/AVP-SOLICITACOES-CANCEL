@@ -6,34 +6,7 @@ import { authenticateRequest } from "@/lib/api-auth";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// =============================================
-// CACHE EM MEMORIA (TTL 3s - real-time para operadores)
-// =============================================
-interface CacheEntry {
-  data: any[];
-  totalReal: number;
-  timestamp: number;
-}
-
-let suspensosCache: CacheEntry | null = null;
-const CACHE_TTL_MS = 3_000; // 3 segundos
-
-function getCachedData(): CacheEntry | null {
-  if (suspensosCache && Date.now() - suspensosCache.timestamp < CACHE_TTL_MS) {
-    return suspensosCache;
-  }
-  suspensosCache = null;
-  return null;
-}
-
-function setCachedData(data: any[], totalReal: number): void {
-  suspensosCache = { data, totalReal, timestamp: Date.now() };
-}
-
-// Invalida cache
-function invalidateSuspensosCache(): void {
-  suspensosCache = null;
-}
+// Cache functions imported from @/lib/suspensos-cache
 
 // =============================================
 // GET /api/suspensos - Busca TODOS os suspensos (sem limite)
@@ -44,7 +17,7 @@ export async function GET(request: NextRequest) {
     if (authError) return authError;
 
     // Tentar cache primeiro
-    const cached = getCachedData();
+    const cached = getCachedSuspensos();
     if (cached) {
       const response = NextResponse.json({
         success: true,
@@ -120,11 +93,12 @@ export async function GET(request: NextRequest) {
       modelo: row.modelo ?? "",
       aeasyVendaId: row.aeasy_venda_id ?? "",
       sincronizadoEm: row.sincronizado_em ?? "",
+      atualizadoEm: row.atualizado_em ?? "",
     }));
 
     // Cache
     const totalReal = totalCount ?? suspensos.length;
-    setCachedData(suspensos, totalReal);
+    setCachedSuspensos(suspensos, totalReal);
 
     const response = NextResponse.json({
       success: true,
