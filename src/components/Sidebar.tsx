@@ -9,6 +9,7 @@ import {
   BarChart3,
   Users,
   ScrollText,
+  UserX,
   Pin,
   PinOff,
   Menu,
@@ -24,6 +25,7 @@ interface SidebarProps {
 
 const ICON_MAP: Record<string, any> = {
   "file-x": FileX,
+  "user-x": UserX,
   "pause-circle": PauseCircle,
   "bar-chart-3": BarChart3,
   users: Users,

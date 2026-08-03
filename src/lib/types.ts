@@ -10,6 +10,7 @@ export type UserStatus = "Ativo" | "Inativo";
 export interface UserPermissions {
   cancelamentos: boolean;
   suspensos: boolean;
+  recuperacao: boolean;
   dashboard: boolean;
 }
 
@@ -95,6 +96,46 @@ export interface Suspenso {
   conferencia: ConferenciaStatus;
   telefone: string;
   diasAtraso: number;
+}
+
+// ---- AUDITORIA ----
+
+// ---- RECUPERACAO (Cancelados AEasy) ----
+
+export interface Recuperacao {
+  id: string;
+  associado: string;
+  documento: string;
+  telefone: string;
+  placa: string;
+  modelo: string;
+  valorOriginal: string;
+  consultor: string;
+  sede: string;
+  plano: string;
+  diasCancelado: number;
+  dataCancelamento: string;
+  diaVencimento: string;
+  atendente: string;
+  observacoes: string;
+  statusRecuperacao: RecuperacaoStatus;
+  aeasyVendaId: string;
+  sincronizadoEm: string;
+}
+
+export type RecuperacaoStatus =
+  | ""
+  | "Contato Realizado"
+  | "Interessado"
+  | "Recusa"
+  | "Nao Localizado"
+  | "Recuperado";
+
+export interface RecuperacaoFilters {
+  busca: string;
+  statusRecuperacao: string;
+  atendente: string;
+  sede: string;
 }
 
 // ---- AUDITORIA ----
@@ -279,7 +320,7 @@ export interface DailyEvolution {
 
 // ---- NAVIGATION ----
 
-export type PageName = "cancelamentos" | "suspensos" | "dashboard" | "usuarios" | "logs";
+export type PageName = "cancelamentos" | "recuperacao" | "suspensos" | "dashboard" | "usuarios" | "logs";
 
 export interface NavItem {
   name: PageName;
@@ -291,6 +332,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { name: "cancelamentos", label: "Cancelamentos", icon: "file-x", permissionKey: "cancelamentos" },
+  { name: "recuperacao", label: "Recuperacao", icon: "user-x", permissionKey: "recuperacao" },
   { name: "suspensos", label: "Suspensos", icon: "pause-circle", permissionKey: "suspensos" },
   { name: "dashboard", label: "Dashboard", icon: "bar-chart-3", permissionKey: "dashboard" },
   { name: "usuarios", label: "Usuarios", icon: "users", adminOnly: true },

@@ -1,0 +1,259 @@
+name: Sync AEasy Cancelados (Recuperacao)
+
+on:
+  # Executa a cada 6 horas (cancelados mudam menos frequentemente)
+  schedule:
+    - cron: '0 */6 * * *'
+  # Permite executar manualmente
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Sync Cancelados from AEasy to Supabase (tabela recuperacao)
+        env:
+          AEASY_BASE_URL: ${{ secrets.AEASY_BASE_URL }}
+          AEASY_LOGIN: ${{ secrets.AEASY_LOGIN }}
+          AEASY_PASSWORD: ${{ secrets.AEASY_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node << 'EOF'
+          const AEASY_URL = process.env.AEASY_BASE_URL || "https://aeasy.autovaleprevencoes.org";
+          const AEASY_LOGIN = process.env.AEASY_LOGIN;
+          const AEASY_PASSWORD = process.env.AEASY_PASSWORD;
+          const SUPABASE_URL = process.env.SUPABASE_URL;
+          const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+          async function main() {
+            console.log("[sync-cancelados] 1. Login na AEasy...");
+
+            // LOGIN (mesmo padrao do sync-aeasy.yml)
+            const loginRes = await fetch(`${AEASY_URL}/conta/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ UsuariosLogin: AEASY_LOGIN, UsuariosSenha: AEASY_PASSWORD }),
+              redirect: "manual",
+            });
+
+            const cookies = loginRes.headers.get("set-cookie") || "";
+            const match = cookies.match(/PHPSESSID=([^;]+)/);
+            if (!match) {
+              console.error("[sync-cancelados] FALHA login. Status:", loginRes.status);
+              process.exit(1);
+            }
+            const sessionId = match[1];
+            console.log("[sync-cancelados] 2. Login OK");
+
+            // BUILD BODY - VendasSituacao=3 (Cancelado)
+            function buildBody(start, length) {
+              const parts = [
+                `draw=1`, `start=${start}`, `length=${length}`,
+                `columns[0][data]=ClientesIndividuosNome`,
+                `columns[0][name]=ClientesIndividuosNome`,
+                `columns[0][searchable]=false`, `columns[0][orderable]=true`,
+                `columns[0][search][value]=`, `columns[0][search][regex]=false`,
+                `order[0][column]=0`, `order[0][dir]=asc`,
+                `formPesquisa[VendasSituacao][]=3`,
+                `formPesquisa[submitFilter]=true`,
+                `formPesquisa[DepartNivel]=1`,
+                `formPesquisa[VendasVencimento][]=5`,
+                `formPesquisa[VendasVencimento][]=10`,
+                `formPesquisa[VendasVencimento][]=15`,
+                `formPesquisa[VendasVencimento][]=20`,
+                `formPesquisa[VendasVencimento][]=25`,
+                `formPesquisa[VendasVencimento][]=30`,
+              ];
+              return parts.join("&");
+            }
+
+            // FETCH CANCELADOS
+            console.log("[sync-cancelados] 3. Buscando TODOS os cancelados...");
+            const allVendas = [];
+            const pageSize = 1000;
+
+            const firstRes = await fetch(`${AEASY_URL}/vendas/listagem/`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "X-Requested-With": "XMLHttpRequest",
+                "Cookie": `PHPSESSID=${sessionId}`,
+              },
+              body: buildBody(0, pageSize),
+            });
+
+            const firstData = await firstRes.json();
+            const total = parseInt(firstData.recordsFiltered || "0", 10);
+            allVendas.push(...(firstData.data || []));
+            console.log(`[sync-cancelados] Total na AEasy: ${total}. Pagina 1: ${firstData.data?.length || 0}`);
+
+            // Paginacao completa
+            let start = pageSize;
+            while (start < total) {
+              await new Promise(r => setTimeout(r, 300));
+              const res = await fetch(`${AEASY_URL}/vendas/listagem/`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                  "X-Requested-With": "XMLHttpRequest",
+                  "Cookie": `PHPSESSID=${sessionId}`,
+                },
+                body: buildBody(start, pageSize),
+              });
+              const page = await res.json();
+              allVendas.push(...(page.data || []));
+              start += pageSize;
+              console.log(`[sync-cancelados]   pagina ${Math.ceil(start / pageSize)}: ${allVendas.length}/${total}`);
+            }
+
+            console.log(`[sync-cancelados] 4. Total coletado: ${allVendas.length}`);
+
+            if (allVendas.length === 0) {
+              console.log("[sync-cancelados] Nenhum cancelado encontrado. Encerrando sem limpar tabela.");
+              return;
+            }
+
+            // MAPEAR para schema da tabela 'recuperacao'
+            const now = new Date();
+            const mapped = allVendas.map(v => {
+              const diasAtraso = parseInt(v.VendasDiasAtraso || "0", 10);
+
+              return {
+                aeasy_venda_id: String(v.VendasId),
+                associado: v.ClientesIndividuosNome || "",
+                documento: v.ClientesIndividuosDocumento || "",
+                telefone: `(${v.ClientesIndividuosContatosDdd || ""}) ${v.ClientesIndividuosContatosTelefone || ""}`,
+                placa: v.VendasCarrosPlaca || "",
+                modelo: `${v.VendasCarrosMarcasNome || ""} ${v.VendasCarrosModelosNome || ""}`.trim(),
+                valor_original: v.VendasValor || "",
+                dia_vencimento: v.VendasVencimento || "",
+                data_cancelamento: v.VendasDataCancelamento || v.VendasDataSuspensao || "",
+                dias_cancelado: diasAtraso,
+                consultor: v.ConsultoresNome || "",
+                sede: v.ConsultoresCentroCustoNome || "",
+                plano: v.VendasCarrosCategoriasPlanosNome || "",
+                sincronizado_em: now.toISOString(),
+              };
+            });
+
+            // DEDUPLICAR por aeasy_venda_id
+            const dedupMap = new Map();
+            for (const r of mapped) {
+              dedupMap.set(r.aeasy_venda_id, r);
+            }
+            const records = Array.from(dedupMap.values());
+            console.log(`[sync-cancelados] 5. Apos dedup: ${records.length} unicos`);
+
+            // GRAVAR NO SUPABASE (upsert por aeasy_venda_id)
+            const batchSize = 500;
+            let inserted = 0;
+            let errors = 0;
+
+            for (let i = 0; i < records.length; i += batchSize) {
+              const batch = records.slice(i, i + batchSize);
+              const res = await fetch(`${SUPABASE_URL}/rest/v1/recuperacao`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "apikey": SUPABASE_KEY,
+                  "Authorization": `Bearer ${SUPABASE_KEY}`,
+                  "Prefer": "resolution=merge-duplicates",
+                },
+                body: JSON.stringify(batch),
+              });
+
+              if (!res.ok) {
+                const err = await res.text();
+                console.error(`[sync-cancelados] Erro batch ${Math.floor(i / batchSize) + 1}: ${res.status} - ${err.substring(0, 200)}`);
+                // Fallback: inserir um a um
+                for (const rec of batch) {
+                  const singleRes = await fetch(`${SUPABASE_URL}/rest/v1/recuperacao`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "apikey": SUPABASE_KEY,
+                      "Authorization": `Bearer ${SUPABASE_KEY}`,
+                      "Prefer": "resolution=merge-duplicates",
+                    },
+                    body: JSON.stringify([rec]),
+                  });
+                  if (singleRes.ok) inserted++;
+                  else errors++;
+                }
+              } else {
+                inserted += batch.length;
+              }
+            }
+
+            console.log(`[sync-cancelados] 6. Upsert: ${inserted} OK, ${errors} erros`);
+
+            // AUTO-CLEANUP: Remover quem saiu do status Cancelado na AEasy
+            // (pode ter sido reativado ou recuperado externamente)
+            // Regra: So remove se NAO tem atendente designado
+            console.log("[sync-cancelados] 7. Auto-cleanup...");
+            const currentIds = records.map(r => r.aeasy_venda_id);
+            const currentIdSet = new Set(currentIds);
+
+            let existingRecords = [];
+            let dbFrom = 0;
+            let dbHasMore = true;
+            while (dbHasMore) {
+              const dbRes = await fetch(
+                `${SUPABASE_URL}/rest/v1/recuperacao?select=aeasy_venda_id,atendente&aeasy_venda_id=not.is.null&offset=${dbFrom}&limit=5000`,
+                { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+              );
+              const dbData = await dbRes.json();
+              if (dbData && dbData.length > 0) {
+                existingRecords.push(...dbData);
+                dbFrom += 5000;
+                dbHasMore = dbData.length === 5000;
+              } else {
+                dbHasMore = false;
+              }
+            }
+
+            const toRemove = existingRecords.filter(r => {
+              return !currentIdSet.has(r.aeasy_venda_id) && (!r.atendente || r.atendente.trim() === "");
+            });
+
+            if (toRemove.length > 0) {
+              const idsToRemove = toRemove.map(r => r.aeasy_venda_id);
+              for (let i = 0; i < idsToRemove.length; i += 50) {
+                const batch = idsToRemove.slice(i, i + 50);
+                const idsParam = batch.map(id => `"${id}"`).join(",");
+                await fetch(
+                  `${SUPABASE_URL}/rest/v1/recuperacao?aeasy_venda_id=in.(${idsParam})`,
+                  { method: "DELETE", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+                );
+              }
+              console.log(`[sync-cancelados]   ${toRemove.length} removidos (nao mais cancelados e sem atendente)`);
+            } else {
+              console.log("[sync-cancelados]   Nenhum registro para remover.");
+            }
+
+            console.log(`[sync-cancelados] 8. CONCLUIDO! ${inserted} sync, ${toRemove.length} removidos`);
+
+            // LOG
+            await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+              },
+              body: JSON.stringify({
+                usuario: "GitHub Actions",
+                email: "ci@avp-system",
+                perfil: "System",
+                acao: "Sync AEasy Cancelados (Recuperacao)",
+                campo: "quantidade",
+                depois: `${inserted} sync, ${toRemove.length} removidos`,
+              }),
+            });
+          }
+
+          main().catch(e => { console.error("[sync-cancelados] FATAL:", e); process.exit(1); });
+          EOF
