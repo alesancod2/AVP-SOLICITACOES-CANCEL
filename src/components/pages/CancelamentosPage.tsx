@@ -57,9 +57,7 @@ export default function CancelamentosPage() {
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/cancelamentos?page=1&pageSize=5000`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`/api/cancelamentos?page=1&pageSize=5000`);
       const data = await res.json();
       if (data.success && data.data) {
         setAllRecords(data.data);
@@ -202,7 +200,7 @@ export default function CancelamentosPage() {
       if (editingRecord) {
         const res = await fetch(`/api/cancelamentos/${editingRecord.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ data: formData }),
         });
         const data = await res.json();
@@ -213,7 +211,7 @@ export default function CancelamentosPage() {
       } else {
         const res = await fetch("/api/cancelamentos", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ data: { ...formData, atendente: user?.nome || formData.atendente } }),
         });
         const data = await res.json();
@@ -235,7 +233,7 @@ export default function CancelamentosPage() {
     try {
       const res = await fetch(
         `/api/cancelamentos/${deletingRecord.id}`,
-        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+        { method: "DELETE" }
       );
       const data = await res.json();
       if (data.success) {
