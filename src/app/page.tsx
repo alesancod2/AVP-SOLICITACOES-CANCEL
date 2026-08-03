@@ -6,6 +6,7 @@ import { PageName } from "@/lib/types";
 import LoginPage from "@/components/LoginPage";
 import Sidebar from "@/components/Sidebar";
 import CancelamentosPage from "@/components/pages/CancelamentosPage";
+import RecuperacaoPage from "@/components/pages/RecuperacaoPage";
 import SuspensosPage from "@/components/pages/SuspensosPage";
 import DashboardPage from "@/components/pages/DashboardPage";
 import UsuariosPage from "@/components/pages/UsuariosPage";
@@ -64,6 +65,8 @@ function AppContent() {
     switch (activePage) {
       case "cancelamentos":
         return <CancelamentosPage />;
+      case "recuperacao":
+        return <RecuperacaoPage />;
       case "suspensos":
         return <SuspensosPage />;
       case "dashboard":
