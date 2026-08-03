@@ -46,7 +46,13 @@ jobs:
             console.log("[sync-cancelados] 2. Login OK");
 
             // VendasSituacao=3 busca APENAS cancelados
+            // TipoData=VendasDataCancelamento filtra por DATA de cancelamento
+            // Busca cancelados dos ultimos 90 dias (periodo gerenciavel)
             function buildBody(start, length) {
+              const now = new Date();
+              const dataFinal = now.toISOString().split("T")[0]; // hoje
+              const dataInicial = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]; // 90 dias atras
+
               const parts = [
                 `draw=1`, `start=${start}`, `length=${length}`,
                 `columns[0][data]=ClientesIndividuosNome`,
@@ -55,14 +61,11 @@ jobs:
                 `columns[0][search][value]=`, `columns[0][search][regex]=false`,
                 `order[0][column]=0`, `order[0][dir]=asc`,
                 `formPesquisa[VendasSituacao][]=3`,
+                `formPesquisa[TipoData]=VendasDataCancelamento`,
+                `formPesquisa[DataInicial]=${dataInicial}`,
+                `formPesquisa[DataFinal]=${dataFinal}`,
                 `formPesquisa[submitFilter]=true`,
                 `formPesquisa[DepartNivel]=1`,
-                `formPesquisa[VendasVencimento][]=5`,
-                `formPesquisa[VendasVencimento][]=10`,
-                `formPesquisa[VendasVencimento][]=15`,
-                `formPesquisa[VendasVencimento][]=20`,
-                `formPesquisa[VendasVencimento][]=25`,
-                `formPesquisa[VendasVencimento][]=30`,
               ];
               return parts.join("&");
             }
