@@ -5,9 +5,12 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 // =============================================
-// API /api/recuperacao
-// Consome tabela 'recuperacao' (populada pelo workflow sync-aeasy-cancelados.yml)
-// Dados vem da consulta VendasSituacao=3 (Cancelado) na AEasy
+// REGRA DE VISIBILIDADE (Fila Ativa):
+// Um cliente so permanece visivel se:
+//   - NAO tem status "Ativo" (veio da API como reativado)
+//   - OU (tem status "Interessado" E tem atendente vinculado)
+// Clientes com outros status (Recusa, Nao Localizado, Contato Realizado)
+// ficam visiveis para acompanhamento ate serem removidos pelo sync
 // =============================================
 
 interface CacheEntry {
@@ -25,7 +28,7 @@ function getCached(): CacheEntry | null {
   return null;
 }
 
-// GET /api/recuperacao - Lista todos os cancelados para recuperacao
+// GET /api/recuperacao
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient();
@@ -47,6 +50,7 @@ export async function GET(request: NextRequest) {
       .from("recuperacao")
       .select("*", { count: "exact", head: true });
 
+    // Buscar todos os registros
     let allData: any[] = [];
     let from = 0;
     const pageSize = 5000;
@@ -70,7 +74,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const records = allData.map((row) => ({
+    // REGRA DE VISIBILIDADE:
+    // Cliente com status "Ativo" so fica visivel se tem "Interessado" + atendente
+    const visibleRecords = allData.filter((row) => {
+      const status = row.status_recuperacao || "";
+      // Se marcado como "Ativo" (reativado): so mostra se tem interesse + atendente
+      if (status === "Ativo") {
+        return false; // Reativados saem da fila (sucesso!)
+      }
+      // "Recuperado" tambem sai da fila (missao cumprida)
+      if (status === "Recuperado") {
+        return false;
+      }
+      // Todos os demais ficam visiveis na fila de trabalho
+      return true;
+    });
+
+    const records = visibleRecords.map((row) => ({
       id: row.id,
       associado: row.associado ?? "",
       documento: row.documento ?? "",
@@ -91,7 +111,7 @@ export async function GET(request: NextRequest) {
       sincronizadoEm: row.sincronizado_em ?? "",
     }));
 
-    const totalReal = totalCount ?? records.length;
+    const totalReal = totalCount ?? allData.length;
     cache = { data: records, totalReal, timestamp: Date.now() };
 
     return NextResponse.json({
@@ -102,7 +122,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT /api/recuperacao - Atualiza atendimento (atendente, status, observacoes)
+// PUT /api/recuperacao - Atualiza atendimento + registra historico
 export async function PUT(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient();
@@ -118,12 +138,19 @@ export async function PUT(request: NextRequest) {
     }
 
     const admin = createAdminClient();
-    const updateData: Record<string, any> = {};
 
+    // Buscar estado atual ANTES da alteracao (para historico)
+    const { data: currentRecord } = await admin
+      .from("recuperacao")
+      .select("aeasy_venda_id, associado, placa, telefone, plano, status_recuperacao, atendente")
+      .eq("id", id)
+      .single();
+
+    // Atualizar o registro
+    const updateData: Record<string, any> = {};
     if (data.atendente !== undefined) updateData.atendente = data.atendente;
     if (data.observacoes !== undefined) updateData.observacoes = data.observacoes;
     if (data.statusRecuperacao !== undefined) updateData.status_recuperacao = data.statusRecuperacao;
-
     updateData.atualizado_em = new Date().toISOString();
 
     const { error } = await admin
@@ -135,12 +162,35 @@ export async function PUT(request: NextRequest) {
 
     cache = null;
 
+    // Buscar usuario logado
     const { data: usuario } = await admin
       .from("usuarios")
       .select("nome, email, perfil")
       .eq("email", session.user.email)
       .single();
 
+    const nomeAtendente = data.atendente || usuario?.nome || "";
+
+    // =============================================
+    // REGISTRAR HISTORICO DE TENTATIVA
+    // Grava sempre que houver alteracao de status ou inicio de atendimento
+    // =============================================
+    if (data.statusRecuperacao !== undefined || data.atendente) {
+      await admin.from("recuperacao_historico").insert({
+        recuperacao_id: id,
+        aeasy_venda_id: currentRecord?.aeasy_venda_id || "",
+        associado: currentRecord?.associado || "",
+        placa: currentRecord?.placa || "",
+        telefone: currentRecord?.telefone || "",
+        plano: currentRecord?.plano || "",
+        atendente: nomeAtendente,
+        status_anterior: currentRecord?.status_recuperacao || "",
+        status_novo: data.statusRecuperacao || currentRecord?.status_recuperacao || "",
+        observacoes: data.observacoes || "",
+      });
+    }
+
+    // Log de auditoria (tabela logs existente)
     if (usuario) {
       await admin.from("logs").insert({
         usuario: usuario.nome,
@@ -149,7 +199,8 @@ export async function PUT(request: NextRequest) {
         acao: "Atendimento Recuperacao",
         registro_id: id,
         campo: "status_recuperacao",
-        depois: data.statusRecuperacao || data.observacoes || "",
+        antes: currentRecord?.status_recuperacao || "",
+        depois: data.statusRecuperacao || "",
       });
     }
 

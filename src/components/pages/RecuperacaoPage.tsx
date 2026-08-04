@@ -20,12 +20,14 @@ import {
 } from "lucide-react";
 
 // Status disponiveis no modal de atendimento
+// "Ativo" e "Recuperado" removem da fila apos salvar (regra de visibilidade)
+// "Interessado" mantem na fila COM atendente vinculado
 const STATUS_ATENDIMENTO_OPTIONS = [
+  { value: "Contato Realizado", label: "Contato Realizado", color: "text-yellow-400" },
+  { value: "Interessado", label: "Tem Interesse", color: "text-cyan-400" },
   { value: "Ativo", label: "Ativo (reativou)", color: "text-green-400" },
   { value: "Recuperado", label: "Recuperado", color: "text-emerald-400" },
-  { value: "Contato Realizado", label: "Contato Realizado", color: "text-yellow-400" },
-  { value: "Interessado", label: "Interessado", color: "text-cyan-400" },
-  { value: "Recusa", label: "Recusa", color: "text-red-400" },
+  { value: "Recusa", label: "Recusa / Sem interesse", color: "text-red-400" },
   { value: "Nao Localizado", label: "Nao Localizado", color: "text-gray-400" },
 ] as const;
 
@@ -117,17 +119,15 @@ export default function RecuperacaoPage() {
   const atendentes = useMemo(() => Array.from(new Set(records.map(r => r.atendente).filter(Boolean))).sort(), [records]);
   const sedes = useMemo(() => Array.from(new Set(records.map(r => r.sede).filter(Boolean))).sort(), [records]);
 
-  // =============================================
-  // KPIs - Refletem status definidos no modal de atendimento
-  // =============================================
+  // KPIs - Refletem regras de visibilidade
   const kpis = useMemo(() => ({
     totalCancelados: totalReal || records.length,
-    ativo: records.filter(r => r.statusRecuperacao === "Ativo").length,
-    recuperado: records.filter(r => r.statusRecuperacao === "Recuperado").length,
+    naFila: records.filter(r => !r.atendente && !r.statusRecuperacao).length,
+    interessados: records.filter(r => r.statusRecuperacao === "Interessado").length,
     contatoRealizado: records.filter(r => r.statusRecuperacao === "Contato Realizado").length,
-    interessado: records.filter(r => r.statusRecuperacao === "Interessado").length,
-    semAtendimento: records.filter(r => !r.statusRecuperacao && !r.atendente).length,
-  }), [records, totalReal]);
+    recusa: records.filter(r => r.statusRecuperacao === "Recusa" || r.statusRecuperacao === "Nao Localizado").length,
+    meusAtendimentos: records.filter(r => r.atendente === user?.nome).length,
+  }), [records, totalReal, user?.nome]);
 
   // =============================================
   // HANDLERS
@@ -280,31 +280,31 @@ export default function RecuperacaoPage() {
         </div>
       )}
 
-      {/* KPI Cards - Refletem as acoes do modal de atendimento */}
+      {/* KPI Cards - Fila ativa de trabalho */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="kpi-card border-l-2 border-l-red-500">
-          <span className="text-xs text-gray-500 uppercase">Total Cancelados</span>
+          <span className="text-xs text-gray-500 uppercase">Total Base</span>
           <span className="text-2xl font-bold text-red-400">{kpis.totalCancelados.toLocaleString("pt-BR")}</span>
         </div>
-        <div className="kpi-card border-l-2 border-l-green-500">
-          <span className="text-xs text-gray-500 uppercase">Ativo (Reativou)</span>
-          <span className="text-2xl font-bold text-green-400">{kpis.ativo}</span>
+        <div className="kpi-card border-l-2 border-l-blue-500">
+          <span className="text-xs text-gray-500 uppercase">Na Fila</span>
+          <span className="text-2xl font-bold text-blue-400">{kpis.naFila}</span>
         </div>
-        <div className="kpi-card border-l-2 border-l-emerald-500">
-          <span className="text-xs text-gray-500 uppercase">Recuperado</span>
-          <span className="text-2xl font-bold text-emerald-400">{kpis.recuperado}</span>
+        <div className="kpi-card border-l-2 border-l-purple-500">
+          <span className="text-xs text-gray-500 uppercase">Meus</span>
+          <span className="text-2xl font-bold text-purple-400">{kpis.meusAtendimentos}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-yellow-500">
           <span className="text-xs text-gray-500 uppercase">Contato Feito</span>
           <span className="text-2xl font-bold text-yellow-400">{kpis.contatoRealizado}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-cyan-500">
-          <span className="text-xs text-gray-500 uppercase">Interessado</span>
-          <span className="text-2xl font-bold text-cyan-400">{kpis.interessado}</span>
+          <span className="text-xs text-gray-500 uppercase">Tem Interesse</span>
+          <span className="text-2xl font-bold text-cyan-400">{kpis.interessados}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-gray-500">
-          <span className="text-xs text-gray-500 uppercase">Sem Atendimento</span>
-          <span className="text-2xl font-bold text-gray-400">{kpis.semAtendimento}</span>
+          <span className="text-xs text-gray-500 uppercase">Recusa</span>
+          <span className="text-2xl font-bold text-gray-400">{kpis.recusa}</span>
         </div>
       </div>
 
