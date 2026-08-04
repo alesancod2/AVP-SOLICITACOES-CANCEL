@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   Phone,
   Play,
+  RotateCcw,
   X,
   AlertCircle,
   CheckCircle,
@@ -166,6 +167,24 @@ export default function RecuperacaoPage() {
       }
     } catch (e) { console.error(e); }
     finally { setSubmitting(false); }
+  };
+
+  // Devolver registro a fila (limpa atendente e status)
+  const handleLiberarFila = async (record: Recuperacao) => {
+    try {
+      const res = await fetch("/api/recuperacao", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: record.id,
+          atendente: "",
+          statusRecuperacao: "",
+          observacoes: "",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) fetchRecuperacao(true);
+    } catch (e) { console.error(e); }
   };
 
   // Sync AEasy Cancelados (Admin only)
@@ -380,13 +399,29 @@ export default function RecuperacaoPage() {
                     <div className="px-3 text-gray-400 text-xs w-[10%] min-w-[80px] hidden md:block truncate">{record.atendente || "-"}</div>
                     <div className="px-3 w-[18%] min-w-[150px]">
                       <div className="flex items-center justify-center gap-2">
-                        {/* Botao Iniciar Atendimento */}
-                        <button
-                          onClick={() => handleIniciarAtendimento(record)}
-                          className="px-2.5 py-1 text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-700/50 rounded-lg hover:bg-emerald-900/50 transition-colors flex items-center gap-1"
-                        >
-                          <Play className="w-3 h-3" /> Atender
-                        </button>
+                        {/* Botao Atender ou Devolver a Fila */}
+                        {!record.atendente ? (
+                          <button
+                            onClick={() => handleIniciarAtendimento(record)}
+                            className="px-2.5 py-1 text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-700/50 rounded-lg hover:bg-emerald-900/50 transition-colors flex items-center gap-1"
+                          >
+                            <Play className="w-3 h-3" /> Atender
+                          </button>
+                        ) : record.atendente === user?.nome ? (
+                          <button
+                            onClick={() => handleLiberarFila(record)}
+                            className="px-2.5 py-1 text-xs bg-yellow-900/30 text-yellow-400 border border-yellow-700/50 rounded-lg hover:bg-yellow-900/50 transition-colors flex items-center gap-1"
+                          >
+                            <RotateCcw className="w-3 h-3" /> Fila
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleIniciarAtendimento(record)}
+                            className="px-2.5 py-1 text-xs bg-gray-800 text-gray-400 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-1"
+                          >
+                            <Play className="w-3 h-3" /> Atender
+                          </button>
+                        )}
                         {/* Botao WhatsApp */}
                         {record.telefone && (
                           <button
