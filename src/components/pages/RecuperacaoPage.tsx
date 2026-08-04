@@ -43,6 +43,7 @@ export default function RecuperacaoPage() {
   const [visibleCount, setVisibleCount] = useState(100);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<"aberto" | "recuperados" | "recusa" | "todos">("aberto");
 
   const [filters, setFilters] = useState<RecuperacaoFilters>({
     busca: "",
@@ -94,10 +95,28 @@ export default function RecuperacaoPage() {
   }, [fetchRecuperacao]);
 
   // =============================================
-  // FILTROS CLIENT-SIDE
+  // FILTROS CLIENT-SIDE + ABAS DE VISUALIZACAO
   // =============================================
   const filteredRecords = useMemo(() => {
     let result = [...records];
+
+    // FILTRO POR ABA (separa fila de trabalho do historico)
+    if (activeTab === "aberto") {
+      // Em Aberto: pendentes + contato + interessados (fila de trabalho diario)
+      result = result.filter(r => {
+        const s = r.statusRecuperacao;
+        return !s || s === "Contato Realizado" || s === "Interessado";
+      });
+    } else if (activeTab === "recuperados") {
+      // Recuperados: clientes convertidos com sucesso (historico de evolucao)
+      result = result.filter(r => r.statusRecuperacao === "Ativo" || r.statusRecuperacao === "Recuperado");
+    } else if (activeTab === "recusa") {
+      // Recusa/Nao Localizado: insucesso
+      result = result.filter(r => r.statusRecuperacao === "Recusa" || r.statusRecuperacao === "Nao Localizado");
+    }
+    // "todos" = sem filtro de aba (mostra tudo)
+
+    // Filtros adicionais
     if (filters.busca) {
       const q = filters.busca.toLowerCase();
       result = result.filter(r =>
@@ -111,23 +130,24 @@ export default function RecuperacaoPage() {
     if (filters.sede) result = result.filter(r => r.sede === filters.sede);
     result.sort((a, b) => (b.diasCancelado || 0) - (a.diasCancelado || 0));
     return result;
-  }, [records, filters]);
+  }, [records, filters, activeTab]);
 
-  useEffect(() => { setVisibleCount(100); }, [filters]);
+  useEffect(() => { setVisibleCount(100); }, [filters, activeTab]);
   const visibleRecords = useMemo(() => filteredRecords.slice(0, visibleCount), [filteredRecords, visibleCount]);
 
   const atendentes = useMemo(() => Array.from(new Set(records.map(r => r.atendente).filter(Boolean))).sort(), [records]);
   const sedes = useMemo(() => Array.from(new Set(records.map(r => r.sede).filter(Boolean))).sort(), [records]);
 
-  // KPIs - Mostram evolucao COMPLETA (nada some do mapa)
-  const kpis = useMemo(() => ({
-    totalBase: totalReal || records.length,
-    naFila: records.filter(r => !r.statusRecuperacao || r.statusRecuperacao === "Contato Realizado" || r.statusRecuperacao === "Interessado").length,
-    interessados: records.filter(r => r.statusRecuperacao === "Interessado").length,
-    contatoRealizado: records.filter(r => r.statusRecuperacao === "Contato Realizado").length,
-    recuperados: records.filter(r => r.statusRecuperacao === "Ativo" || r.statusRecuperacao === "Recuperado").length,
-    recusa: records.filter(r => r.statusRecuperacao === "Recusa" || r.statusRecuperacao === "Nao Localizado").length,
-  }), [records, totalReal]);
+  // KPIs - Funil de evolucao COMPLETO (nada desaparece)
+  const kpis = useMemo(() => {
+    const totalRecebidos = totalReal || records.length;
+    const emAberto = records.filter(r => !r.statusRecuperacao || r.statusRecuperacao === "Contato Realizado" || r.statusRecuperacao === "Interessado").length;
+    const emAndamento = records.filter(r => r.statusRecuperacao === "Interessado" && r.atendente).length;
+    const recuperados = records.filter(r => r.statusRecuperacao === "Ativo" || r.statusRecuperacao === "Recuperado").length;
+    const naoRecuperados = records.filter(r => r.statusRecuperacao === "Recusa" || r.statusRecuperacao === "Nao Localizado").length;
+    const taxaSucesso = totalRecebidos > 0 ? Math.round((recuperados / totalRecebidos) * 100) : 0;
+    return { totalRecebidos, emAberto, emAndamento, recuperados, naoRecuperados, taxaSucesso };
+  }, [records, totalReal]);
 
   // =============================================
   // HANDLERS
@@ -280,32 +300,57 @@ export default function RecuperacaoPage() {
         </div>
       )}
 
-      {/* KPI Cards - Evolucao completa (nada desaparece) */}
+      {/* KPI Cards - Funil de Evolucao (metricas cumulativas) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="kpi-card border-l-2 border-l-red-500">
-          <span className="text-xs text-gray-500 uppercase">Total Base</span>
-          <span className="text-2xl font-bold text-red-400">{kpis.totalBase.toLocaleString("pt-BR")}</span>
+          <span className="text-xs text-gray-500 uppercase">Recebidos (API)</span>
+          <span className="text-2xl font-bold text-red-400">{kpis.totalRecebidos.toLocaleString("pt-BR")}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-blue-500">
-          <span className="text-xs text-gray-500 uppercase">Na Fila</span>
-          <span className="text-2xl font-bold text-blue-400">{kpis.naFila}</span>
-        </div>
-        <div className="kpi-card border-l-2 border-l-yellow-500">
-          <span className="text-xs text-gray-500 uppercase">Contato Feito</span>
-          <span className="text-2xl font-bold text-yellow-400">{kpis.contatoRealizado}</span>
+          <span className="text-xs text-gray-500 uppercase">Em Aberto</span>
+          <span className="text-2xl font-bold text-blue-400">{kpis.emAberto}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-cyan-500">
-          <span className="text-xs text-gray-500 uppercase">Tem Interesse</span>
-          <span className="text-2xl font-bold text-cyan-400">{kpis.interessados}</span>
+          <span className="text-xs text-gray-500 uppercase">Em Andamento</span>
+          <span className="text-2xl font-bold text-cyan-400">{kpis.emAndamento}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-green-500">
           <span className="text-xs text-gray-500 uppercase">Recuperados</span>
           <span className="text-2xl font-bold text-green-400">{kpis.recuperados}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-gray-500">
-          <span className="text-xs text-gray-500 uppercase">Recusa</span>
-          <span className="text-2xl font-bold text-gray-400">{kpis.recusa}</span>
+          <span className="text-xs text-gray-500 uppercase">Nao Recuperados</span>
+          <span className="text-2xl font-bold text-gray-400">{kpis.naoRecuperados}</span>
         </div>
+        <div className="kpi-card border-l-2 border-l-emerald-500">
+          <span className="text-xs text-gray-500 uppercase">Taxa Sucesso</span>
+          <span className={`text-2xl font-bold ${kpis.taxaSucesso >= 20 ? "text-emerald-400" : kpis.taxaSucesso >= 10 ? "text-yellow-400" : "text-red-400"}`}>{kpis.taxaSucesso}%</span>
+        </div>
+      </div>
+
+      {/* Abas de Visualizacao - separa fila de trabalho do historico */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {([
+          { key: "aberto", label: "Em Aberto", count: kpis.emAberto },
+          { key: "recuperados", label: "Recuperados", count: kpis.recuperados },
+          { key: "recusa", label: "Recusa", count: kpis.naoRecuperados },
+          { key: "todos", label: "Todos", count: records.length },
+        ] as const).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
+              activeTab === tab.key
+                ? "bg-emerald-600/20 text-emerald-400 border border-emerald-700/50"
+                : "bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700 hover:text-gray-200"
+            }`}
+          >
+            {tab.label}
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              activeTab === tab.key ? "bg-emerald-700/50 text-emerald-300" : "bg-gray-700 text-gray-500"
+            }`}>{tab.count}</span>
+          </button>
+        ))}
       </div>
 
       {/* Search + Filters */}
