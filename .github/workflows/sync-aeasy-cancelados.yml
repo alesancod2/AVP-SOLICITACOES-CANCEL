@@ -218,7 +218,7 @@ jobs:
               console.log(`[sync-cancelados]   ${toRemove.length} removidos`);
             }
 
-            console.log(`[sync-cancelados] 8. CONCLUIDO! ${inserted} inseridos, ${toRemove.length} removidos, ${placasUnicas} placas`);
+            console.log(`[sync-cancelados] 8. CONCLUIDO! ${inserted} inseridos, ${toRemove.length} removidos, ${chassisUnicos} chassis`);
 
             await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
               method: "POST",
@@ -229,7 +229,7 @@ jobs:
                 perfil: "System",
                 acao: "Sync AEasy Cancelados (Recuperacao)",
                 campo: "quantidade",
-                depois: `${inserted} inseridos, ${toRemove.length} removidos, ${placasUnicas} placas`,
+                depois: `${inserted} inseridos, ${toRemove.length} removidos, ${chassisUnicos} chassis`,
               }),
             });
           }
