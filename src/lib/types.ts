@@ -106,6 +106,7 @@ export interface Suspenso {
 export interface Recuperacao {
   id: string;
   associado: string;
+  chassi: string;
   documento: string;
   telefone: string;
   placa: string;

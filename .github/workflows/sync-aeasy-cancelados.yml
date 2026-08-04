@@ -110,6 +110,7 @@ jobs:
             const now = new Date();
             const mapped = allVendas.map(v => ({
               aeasy_venda_id: String(v.VendasId),
+              chassi: v.CarrosChassi || v.VendasCarrosPlaca || "",
               associado: v.ClientesIndividuosNome || "",
               documento: v.ClientesIndividuosDocumento || "",
               telefone: `(${v.ClientesIndividuosContatosDdd || ""}) ${v.ClientesIndividuosContatosTelefone || ""}`,
@@ -125,12 +126,18 @@ jobs:
               sincronizado_em: now.toISOString(),
             }));
 
-            // Dedup por aeasy_venda_id (cada contrato/placa tem ID unico)
+            // DEDUPLICACAO por CHASSI + ASSOCIADO (chave composta)
+            // Mesmo chassi + associado diferente = registro VALIDO (manter)
+            // Mesmo chassi + mesmo associado = DUPLICADO (ignorar)
             const dedupMap = new Map();
-            for (const r of mapped) dedupMap.set(r.aeasy_venda_id, r);
+            for (const r of mapped) {
+              const key = `${(r.chassi || "").toUpperCase().trim()}|${(r.associado || "").toUpperCase().trim()}`;
+              // Se ja existe com mesma chave, manter o mais recente (ultima ocorrencia)
+              dedupMap.set(key, r);
+            }
             const records = Array.from(dedupMap.values());
-            const placasUnicas = new Set(records.map(r => r.placa)).size;
-            console.log(`[sync-cancelados] 5. Dedup: ${records.length} unicos | ${placasUnicas} placas distintas`);
+            const chassisUnicos = new Set(records.map(r => r.chassi)).size;
+            console.log(`[sync-cancelados] 5. Dedup (chassi+associado): ${records.length} unicos | ${chassisUnicos} chassis distintos`);
 
             const batchSize = 500;
             let inserted = 0;

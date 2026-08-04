@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
     const records = allData.map((row) => ({
       id: row.id,
       associado: row.associado ?? "",
+      chassi: row.chassi ?? "",
       documento: row.documento ?? "",
       telefone: row.telefone ?? "",
       placa: row.placa ?? "",

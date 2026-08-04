@@ -122,6 +122,7 @@ export default function RecuperacaoPage() {
       result = result.filter(r =>
         r.associado.toLowerCase().includes(q) ||
         r.placa.toLowerCase().includes(q) ||
+        (r.chassi || "").toLowerCase().includes(q) ||
         (r.telefone || "").includes(q)
       );
     }
@@ -361,7 +362,7 @@ export default function RecuperacaoPage() {
             type="text"
             value={filters.busca}
             onChange={(e) => setFilters(f => ({ ...f, busca: e.target.value }))}
-            placeholder="Buscar por associado, placa ou telefone..."
+            placeholder="Buscar por associado, placa, chassi ou telefone..."
             className="input-field pl-10"
           />
         </div>
