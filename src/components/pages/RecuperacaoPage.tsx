@@ -35,6 +35,7 @@ export default function RecuperacaoPage() {
   const { user, isAdmin } = useAuth();
   const [records, setRecords] = useState<Recuperacao[]>([]);
   const [totalReal, setTotalReal] = useState<number>(0);
+  const [dbKpis, setDbKpis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -70,6 +71,7 @@ export default function RecuperacaoPage() {
       if (data.success) {
         setRecords(data.data || []);
         if (data.totalReal) setTotalReal(data.totalReal);
+        if (data.kpis) setDbKpis(data.kpis);
       } else {
         setError(data.error || "Erro ao carregar dados");
       }
@@ -139,16 +141,28 @@ export default function RecuperacaoPage() {
   const atendentes = useMemo(() => Array.from(new Set(records.map(r => r.atendente).filter(Boolean))).sort(), [records]);
   const sedes = useMemo(() => Array.from(new Set(records.map(r => r.sede).filter(Boolean))).sort(), [records]);
 
-  // KPIs - Funil de evolucao COMPLETO (nada desaparece)
+  // KPIs - Contagens DIRETAS DO BANCO (precisas, independente da aba ativa)
   const kpis = useMemo(() => {
+    if (dbKpis) {
+      const totalRecebidos = dbKpis.totalRecebidos || totalReal || records.length;
+      const recuperados = dbKpis.recuperados || 0;
+      const taxaSucesso = totalRecebidos > 0 ? Math.round((recuperados / totalRecebidos) * 100) : 0;
+      return {
+        totalRecebidos,
+        emAberto: totalRecebidos - recuperados - (dbKpis.naoRecuperados || 0),
+        emAndamento: dbKpis.emAndamento || 0,
+        recuperados,
+        naoRecuperados: dbKpis.naoRecuperados || 0,
+        taxaSucesso,
+      };
+    }
+    // Fallback client-side se API nao retornou kpis
     const totalRecebidos = totalReal || records.length;
-    const emAberto = records.filter(r => !r.statusRecuperacao || r.statusRecuperacao === "Contato Realizado" || r.statusRecuperacao === "Interessado").length;
-    const emAndamento = records.filter(r => r.statusRecuperacao === "Interessado" && r.atendente).length;
     const recuperados = records.filter(r => r.statusRecuperacao === "Ativo" || r.statusRecuperacao === "Recuperado").length;
     const naoRecuperados = records.filter(r => r.statusRecuperacao === "Recusa" || r.statusRecuperacao === "Nao Localizado").length;
     const taxaSucesso = totalRecebidos > 0 ? Math.round((recuperados / totalRecebidos) * 100) : 0;
-    return { totalRecebidos, emAberto, emAndamento, recuperados, naoRecuperados, taxaSucesso };
-  }, [records, totalReal]);
+    return { totalRecebidos, emAberto: totalRecebidos - recuperados - naoRecuperados, emAndamento: records.filter(r => r.statusRecuperacao === "Interessado" && r.atendente).length, recuperados, naoRecuperados, taxaSucesso };
+  }, [records, totalReal, dbKpis]);
 
   // =============================================
   // HANDLERS

@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
 interface CacheEntry {
   data: any[];
   totalReal: number;
+  kpis: any;
   timestamp: number;
 }
 
@@ -40,15 +41,39 @@ export async function GET(request: NextRequest) {
     const cached = getCached();
     if (cached) {
       return NextResponse.json({
-        success: true, data: cached.data, total: cached.data.length, totalReal: cached.totalReal, cached: true,
+        success: true, data: cached.data, total: cached.data.length, totalReal: cached.totalReal, kpis: cached.kpis, cached: true,
       }, { headers: { "Cache-Control": "no-store" } });
     }
 
     const admin = createAdminClient();
 
-    const { count: totalCount } = await admin
-      .from("recuperacao")
-      .select("*", { count: "exact", head: true });
+    // CONTAGENS DIRETAS DO DB (para KPIs precisos independente de filtro)
+    const [
+      { count: totalCount },
+      { count: countInteressado },
+      { count: countAtivo },
+      { count: countRecuperado },
+      { count: countRecusa },
+      { count: countNaoLocalizado },
+      { count: countContatoRealizado },
+    ] = await Promise.all([
+      admin.from("recuperacao").select("*", { count: "exact", head: true }),
+      admin.from("recuperacao").select("*", { count: "exact", head: true }).eq("status_recuperacao", "Interessado"),
+      admin.from("recuperacao").select("*", { count: "exact", head: true }).eq("status_recuperacao", "Ativo"),
+      admin.from("recuperacao").select("*", { count: "exact", head: true }).eq("status_recuperacao", "Recuperado"),
+      admin.from("recuperacao").select("*", { count: "exact", head: true }).eq("status_recuperacao", "Recusa"),
+      admin.from("recuperacao").select("*", { count: "exact", head: true }).eq("status_recuperacao", "Nao Localizado"),
+      admin.from("recuperacao").select("*", { count: "exact", head: true }).eq("status_recuperacao", "Contato Realizado"),
+    ]);
+
+    const kpis = {
+      totalRecebidos: totalCount || 0,
+      emAndamento: (countInteressado || 0) + (countContatoRealizado || 0),
+      recuperados: (countAtivo || 0) + (countRecuperado || 0),
+      naoRecuperados: (countRecusa || 0) + (countNaoLocalizado || 0),
+      interessados: countInteressado || 0,
+      contatoRealizado: countContatoRealizado || 0,
+    };
 
     // Buscar todos os registros
     let allData: any[] = [];
@@ -100,10 +125,10 @@ export async function GET(request: NextRequest) {
     }));
 
     const totalReal = totalCount ?? allData.length;
-    cache = { data: records, totalReal, timestamp: Date.now() };
+    cache = { data: records, totalReal, kpis, timestamp: Date.now() };
 
     return NextResponse.json({
-      success: true, data: records, total: records.length, totalReal, cached: false,
+      success: true, data: records, total: records.length, totalReal, kpis, cached: false,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
