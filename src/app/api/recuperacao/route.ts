@@ -74,23 +74,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // REGRA DE VISIBILIDADE:
-    // Cliente com status "Ativo" so fica visivel se tem "Interessado" + atendente
-    const visibleRecords = allData.filter((row) => {
-      const status = row.status_recuperacao || "";
-      // Se marcado como "Ativo" (reativado): so mostra se tem interesse + atendente
-      if (status === "Ativo") {
-        return false; // Reativados saem da fila (sucesso!)
-      }
-      // "Recuperado" tambem sai da fila (missao cumprida)
-      if (status === "Recuperado") {
-        return false;
-      }
-      // Todos os demais ficam visiveis na fila de trabalho
-      return true;
-    });
-
-    const records = visibleRecords.map((row) => ({
+    // TODOS os registros sao retornados (nada e oculto)
+    // A separacao entre "fila ativa" e "concluidos" e feita no frontend via filtros
+    // Isso garante que recuperados/ativos continuam contabilizados para relatorios
+    const records = allData.map((row) => ({
       id: row.id,
       associado: row.associado ?? "",
       documento: row.documento ?? "",

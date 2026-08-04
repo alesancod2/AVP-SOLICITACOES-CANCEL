@@ -119,15 +119,15 @@ export default function RecuperacaoPage() {
   const atendentes = useMemo(() => Array.from(new Set(records.map(r => r.atendente).filter(Boolean))).sort(), [records]);
   const sedes = useMemo(() => Array.from(new Set(records.map(r => r.sede).filter(Boolean))).sort(), [records]);
 
-  // KPIs - Refletem regras de visibilidade
+  // KPIs - Mostram evolucao COMPLETA (nada some do mapa)
   const kpis = useMemo(() => ({
-    totalCancelados: totalReal || records.length,
-    naFila: records.filter(r => !r.atendente && !r.statusRecuperacao).length,
+    totalBase: totalReal || records.length,
+    naFila: records.filter(r => !r.statusRecuperacao || r.statusRecuperacao === "Contato Realizado" || r.statusRecuperacao === "Interessado").length,
     interessados: records.filter(r => r.statusRecuperacao === "Interessado").length,
     contatoRealizado: records.filter(r => r.statusRecuperacao === "Contato Realizado").length,
+    recuperados: records.filter(r => r.statusRecuperacao === "Ativo" || r.statusRecuperacao === "Recuperado").length,
     recusa: records.filter(r => r.statusRecuperacao === "Recusa" || r.statusRecuperacao === "Nao Localizado").length,
-    meusAtendimentos: records.filter(r => r.atendente === user?.nome).length,
-  }), [records, totalReal, user?.nome]);
+  }), [records, totalReal]);
 
   // =============================================
   // HANDLERS
@@ -280,19 +280,15 @@ export default function RecuperacaoPage() {
         </div>
       )}
 
-      {/* KPI Cards - Fila ativa de trabalho */}
+      {/* KPI Cards - Evolucao completa (nada desaparece) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="kpi-card border-l-2 border-l-red-500">
           <span className="text-xs text-gray-500 uppercase">Total Base</span>
-          <span className="text-2xl font-bold text-red-400">{kpis.totalCancelados.toLocaleString("pt-BR")}</span>
+          <span className="text-2xl font-bold text-red-400">{kpis.totalBase.toLocaleString("pt-BR")}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-blue-500">
           <span className="text-xs text-gray-500 uppercase">Na Fila</span>
           <span className="text-2xl font-bold text-blue-400">{kpis.naFila}</span>
-        </div>
-        <div className="kpi-card border-l-2 border-l-purple-500">
-          <span className="text-xs text-gray-500 uppercase">Meus</span>
-          <span className="text-2xl font-bold text-purple-400">{kpis.meusAtendimentos}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-yellow-500">
           <span className="text-xs text-gray-500 uppercase">Contato Feito</span>
@@ -301,6 +297,10 @@ export default function RecuperacaoPage() {
         <div className="kpi-card border-l-2 border-l-cyan-500">
           <span className="text-xs text-gray-500 uppercase">Tem Interesse</span>
           <span className="text-2xl font-bold text-cyan-400">{kpis.interessados}</span>
+        </div>
+        <div className="kpi-card border-l-2 border-l-green-500">
+          <span className="text-xs text-gray-500 uppercase">Recuperados</span>
+          <span className="text-2xl font-bold text-green-400">{kpis.recuperados}</span>
         </div>
         <div className="kpi-card border-l-2 border-l-gray-500">
           <span className="text-xs text-gray-500 uppercase">Recusa</span>
