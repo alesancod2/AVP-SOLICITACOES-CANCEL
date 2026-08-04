@@ -46,9 +46,13 @@ jobs:
             const sessionId = match[1];
             console.log("[sync-cancelados] 2. Login OK");
 
-            // Busca TODOS os cancelados - sem filtro de data, sem filtro de vencimento
-            // Cada contrato/placa tem VendasId unico na AEasy
+            // Busca cancelados dos ULTIMOS 90 DIAS (por data de cancelamento)
+            // Filtro: TipoData=VendasDataCancelamento + DataInicial/DataFinal
             function buildBody(start, length) {
+              const now = new Date();
+              const dataFinal = now.toISOString().split("T")[0];
+              const dataInicial = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
               const parts = [
                 `draw=1`, `start=${start}`, `length=${length}`,
                 `columns[0][data]=ClientesIndividuosNome`,
@@ -57,13 +61,16 @@ jobs:
                 `columns[0][search][value]=`, `columns[0][search][regex]=false`,
                 `order[0][column]=0`, `order[0][dir]=asc`,
                 `formPesquisa[VendasSituacao][]=3`,
+                `formPesquisa[TipoData]=VendasDataCancelamento`,
+                `formPesquisa[DataInicial]=${dataInicial}`,
+                `formPesquisa[DataFinal]=${dataFinal}`,
                 `formPesquisa[submitFilter]=true`,
                 `formPesquisa[DepartNivel]=1`,
               ];
               return parts.join("&");
             }
 
-            console.log("[sync-cancelados] 3. Buscando TODOS os cancelados da AEasy...");
+            console.log("[sync-cancelados] 3. Buscando cancelados dos ultimos 90 dias...");
             const allVendas = [];
             const pageSize = 1000;
 
